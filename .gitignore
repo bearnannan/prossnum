@@ -1,0 +1,8 @@
+node_modules/
+.venv/
+oracleJdk-25/
+.agent/
+.env*
+.DS_Store
+__pycache__/
+*.pyc
