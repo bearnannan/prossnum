@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import dynamic from "next/dynamic";
 import { StationData } from "./api/sheet-data/route";
 import ExportBentoReportRaw from '@/components/ExportBentoReport';
+import StationModal from '@/components/StationModal';
 
 const MapView = dynamic(() => import('@/components/MapView'), {
   ssr: false,
@@ -34,6 +35,8 @@ export default function Home() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedExportStations, setSelectedExportStations] = useState<string[]>([]);
   const [expandedDistricts, setExpandedDistricts] = useState<string[]>([]);
+  const [isStationModalOpen, setIsStationModalOpen] = useState(false);
+  const [editingStation, setEditingStation] = useState<StationData | null>(null);
   const router = useRouter();
 
   // Search, Filter, Sort States
@@ -46,18 +49,7 @@ export default function Home() {
   // Refs map: district name -> div element for html2canvas capture
   const exportRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // New states for the form
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingRowIndex, setEditingRowIndex] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
-    district: "",
-    stationName: "",
-    type: "C",
-    foundationProgress: 0,
-    poleInstallationProgress: 0,
-    lat: 14.0,
-    lon: 99.0
-  });
+  // No inline form state needed — handled by StationModal
 
   const fetchSheetData = async () => {
     setIsLoading(true);
@@ -87,76 +79,9 @@ export default function Home() {
     fetchSheetData();
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const isEditing = editingRowIndex !== null;
-      const method = isEditing ? "PUT" : "POST";
-      const payload = isEditing ? { ...formData, rowIndex: editingRowIndex } : formData;
-
-      const res = await fetch("/api/sheet-data", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || `Failed to ${isEditing ? "update" : "submit"} data`);
-      }
-
-      // Re-fetch data to show the new/updated row
-      await fetchSheetData();
-
-      // Reset form
-      setFormData(prev => ({
-        ...prev,
-        stationName: "",
-        foundationProgress: 0,
-        poleInstallationProgress: 0,
-      }));
-      setEditingRowIndex(null);
-      alert(`Data ${isEditing ? "updated" : "submitted"} successfully!`);
-    } catch (err: any) {
-      alert(`Error ${editingRowIndex !== null ? "updating" : "submitting"} data: ${err.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleEditClick = (station: StationData) => {
-    if (!station.rowIndex) return;
-    setEditingRowIndex(station.rowIndex);
-    setFormData({
-      district: station.district,
-      stationName: station.stationName,
-      type: station.type || "C",
-      foundationProgress: station.foundationProgress,
-      poleInstallationProgress: station.poleInstallationProgress,
-      lat: station.lat || 14.0,
-      lon: station.lon || 99.0
-    });
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const cancelEdit = () => {
-    setEditingRowIndex(null);
-    setFormData({
-      district: "",
-      stationName: "",
-      type: "C",
-      foundationProgress: 0,
-      poleInstallationProgress: 0,
-      lat: 14.0,
-      lon: 99.0
-    });
+    setEditingStation(station);
+    setIsStationModalOpen(true);
   };
 
   const handleDeleteClick = async (station: StationData) => {
@@ -336,77 +261,113 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F3F4F6] p-8 font-sans dark:bg-zinc-900">
-      {/* Removed the permanent hidden export containers */}
+    <div className="flex min-h-screen flex-col bg-[#F3F4F6] px-4 py-6 sm:p-8 font-sans dark:bg-zinc-900">
 
-      <header className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Progress Dashboard
-          </h1>
-          <p className="mt-1 text-zinc-500 dark:text-zinc-400">
-            Real-time tracking for station installation progress
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* Export PDF button */}
-          {!isLoading && data.length > 0 && (
+      {/* Station Modal */}
+      <StationModal
+        isOpen={isStationModalOpen}
+        onClose={() => { setIsStationModalOpen(false); setEditingStation(null); }}
+        onSave={fetchSheetData}
+        editingStation={editingStation}
+        districts={districts}
+      />
+
+      <header className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+              Progress Dashboard
+            </h1>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Real-time tracking for station installation progress
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            {/* Add Station button */}
             <button
-              onClick={() => {
-                const allStationKeys = data.map(d => `${d.district}|${d.stationName}`);
-                setSelectedExportStations(allStationKeys);
-                setExpandedDistricts([]); // Optional: start with everything collapsed
-                setIsExportModalOpen(true);
-              }}
-              disabled={isExporting}
-              className="flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white px-5 py-2.5 text-sm font-semibold text-white dark:text-zinc-900 shadow-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+              onClick={() => { setEditingStation(null); setIsStationModalOpen(true); }}
+              className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
             >
-              {isExporting ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
-                  กำลัง Export...
-                </>
-              ) : (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  Export PDF รายอำเภอ
-                </>
-              )}
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              <span className="hidden sm:inline">เพิ่มสถานี</span>
+              <span className="sm:hidden">เพิ่ม</span>
             </button>
-          )}
-          {/* Logout Button */}
-          <button
-            onClick={handleLogout}
-            className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-600 shadow-sm hover:bg-zinc-50 transition-colors dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
-            Logout
-          </button>
+            {/* Export PDF button */}
+            {!isLoading && data.length > 0 && (
+              <button
+                onClick={() => {
+                  const allStationKeys = data.map(d => `${d.district}|${d.stationName}`);
+                  setSelectedExportStations(allStationKeys);
+                  setExpandedDistricts([]);
+                  setIsExportModalOpen(true);
+                }}
+                disabled={isExporting}
+                className="flex items-center gap-2 rounded-xl bg-zinc-900 dark:bg-white px-4 py-2.5 text-sm font-semibold text-white dark:text-zinc-900 shadow-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {isExporting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    <span className="hidden sm:inline">กำลัง Export...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span className="hidden sm:inline">Export PDF รายอำเภอ</span>
+                    <span className="sm:hidden">Export</span>
+                  </>
+                )}
+              </button>
+            )}
+            {/* Report Preview button */}
+            {!isLoading && data.length > 0 && (
+              <button
+                onClick={() => router.push("/report")}
+                className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-300 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
+                </svg>
+                <span className="hidden sm:inline">Report</span>
+              </button>
+            )}
+            {/* Logout Button */}
+
+            <button
+              onClick={handleLogout}
+              className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-600 shadow-sm hover:bg-zinc-50 transition-colors dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Main Bento Grid Layout */}
-      <main className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <main className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
 
-        {/* Left Column: Stats and Map */}
-        <div className={`col-span-1 flex flex-col gap-6 md:col-span-2 ${editingRowIndex !== null ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
+        {/* Stats + Map — full width */}
+        <div className="col-span-1 flex flex-col gap-4 sm:gap-6 md:col-span-2 lg:col-span-3">
           {/* Stats Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="flex flex-col justify-center rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-800">
-              <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Stations</h2>
-              <p className="mt-2 text-4xl font-semibold text-zinc-900 dark:text-white">
+          <div className="grid grid-cols-2 gap-4 sm:gap-6">
+            <div className="flex flex-col justify-center rounded-2xl bg-white p-4 sm:p-6 shadow-sm dark:bg-zinc-800">
+              <h2 className="text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Stations</h2>
+              <p className="mt-1 sm:mt-2 text-3xl sm:text-4xl font-semibold text-zinc-900 dark:text-white">
                 {isLoading ? "..." : data.length}
               </p>
             </div>
-            <div className="flex flex-col justify-center rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-800">
-              <h2 className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Average Foundation Progress</h2>
-              <p className="mt-2 text-4xl font-semibold text-zinc-900 dark:text-white">
+            <div className="flex flex-col justify-center rounded-2xl bg-white p-4 sm:p-6 shadow-sm dark:bg-zinc-800">
+              <h2 className="text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400">Average Foundation Progress</h2>
+              <p className="mt-1 sm:mt-2 text-3xl sm:text-4xl font-semibold text-zinc-900 dark:text-white">
                 {isLoading
                   ? "..."
                   : data.length > 0
@@ -417,87 +378,10 @@ export default function Home() {
           </div>
 
           {/* Map View */}
-          <div className="h-[400px] overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-zinc-800 z-0">
+          <div className="h-[260px] sm:h-[400px] overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-zinc-800 z-0">
             {!isLoading && <MapView data={data} />}
           </div>
         </div>
-
-        {/* Summary Card 3 (Form Entry) */}
-        {editingRowIndex !== null && (
-          <div className="col-span-1 flex flex-col justify-center rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-800 md:col-span-2 lg:col-span-1 border border-transparent transition-all" style={{ borderColor: '#3B82F6', boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1)' }}>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
-                Edit Data
-              </h2>
-              <button
-                type="button"
-                onClick={cancelEdit}
-                className="text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-              >
-                Cancel Edit
-              </button>
-            </div>
-            <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-              <input
-                name="district"
-                placeholder="อำเภอ..."
-                value={formData.district}
-                onChange={handleInputChange}
-                className="w-full rounded-md border border-zinc-200 p-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                required
-              />
-              <input
-                name="stationName"
-                placeholder="ชื่อสถานี..."
-                value={formData.stationName}
-                onChange={handleInputChange}
-                className="w-full rounded-md border border-zinc-200 p-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                required
-              />
-              <select
-                name="type"
-                value={formData.type}
-                onChange={handleInputChange}
-                className="w-full rounded-md border border-zinc-200 p-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-              >
-                <option value="A">Type A</option>
-                <option value="B">Type B</option>
-                <option value="C">Type C</option>
-              </select>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-zinc-500">ฐานราก (%)</label>
-                  <input
-                    name="foundationProgress"
-                    type="number"
-                    min="0" max="100"
-                    value={formData.foundationProgress}
-                    onChange={handleInputChange}
-                    className="w-full rounded-md border border-zinc-200 p-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-zinc-500">ติดตั้งเสา (%)</label>
-                  <input
-                    name="poleInstallationProgress"
-                    type="number"
-                    min="0" max="100"
-                    value={formData.poleInstallationProgress}
-                    onChange={handleInputChange}
-                    className="w-full rounded-md border border-zinc-200 p-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="mt-2 w-full rounded-md py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 bg-blue-600 hover:bg-blue-700"
-              >
-                {isSubmitting ? "Updating..." : "Update Sheets"}
-              </button>
-            </form>
-          </div>
-        )}
 
         {/* District Average Chart */}
         <div className="col-span-1 md:col-span-2 lg:col-span-3 w-full rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-800 h-[350px]">
@@ -520,9 +404,9 @@ export default function Home() {
         })}
 
         {/* Data Table / List */}
-        <div className="col-span-1 md:col-span-2 lg:col-span-3 rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-800">
-          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Recent Data</h2>
+        <div className="col-span-1 md:col-span-2 lg:col-span-3 rounded-2xl bg-white p-4 sm:p-6 shadow-sm dark:bg-zinc-800">
+          <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">ข้อมูลสถานี</h2>
 
             {/* Control Panel: Search & Filters */}
             {!isLoading && !error && data.length > 0 && (
@@ -610,19 +494,23 @@ export default function Home() {
                         </td>
                         <td className="px-4 py-3">{station.foundationProgress}%</td>
                         <td className="px-4 py-3">{station.poleInstallationProgress}%</td>
-                        <td className="px-4 py-3 text-right space-x-3">
-                          <button
-                            onClick={() => handleEditClick(station)}
-                            className="text-blue-600 hover:text-blue-800 text-xs font-semibold transition-colors dark:text-blue-400 dark:hover:text-blue-300"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(station)}
-                            className="text-red-600 hover:text-red-800 text-xs font-semibold transition-colors dark:text-red-400 dark:hover:text-red-300"
-                          >
-                            Delete
-                          </button>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleEditClick(station)}
+                              className="inline-flex items-center gap-1 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 px-2.5 py-1 text-xs font-semibold transition-colors"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                              แก้ไข
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(station)}
+                              className="inline-flex items-center gap-1 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 px-2.5 py-1 text-xs font-semibold transition-colors"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>
+                              ลบ
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -705,8 +593,8 @@ export default function Home() {
                               }}
                             />
                             <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${isAllSelected ? 'bg-blue-600 border-blue-600 text-white' :
-                                isPartialSelected ? 'bg-blue-600 border-blue-600 text-white' :
-                                  'border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900'
+                              isPartialSelected ? 'bg-blue-600 border-blue-600 text-white' :
+                                'border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900'
                               }`}>
                               {isAllSelected && (
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
