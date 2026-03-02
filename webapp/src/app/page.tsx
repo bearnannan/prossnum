@@ -27,6 +27,11 @@ const ExportBentoReport = dynamic(() => import('@/components/ExportBentoReport')
   ssr: false,
 });
 
+const ComparisonChart = dynamic(() => import('@/components/ComparisonChart'), {
+  ssr: false,
+  loading: () => <div className="h-full w-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-800/50 rounded-xl text-zinc-500 text-sm">Loading Chart...</div>
+});
+
 export default function Home() {
   const [data, setData] = useState<StationData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,6 +42,7 @@ export default function Home() {
   const [expandedDistricts, setExpandedDistricts] = useState<string[]>([]);
   const [isStationModalOpen, setIsStationModalOpen] = useState(false);
   const [editingStation, setEditingStation] = useState<StationData | null>(null);
+  const [chartTab, setChartTab] = useState<'average' | 'comparison'>('average');
   const router = useRouter();
 
   // Search, Filter, Sort States
@@ -357,24 +363,126 @@ export default function Home() {
 
         {/* Stats + Map — full width */}
         <div className="col-span-1 flex flex-col gap-4 sm:gap-6 md:col-span-2 lg:col-span-3">
-          {/* Stats Row */}
-          <div className="grid grid-cols-2 gap-4 sm:gap-6">
-            <div className="flex flex-col justify-center rounded-2xl bg-white p-4 sm:p-6 shadow-sm dark:bg-zinc-800">
-              <h2 className="text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Stations</h2>
-              <p className="mt-1 sm:mt-2 text-3xl sm:text-4xl font-semibold text-zinc-900 dark:text-white">
-                {isLoading ? "..." : data.length}
-              </p>
+          {/* Stats Row — 4 cards + overall progress bar */}
+          <div className="space-y-4 sm:space-y-5">
+
+            {/* 4 stat cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Total */}
+              <div className="flex flex-col justify-between rounded-2xl bg-white dark:bg-zinc-800 p-4 sm:p-5 shadow-sm">
+                <p className="text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400">ทั้งหมด</p>
+                <p className="mt-2 text-3xl sm:text-4xl font-bold text-zinc-900 dark:text-white">
+                  {isLoading ? "..." : data.length}
+                </p>
+                <p className="mt-1 text-xs text-zinc-400">สถานีลูกข่าย</p>
+              </div>
+
+              {/* Completed */}
+              {(() => {
+                const count = data.filter(s => parseFloat(s.foundationProgress as any) === 100 && parseFloat(s.poleInstallationProgress as any) === 100).length;
+                return (
+                  <div className="flex flex-col justify-between rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 p-4 sm:p-5 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs sm:text-sm font-medium text-emerald-700 dark:text-emerald-400">เสร็จสมบูรณ์</p>
+                      <span className="text-lg">✅</span>
+                    </div>
+                    <p className="mt-2 text-3xl sm:text-4xl font-bold text-emerald-700 dark:text-emerald-300">
+                      {isLoading ? "..." : count}
+                    </p>
+                    <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-500">
+                      {isLoading || data.length === 0 ? "" : `${Math.round(count / data.length * 100)}% ของทั้งหมด`}
+                    </p>
+                  </div>
+                );
+              })()}
+
+              {/* In Progress */}
+              {(() => {
+                const count = data.filter(s => {
+                  const fp = parseFloat(s.foundationProgress as any) || 0;
+                  const pp = parseFloat(s.poleInstallationProgress as any) || 0;
+                  return (fp > 0 || pp > 0) && !(fp === 100 && pp === 100);
+                }).length;
+                return (
+                  <div className="flex flex-col justify-between rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 p-4 sm:p-5 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-400">กำลังดำเนินการ</p>
+                      <span className="text-lg">🔄</span>
+                    </div>
+                    <p className="mt-2 text-3xl sm:text-4xl font-bold text-amber-700 dark:text-amber-300">
+                      {isLoading ? "..." : count}
+                    </p>
+                    <p className="mt-1 text-xs text-amber-600 dark:text-amber-500">
+                      {isLoading || data.length === 0 ? "" : `${Math.round(count / data.length * 100)}% ของทั้งหมด`}
+                    </p>
+                  </div>
+                );
+              })()}
+
+              {/* Not Started */}
+              {(() => {
+                const count = data.filter(s => {
+                  const fp = parseFloat(s.foundationProgress as any) || 0;
+                  const pp = parseFloat(s.poleInstallationProgress as any) || 0;
+                  return fp === 0 && pp === 0;
+                }).length;
+                return (
+                  <div className="flex flex-col justify-between rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 p-4 sm:p-5 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs sm:text-sm font-medium text-red-700 dark:text-red-400">ยังไม่เริ่ม</p>
+                      <span className="text-lg">⏳</span>
+                    </div>
+                    <p className="mt-2 text-3xl sm:text-4xl font-bold text-red-700 dark:text-red-300">
+                      {isLoading ? "..." : count}
+                    </p>
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-500">
+                      {isLoading || data.length === 0 ? "" : `${Math.round(count / data.length * 100)}% ของทั้งหมด`}
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
-            <div className="flex flex-col justify-center rounded-2xl bg-white p-4 sm:p-6 shadow-sm dark:bg-zinc-800">
-              <h2 className="text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400">Average Foundation Progress</h2>
-              <p className="mt-1 sm:mt-2 text-3xl sm:text-4xl font-semibold text-zinc-900 dark:text-white">
-                {isLoading
-                  ? "..."
-                  : data.length > 0
-                    ? `${Math.round(data.reduce((acc, curr) => acc + (parseFloat(curr.foundationProgress as any) || 0), 0) / data.length)}%`
-                    : "0%"}
-              </p>
-            </div>
+
+            {/* Overall Progress Bar */}
+            {!isLoading && data.length > 0 && (() => {
+              const avgFoundation = data.reduce((a, c) => a + (parseFloat(c.foundationProgress as any) || 0), 0) / data.length;
+              const avgPole = data.reduce((a, c) => a + (parseFloat(c.poleInstallationProgress as any) || 0), 0) / data.length;
+              const overall = (avgFoundation + avgPole) / 2;
+              return (
+                <div className="rounded-2xl bg-white dark:bg-zinc-800 p-4 sm:p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">ความคืบหน้าโดยรวม</p>
+                    <span className="text-2xl font-bold text-zinc-900 dark:text-white">{Math.round(overall)}%</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <div className="flex justify-between text-xs text-zinc-500 mb-1">
+                        <span>ฐานราก (เฉลี่ย)</span>
+                        <span className="font-medium text-indigo-600">{Math.round(avgFoundation)}%</span>
+                      </div>
+                      <div className="h-2.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-700"
+                          style={{ width: `${avgFoundation}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs text-zinc-500 mb-1">
+                        <span>ติดตั้งเสา (เฉลี่ย)</span>
+                        <span className="font-medium text-cyan-600">{Math.round(avgPole)}%</span>
+                      </div>
+                      <div className="h-2.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-cyan-400 transition-all duration-700"
+                          style={{ width: `${avgPole}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Map View */}
@@ -383,10 +491,36 @@ export default function Home() {
           </div>
         </div>
 
-        {/* District Average Chart */}
-        <div className="col-span-1 md:col-span-2 lg:col-span-3 w-full rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-800 h-[350px]">
-          <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Average Progress by District (อำเภอ)</h2>
-          {!isLoading && <DistrictProgressChart data={data} />}
+        {/* Chart Section with Tab Switcher */}
+        <div className="col-span-1 md:col-span-2 lg:col-span-3 w-full rounded-2xl bg-white dark:bg-zinc-800 p-5 sm:p-6 shadow-sm">
+          {/* Tab Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">สรุปความคืบหน้ารายอำเภอ</h2>
+            <div className="flex items-center gap-1 rounded-xl bg-zinc-100 dark:bg-zinc-700/50 p-1">
+              <button
+                onClick={() => setChartTab('average')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${chartTab === 'average'
+                    ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm'
+                    : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                  }`}
+              >
+                เฉลี่ยรายอำเภอ
+              </button>
+              <button
+                onClick={() => setChartTab('comparison')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${chartTab === 'comparison'
+                    ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm'
+                    : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                  }`}
+              >
+                ฐานราก vs ติดตั้งเสา
+              </button>
+            </div>
+          </div>
+          <div className="h-[320px] sm:h-[360px]">
+            {!isLoading && chartTab === 'average' && <DistrictProgressChart data={data} />}
+            {!isLoading && chartTab === 'comparison' && <ComparisonChart data={data} />}
+          </div>
         </div>
 
         {/* Data Chart (Grouped by District) */}
