@@ -19,6 +19,9 @@ const defaultForm = {
     poleInstallationProgress: 0,
     lat: 14.0,
     lon: 99.0,
+    poleHeight: "",
+    startDate: "",
+    remark: "",
 };
 
 export default function StationModal({
@@ -44,6 +47,9 @@ export default function StationModal({
                 poleInstallationProgress: editingStation.poleInstallationProgress,
                 lat: editingStation.lat || 14.0,
                 lon: editingStation.lon || 99.0,
+                poleHeight: editingStation.poleHeight || "",
+                startDate: editingStation.startDate || "",
+                remark: editingStation.remark || "",
             });
         } else {
             setFormData(defaultForm);
@@ -63,7 +69,7 @@ export default function StationModal({
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
         if (errors[name]) setErrors(prev => ({ ...prev, [name]: "" }));
@@ -232,6 +238,41 @@ export default function StationModal({
                                 className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2.5 text-sm bg-white dark:bg-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                             />
                         </div>
+                    </div>
+
+                    {/* New Fields */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">ความสูงเสา</label>
+                            <input
+                                name="poleHeight"
+                                value={formData.poleHeight}
+                                onChange={handleChange}
+                                placeholder="เช่น 30m"
+                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2.5 text-sm bg-white dark:bg-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">วันที่เริ่มงาน</label>
+                            <input
+                                name="startDate"
+                                type="date"
+                                value={formData.startDate}
+                                onChange={handleChange}
+                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2.5 text-sm bg-white dark:bg-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">หมายเหตุ</label>
+                        <textarea
+                            name="remark"
+                            value={formData.remark}
+                            onChange={handleChange}
+                            rows={2}
+                            placeholder="ระบุหมายเหตุ / สิ่งที่ต้องทำต่อ..."
+                            className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2.5 text-sm bg-white dark:bg-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 resize-none"
+                        />
                     </div>
 
                     {/* Actions */}

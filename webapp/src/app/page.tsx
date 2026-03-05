@@ -38,6 +38,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportType, setExportType] = useState<'pdf' | 'txt' | 'jpeg'>('pdf');
+  const [colorMode, setColorMode] = useState<'color' | 'grayscale'>('color');
   const [selectedExportStations, setSelectedExportStations] = useState<string[]>([]);
   const [expandedDistricts, setExpandedDistricts] = useState<string[]>([]);
   const [isStationModalOpen, setIsStationModalOpen] = useState(false);
@@ -123,6 +125,68 @@ export default function Home() {
 
 
   // ── Export logic ──────────────────────────────────────────────
+  const handleExportTXT = () => {
+    setIsExportModalOpen(false);
+    if (selectedExportStations.length === 0) return;
+
+    const filteredExportData = data.filter(d =>
+      selectedExportStations.includes(`${d.district}|${d.stationName}`)
+    );
+
+    // Group by district
+    const groupedByDistrict = filteredExportData.reduce((acc, station) => {
+      if (!acc[station.district]) {
+        acc[station.district] = [];
+      }
+      acc[station.district].push(station);
+      return acc;
+    }, {} as Record<string, typeof filteredExportData>);
+
+    // Format date as DD-MM-YY (e.g. 05-03-26)
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = String(today.getFullYear()).slice(-2);
+    const dateStr = `${day}-${month}-${year}`;
+
+    let textContent = `${dateStr}\n`;
+    textContent += `รายงานความคืบหน้างานก่อสร้างฐานรากและติดตั้งเสาสัญญาณ 9 เมตร สถานีลูกข่าย "อ.เลาขวัญ" และ "อ.ห้วยกระเจา" จ.กาญจนบุรี เขต11 (เพชรบุรี)\n\n`;
+
+    const districtKeys = Object.keys(groupedByDistrict);
+
+    districtKeys.forEach((district, dIndex) => {
+      const displayDistrict = district.startsWith('อำเภอ') ? district : `อำเภอ${district}`;
+      textContent += `📍 ${displayDistrict}\n\n`;
+
+      const stations = groupedByDistrict[district];
+      stations.forEach((station, index) => {
+        textContent += `[${index + 1}]. สถานีลูกข่าย ${station.stationName} (${station.poleHeight || "ไม่ระบุ"}) ${station.type}\n`;
+        textContent += `งานก่อสร้างฐานราก: ${station.foundationProgress || 0}%\n`;
+        textContent += `งานติดตั้งโครงเสา: ${station.poleInstallationProgress || 0}%\n`;
+        textContent += `** หมายเหตุ: ${station.remark || "-"}\n`;
+        textContent += `เริ่มงาน: ${station.startDate || "-"}\n\n`;
+
+        if (index < stations.length - 1) {
+          textContent += `---\n\n`;
+        }
+      });
+
+      if (dIndex < districtKeys.length - 1) {
+        textContent += `=========================================\n\n`;
+      }
+    });
+
+    const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `progress_summary.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleExportPDF = async () => {
     setIsExportModalOpen(false);
     if (isExporting || selectedExportStations.length === 0) return;
@@ -185,31 +249,58 @@ export default function Home() {
         // html-to-image renders via SVG foreignObject — natively supports oklch/lab.
         const el = container.firstChild as HTMLElement;
 
-        // Warm up pass for remote images/svgs
+        if (exportType === 'jpeg' && colorMode === 'grayscale') {
+          el.style.filter = 'grayscale(100%)';
+        }
+
+        // Warming up pass
         await toJpeg(el, { width: 1122, height: 794 }).catch(() => { });
 
-        // Actual capture
-        const imgData = await toJpeg(el, {
+        // Final settings based on export type
+        const exportOptions = exportType === 'jpeg' ? {
+          quality: 1.0,
+          backgroundColor: '#F3F4F6',
+          width: 1122,
+          height: 794,
+          pixelRatio: 6.25, // 96 * 6.25 = 600 DPI
+        } : {
           quality: 0.95,
           backgroundColor: '#F3F4F6',
           width: 1122,
           height: 794,
-          pixelRatio: 2, // 2x for high quality print
-        });
+          pixelRatio: 2, // 2x for standard PDF
+        };
 
-        // Clean up immediately
+        const imgData = await toJpeg(el, exportOptions);
+
+        // Clean up DOM immediately
         root.unmount();
         document.body.removeChild(container);
 
-        const pdfW = pdf.internal.pageSize.getWidth();
-        const pdfH = pdf.internal.pageSize.getHeight();
+        if (exportType === 'jpeg') {
+          // Download individual JPEG for this district
+          const link = document.createElement("a");
+          link.href = imgData;
+          link.download = `report_${district}.jpg`;
+          document.body.appendChild(link);
+          link.click();
+          // Small delay before next to avoid hanging the browser visually if multiple downloads
+          await new Promise(r => setTimeout(r, 100));
+          document.body.removeChild(link);
+        } else {
+          // Merge into PDF
+          const pdfW = pdf.internal.pageSize.getWidth();
+          const pdfH = pdf.internal.pageSize.getHeight();
 
-        if (!isFirstPage) pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
-        isFirstPage = false;
+          if (!isFirstPage) pdf.addPage();
+          pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
+          isFirstPage = false;
+        }
       }
 
-      pdf.save('district-report.pdf');
+      if (exportType === 'pdf') {
+        pdf.save('district-report.pdf');
+      }
     } catch (err: any) {
       alert('Export failed: ' + err.message);
     } finally {
@@ -300,13 +391,32 @@ export default function Home() {
               <span className="hidden sm:inline">เพิ่มสถานี</span>
               <span className="sm:hidden">เพิ่ม</span>
             </button>
-            {/* Export PDF button */}
+            {/* Export TXT button */}
             {!isLoading && data.length > 0 && (
               <button
                 onClick={() => {
                   const allStationKeys = data.map(d => `${d.district}|${d.stationName}`);
                   setSelectedExportStations(allStationKeys);
                   setExpandedDistricts([]);
+                  setExportType('txt');
+                  setIsExportModalOpen(true);
+                }}
+                disabled={isExporting}
+                className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <span className="hidden sm:inline">Export สรุปงาน (.txt)</span>
+                <span className="sm:hidden">สรุปงาน</span>
+              </button>
+            )}
+            {/* Export PDF/JPEG button */}
+            {!isLoading && data.length > 0 && (
+              <button
+                onClick={() => {
+                  const allStationKeys = data.map(d => `${d.district}|${d.stationName}`);
+                  setSelectedExportStations(allStationKeys);
+                  setExpandedDistricts([]);
+                  setExportType('pdf'); // Default to PDF initially
                   setIsExportModalOpen(true);
                 }}
                 disabled={isExporting}
@@ -327,7 +437,7 @@ export default function Home() {
                       <polyline points="7 10 12 15 17 10" />
                       <line x1="12" y1="15" x2="12" y2="3" />
                     </svg>
-                    <span className="hidden sm:inline">Export PDF รายอำเภอ</span>
+                    <span className="hidden sm:inline">Export รายอำเภอ</span>
                     <span className="sm:hidden">Export</span>
                   </>
                 )}
@@ -500,8 +610,8 @@ export default function Home() {
               <button
                 onClick={() => setChartTab('average')}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${chartTab === 'average'
-                    ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm'
-                    : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                  ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm'
+                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
                   }`}
               >
                 เฉลี่ยรายอำเภอ
@@ -509,8 +619,8 @@ export default function Home() {
               <button
                 onClick={() => setChartTab('comparison')}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${chartTab === 'comparison'
-                    ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm'
-                    : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                  ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm'
+                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
                   }`}
               >
                 ฐานราก vs ติดตั้งเสา
@@ -667,7 +777,7 @@ export default function Home() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] border border-zinc-100 dark:border-zinc-800">
             <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">เลือกข้อมูลเพื่อ Export PDF</h3>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">เลือกข้อมูลเพื่อ Export {exportType.toUpperCase()}</h3>
               <button
                 onClick={() => setIsExportModalOpen(false)}
                 className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
@@ -677,6 +787,46 @@ export default function Home() {
             </div>
 
             <div className="p-6 overflow-y-auto flex-1 bg-zinc-50 dark:bg-zinc-900/50">
+
+              {/* Type Details Setup - Only Show for Visual Exports */}
+              {exportType !== 'txt' && (
+                <div className="mb-6 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-sm">
+                  <div className="flex flex-col gap-4">
+                    {/* Format Section */}
+                    <div>
+                      <span className="block font-semibold text-zinc-900 dark:text-zinc-100 mb-2">รูปแบบไฟล์ (Format)</span>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="radio" name="format" className="text-blue-600" checked={exportType === 'pdf'} onChange={() => setExportType('pdf')} />
+                          <span className="text-zinc-700 dark:text-zinc-300">PDF (รวมหน้า)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="radio" name="format" className="text-blue-600" checked={exportType === 'jpeg'} onChange={() => setExportType('jpeg')} />
+                          <span className="text-zinc-700 dark:text-zinc-300">JPEG (แยกรูป 600dpi)</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Color Sequence - Only show for JPEG */}
+                    {exportType === 'jpeg' && (
+                      <div className="pt-3 border-t border-zinc-100 dark:border-zinc-700">
+                        <span className="block font-semibold text-zinc-900 dark:text-zinc-100 mb-2">โหมดสี (Color Mode)</span>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="color" className="text-blue-600" checked={colorMode === 'color'} onChange={() => setColorMode('color')} />
+                            <span className="text-zinc-700 dark:text-zinc-300">สีปกติ (Color)</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" name="color" className="text-blue-600" checked={colorMode === 'grayscale'} onChange={() => setColorMode('grayscale')} />
+                            <span className="text-zinc-700 dark:text-zinc-300">ขาวดำ (Grayscale)</span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   เลือก {selectedExportStations.length} จาก {data.length} สถานี
@@ -810,8 +960,8 @@ export default function Home() {
                 ยกเลิก
               </button>
               <button
-                onClick={handleExportPDF}
-                disabled={selectedExportStations.length === 0}
+                onClick={exportType === 'txt' ? handleExportTXT : handleExportPDF}
+                disabled={selectedExportStations.length === 0 || isExporting}
                 className="px-6 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

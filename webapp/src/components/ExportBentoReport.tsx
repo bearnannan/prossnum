@@ -2,6 +2,7 @@
 
 import React from 'react';
 import ExportChartStatic from './ExportChartStatic';
+import ExportMapStatic from './ExportMapStatic';
 
 interface StationData {
     district: string;
@@ -96,86 +97,111 @@ export default function ExportBentoReport({ district, stations }: ExportBentoRep
             {/* === BODY: Chart + Table === */}
             <div style={{ display: 'flex', gap: '16px', flex: 1, minHeight: 0 }}>
 
-                {/* CHART BOX */}
-                <div style={{
-                    flex: '0 0 62%',
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: '16px',
-                    padding: '20px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minHeight: 0,
-                }}>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
-                        ความคืบหน้าแยกตามสถานี
+                {/* LEFT COLUMN */}
+                <div style={{ flex: '0 0 62%', display: 'flex', flexDirection: 'column', gap: '16px', minHeight: 0 }}>
+                    {/* CHART BOX */}
+                    <div style={{
+                        flex: 1,
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: '16px',
+                        padding: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minHeight: 0,
+                    }}>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
+                            ความคืบหน้าแยกตามสถานี
+                        </div>
+                        <div style={{ flex: 1, minHeight: 0 }}>
+                            <ExportChartStatic data={stations} width={616} height={320} />
+                        </div>
                     </div>
-                    <div style={{ flex: 1, minHeight: 0 }}>
-                        <ExportChartStatic data={stations} width={616} height={400} />
+
+                    {/* MAP BOX */}
+                    <div style={{
+                        flex: '0 0 32%',
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: '16px',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minHeight: 0,
+                    }}>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
+                            แผนที่พิกัดสถานี
+                        </div>
+                        <div style={{ flex: 1, overflow: 'hidden', borderRadius: '12px' }}>
+                            <ExportMapStatic stations={stations} />
+                        </div>
                     </div>
                 </div>
 
-                {/* TABLE BOX */}
-                <div style={{
-                    flex: 1,
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: '16px',
-                    padding: '20px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minHeight: 0,
-                    overflow: 'hidden',
-                }}>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '10px' }}>
-                        รายชื่อสถานี
+                {/* RIGHT COLUMN */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', minHeight: 0 }}>
+                    {/* TABLE BOX */}
+                    <div style={{
+                        flex: 1,
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: '16px',
+                        padding: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minHeight: 0,
+                        overflow: 'hidden',
+                    }}>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '10px' }}>
+                            รายชื่อสถานี
+                        </div>
+                        <div style={{ overflow: 'hidden', flex: 1 }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                                <thead>
+                                    <tr style={{ backgroundColor: '#F9FAFB' }}>
+                                        <th style={{ textAlign: 'left', padding: '6px 8px', color: '#6B7280', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>สถานี</th>
+                                        <th style={{ textAlign: 'center', padding: '6px 8px', color: '#6B7280', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>Type</th>
+                                        <th style={{ textAlign: 'right', padding: '6px 8px', color: '#3B82F6', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>ฐานราก</th>
+                                        <th style={{ textAlign: 'right', padding: '6px 8px', color: '#10B981', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>เสา</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {stations.map((s, i) => {
+                                        const fPct = parseFloat(s.foundationProgress as any) || 0;
+                                        const pPct = parseFloat(s.poleInstallationProgress as any) || 0;
+                                        return (
+                                            <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }}>
+                                                <td style={{ padding: '5px 8px', color: '#111827', fontWeight: 500, borderBottom: '1px solid #F3F4F6' }}>
+                                                    {s.stationName}
+                                                </td>
+                                                <td style={{ padding: '5px 8px', textAlign: 'center', borderBottom: '1px solid #F3F4F6' }}>
+                                                    <span style={{
+                                                        backgroundColor: '#E0E7FF',
+                                                        color: '#4338CA',
+                                                        padding: '1px 6px',
+                                                        borderRadius: '999px',
+                                                        fontSize: '10px',
+                                                        fontWeight: 600,
+                                                    }}>
+                                                        {s.type}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '5px 8px', textAlign: 'right', color: fPct >= 100 ? '#059669' : '#374151', fontWeight: fPct >= 100 ? 700 : 400, borderBottom: '1px solid #F3F4F6' }}>
+                                                    {fPct}%
+                                                </td>
+                                                <td style={{ padding: '5px 8px', textAlign: 'right', color: pPct >= 100 ? '#059669' : '#374151', fontWeight: pPct >= 100 ? 700 : 400, borderBottom: '1px solid #F3F4F6' }}>
+                                                    {pPct}%
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                        {/* Footer inside table box */}
+                        <div style={{ marginTop: '10px', borderTop: '1px solid #E5E7EB', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', color: '#9CA3AF', fontSize: '9px' }}>
+                            <span>Progress Dashboard — สรุปผลรายอำเภอ</span>
+                            <span>พิมพ์: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        </div>
                     </div>
-                    <div style={{ overflow: 'hidden', flex: 1 }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                            <thead>
-                                <tr style={{ backgroundColor: '#F9FAFB' }}>
-                                    <th style={{ textAlign: 'left', padding: '6px 8px', color: '#6B7280', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>สถานี</th>
-                                    <th style={{ textAlign: 'center', padding: '6px 8px', color: '#6B7280', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>Type</th>
-                                    <th style={{ textAlign: 'right', padding: '6px 8px', color: '#3B82F6', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>ฐานราก</th>
-                                    <th style={{ textAlign: 'right', padding: '6px 8px', color: '#10B981', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>เสา</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {stations.map((s, i) => {
-                                    const fPct = parseFloat(s.foundationProgress as any) || 0;
-                                    const pPct = parseFloat(s.poleInstallationProgress as any) || 0;
-                                    return (
-                                        <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }}>
-                                            <td style={{ padding: '5px 8px', color: '#111827', fontWeight: 500, borderBottom: '1px solid #F3F4F6' }}>
-                                                {s.stationName}
-                                            </td>
-                                            <td style={{ padding: '5px 8px', textAlign: 'center', borderBottom: '1px solid #F3F4F6' }}>
-                                                <span style={{
-                                                    backgroundColor: '#E0E7FF',
-                                                    color: '#4338CA',
-                                                    padding: '1px 6px',
-                                                    borderRadius: '999px',
-                                                    fontSize: '10px',
-                                                    fontWeight: 600,
-                                                }}>
-                                                    {s.type}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '5px 8px', textAlign: 'right', color: fPct >= 100 ? '#059669' : '#374151', fontWeight: fPct >= 100 ? 700 : 400, borderBottom: '1px solid #F3F4F6' }}>
-                                                {fPct}%
-                                            </td>
-                                            <td style={{ padding: '5px 8px', textAlign: 'right', color: pPct >= 100 ? '#059669' : '#374151', fontWeight: pPct >= 100 ? 700 : 400, borderBottom: '1px solid #F3F4F6' }}>
-                                                {pPct}%
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                    {/* Footer inside table box */}
-                    <div style={{ marginTop: '10px', borderTop: '1px solid #E5E7EB', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', color: '#9CA3AF', fontSize: '9px' }}>
-                        <span>Progress Dashboard — สรุปผลรายอำเภอ</span>
-                        <span>พิมพ์: {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                    </div>
+
                 </div>
             </div>
         </div>
