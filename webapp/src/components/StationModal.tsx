@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { get, set } from "idb-keyval";
 import { StationData } from "@/app/api/sheet-data/route";
 
 interface StationModalProps {
@@ -84,6 +85,21 @@ export default function StationModal({
             const payload = isEditing
                 ? { ...formData, rowIndex: editingStation!.rowIndex }
                 : formData;
+
+            if (!navigator.onLine) {
+                const queue: any[] = (await get("offline-mutations")) || [];
+                queue.push({
+                    id: Date.now().toString(),
+                    method,
+                    payload,
+                    timestamp: Date.now()
+                });
+                await set("offline-mutations", queue);
+                alert("Saved as Draft. It will sync automatically when back online.");
+                onSave();
+                onClose();
+                return;
+            }
 
             const res = await fetch("/api/sheet-data", {
                 method,

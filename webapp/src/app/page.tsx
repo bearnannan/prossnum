@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createRoot } from "react-dom/client";
 import dynamic from "next/dynamic";
+import useSWR from "swr";
 import { StationData } from "./api/sheet-data/route";
 import ExportBentoReportRaw from '@/components/ExportBentoReport';
 import StationModal from '@/components/StationModal';
+
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error("Failed to fetch data");
+  return res.json();
+});
 
 const MapView = dynamic(() => import('@/components/MapView'), {
   ssr: false,
@@ -33,9 +39,14 @@ const ComparisonChart = dynamic(() => import('@/components/ComparisonChart'), {
 });
 
 export default function Home() {
-  const [data, setData] = useState<StationData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: responseData, error: swrError, isLoading: swrIsLoading, mutate } = useSWR("/api/sheet-data", fetcher, {
+    dedupingInterval: 60000,
+    keepPreviousData: true,
+  });
+
+  const data: StationData[] = responseData?.data || [];
+  const isLoading = swrIsLoading && !responseData;
+  const error = swrError?.message || null;
   const [isExporting, setIsExporting] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportType, setExportType] = useState<'pdf' | 'txt' | 'jpeg'>('pdf');
@@ -60,17 +71,7 @@ export default function Home() {
   // No inline form state needed — handled by StationModal
 
   const fetchSheetData = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/sheet-data");
-      if (!res.ok) throw new Error("Failed to fetch data");
-      const json = await res.json();
-      setData(json.data || []);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
+    await mutate();
   };
 
   const handleLogout = async () => {
@@ -82,10 +83,6 @@ export default function Home() {
       console.error('Failed to log out', err);
     }
   };
-
-  useEffect(() => {
-    fetchSheetData();
-  }, []);
 
   const handleEditClick = (station: StationData) => {
     setEditingStation(station);
@@ -100,7 +97,6 @@ export default function Home() {
 
     if (isConfirmed) {
       try {
-        setIsLoading(true);
         const res = await fetch("/api/sheet-data", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -117,8 +113,6 @@ export default function Home() {
         alert(`Data deleted successfully!`);
       } catch (err: any) {
         alert(`Error deleting data: ${err.message}`);
-      } finally {
-        setIsLoading(false);
       }
     }
   };

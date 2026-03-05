@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import useSWR from "swr";
 import { StationData } from "@/app/api/sheet-data/route";
 import { createRoot } from "react-dom/client";
 import ExportBentoReportRaw from "@/components/ExportBentoReport";
@@ -11,20 +12,20 @@ const ExportBentoReport = dynamic(() => import("@/components/ExportBentoReport")
     ssr: false,
 });
 
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
 export default function ReportPage() {
-    const [data, setData] = useState<StationData[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { data: responseData, isLoading: swrIsLoading } = useSWR("/api/sheet-data", fetcher, {
+        dedupingInterval: 60000,
+        keepPreviousData: true,
+    });
+
+    const data: StationData[] = responseData?.data || [];
+    const isLoading = swrIsLoading && !responseData;
+
     const [isExporting, setIsExporting] = useState(false);
     const [selectedDistrict, setSelectedDistrict] = useState<string>("all");
     const router = useRouter();
-
-    useEffect(() => {
-        fetch("/api/sheet-data")
-            .then(res => res.json())
-            .then(json => setData(json.data || []))
-            .catch(console.error)
-            .finally(() => setIsLoading(false));
-    }, []);
 
     const districts = Array.from(new Set(data.map(d => d.district).filter(Boolean)));
 
