@@ -16,6 +16,23 @@ export interface StationData {
     rowIndex?: number;     // For updating specific rows
 }
 
+// Normalize date from Google Sheet (DD/MM/YY) to HTML Date Input (YYYY-MM-DD)
+function formatDateForUI(dateStr: string): string {
+    if (!dateStr || !dateStr.includes("/")) return "";
+    const [day, month, year] = dateStr.split("/");
+    // Assume year 2000+ for YY format
+    const fullYear = year.length === 2 ? `20${year}` : year;
+    return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+}
+
+// Normalize date from HTML Date Input (YYYY-MM-DD) to Google Sheet (DD/MM/YY)
+function formatDateForSheet(dateStr: string): string {
+    if (!dateStr || !dateStr.includes("-")) return dateStr;
+    const [year, month, day] = dateStr.split("-");
+    const shortYear = year.slice(-2);
+    return `${day}/${month}/${shortYear}`;
+}
+
 export async function GET() {
     try {
         console.log("PRIVATE KEY FORMAT DEBUG:",
@@ -41,8 +58,8 @@ export async function GET() {
             lat: parseFloat(row[5]) || 0,
             lon: parseFloat(row[6]) || 0,
             poleHeight: row[7] || "",
-            startDate: row[8] || "",
-            endDate: row[9] || "",
+            startDate: formatDateForUI(row[8] || ""),
+            endDate: formatDateForUI(row[9] || ""),
             remark: row[10] || "",
             rowIndex: index + 2 // Assuming data starts at row 2 in the sheet
         }));
@@ -75,8 +92,8 @@ export async function POST(req: Request) {
                 body.lat,
                 body.lon,
                 body.poleHeight || "",
-                body.startDate || "",
-                body.endDate || "",
+                formatDateForSheet(body.startDate || ""),
+                formatDateForSheet(body.endDate || ""),
                 body.remark || ""
             ]
         ];
@@ -125,8 +142,8 @@ export async function PUT(req: Request) {
                 body.lat,
                 body.lon,
                 body.poleHeight || "",
-                body.startDate || "",
-                body.endDate || "",
+                formatDateForSheet(body.startDate || ""),
+                formatDateForSheet(body.endDate || ""),
                 body.remark || ""
             ]
         ];
