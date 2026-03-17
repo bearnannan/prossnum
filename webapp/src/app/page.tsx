@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { createRoot } from "react-dom/client";
 import dynamic from "next/dynamic";
 import useSWR from "swr";
-import { StationData } from "./api/sheet-data/route";
+import { StationData, ClientSystemData } from "./api/sheet-data/route";
 import ExportBentoReportRaw from '@/components/ExportBentoReport';
 import StationModal from '@/components/StationModal';
+import ClientSystemModal from '@/components/ClientSystemModal';
 
 const fetcher = (url: string) => fetch(url).then(res => {
   if (!res.ok) throw new Error("Failed to fetch data");
@@ -39,12 +40,13 @@ const ComparisonChart = dynamic(() => import('@/components/ComparisonChart'), {
 });
 
 export default function Home() {
-  const { data: responseData, error: swrError, isLoading: swrIsLoading, mutate } = useSWR("/api/sheet-data", fetcher, {
+  const [activeCategory, setActiveCategory] = useState<'station' | 'client'>('station');
+  const { data: responseData, error: swrError, isLoading: swrIsLoading, mutate } = useSWR(`/api/sheet-data?sheet=${activeCategory}`, fetcher, {
     dedupingInterval: 60000,
     keepPreviousData: true,
   });
 
-  const data: StationData[] = responseData?.data || [];
+  const data: any[] = responseData?.data || [];
   const isLoading = swrIsLoading && !responseData;
   const error = swrError?.message || null;
   const [isExporting, setIsExporting] = useState(false);
@@ -54,7 +56,8 @@ export default function Home() {
   const [selectedExportStations, setSelectedExportStations] = useState<string[]>([]);
   const [expandedDistricts, setExpandedDistricts] = useState<string[]>([]);
   const [isStationModalOpen, setIsStationModalOpen] = useState(false);
-  const [editingStation, setEditingStation] = useState<StationData | null>(null);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [editingStation, setEditingStation] = useState<any | null>(null);
   const [chartTab, setChartTab] = useState<'average' | 'comparison'>('average');
   const router = useRouter();
 
@@ -84,23 +87,27 @@ export default function Home() {
     }
   };
 
-  const handleEditClick = (station: StationData) => {
-    setEditingStation(station);
-    setIsStationModalOpen(true);
+  const handleEditClick = (item: any) => {
+    setEditingStation(item);
+    if (activeCategory === 'client') {
+      setIsClientModalOpen(true);
+    } else {
+      setIsStationModalOpen(true);
+    }
   };
 
-  const handleDeleteClick = async (station: StationData) => {
-    if (!station.rowIndex) return;
+  const handleDeleteClick = async (item: any) => {
+    if (!item.rowIndex) return;
 
     // Check if confirming deletion
-    const isConfirmed = window.confirm(`Are you sure you want to delete ${station.stationName}? This action cannot be undone.`);
+    const isConfirmed = window.confirm(`Are you sure you want to delete ${item.stationName}? This action cannot be undone.`);
 
     if (isConfirmed) {
       try {
-        const res = await fetch("/api/sheet-data", {
+        const res = await fetch(`/api/sheet-data?sheet=${activeCategory}`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rowIndex: station.rowIndex }),
+          body: JSON.stringify({ rowIndex: item.rowIndex }),
         });
 
         if (!res.ok) {
@@ -128,18 +135,17 @@ export default function Home() {
     );
 
     // Group by district
-    const groupedByDistrict = filteredExportData.reduce((acc, station) => {
-      if (!acc[station.district]) {
-        acc[station.district] = [];
+    const groupedByDistrict = filteredExportData.reduce((acc, item) => {
+      if (!acc[item.district]) {
+        acc[item.district] = [];
       }
-      acc[station.district].push(station);
+      acc[item.district].push(item);
       return acc;
-    }, {} as Record<string, typeof filteredExportData>);
+    }, {} as Record<string, any[]>);
 
     // Date formatting helper: YYYY-MM-DD -> DD-MM-YYYY
     const formatDate = (dateStr: string) => {
       if (!dateStr || dateStr === "-") return "-";
-      // If it's already in DD/MM/YY format (historical data), just return as is or normalize
       if (dateStr.includes('/')) return dateStr;
       const [y, m, d] = dateStr.split('-');
       if (!y || !m || !d) return dateStr;
@@ -154,32 +160,65 @@ export default function Home() {
     const dateStr = `${day}-${month}-${year}`;
 
     let textContent = `${dateStr}\n`;
-    textContent += `รายงานความคืบหน้างานก่อสร้างฐานรากและติดตั้งเสาสัญญาณ 9 เมตร สถานีลูกข่าย "อ.เลาขวัญ" และ "อ.ห้วยกระเจา" จ.กาญจนบุรี เขต11 (เพชรบุรี)\n\n`;
 
-    const districtKeys = Object.keys(groupedByDistrict);
+    if (activeCategory === 'client') {
+      textContent += `รายงานความคืบหน้างานติดตั้งระบบลูกข่าย อ.ห้วยกระเจา และ อ.เลาขวัญ จ.กาญจนบุรี เขต11 (เพชรบุรี)\n\n`;
 
-    districtKeys.forEach((district, dIndex) => {
-      const displayDistrict = district.startsWith('อำเภอ') ? district : `อำเภอ${district}`;
-      textContent += `📍 ${displayDistrict}\n\n`;
+      const districtKeys = Object.keys(groupedByDistrict);
+      districtKeys.forEach((district, dIndex) => {
+        const displayDistrict = district.startsWith('อำเภอ') ? district : `อำเภอ${district}`;
+        textContent += ` ${displayDistrict}\n`;
 
-      const stations = groupedByDistrict[district];
-      stations.forEach((station, index) => {
-        textContent += `[${index + 1}]. สถานีลูกข่าย ${station.stationName} (${station.poleHeight || "ไม่ระบุ"}) ${station.type}\n`;
-        textContent += `งานก่อสร้างฐานราก: ${station.foundationProgress || 0}%\n`;
-        textContent += `งานติดตั้งโครงเสา: ${station.poleInstallationProgress || 0}%\n`;
-        textContent += `** หมายเหตุ: ${station.remark || "-"}\n`;
-        textContent += `เริ่มงาน: ${formatDate(station.startDate || "-")}\n`;
-        textContent += `เสร็จงาน: ${formatDate(station.endDate || "-")}\n\n`;
+        const items = groupedByDistrict[district] as ClientSystemData[];
+        items.forEach((item, index) => {
+          textContent += `[${index + 1}]. สถานีลูกข่าย ${item.stationName}\n`;
+          textContent += `1.ระบบไฟฟ้า ${item.electricProgress || 0}%\n`;
+          textContent += `ระยะสาย Main = ${item.electricMain || "-"}\n`;
+          textContent += `2.ระบบกราวด์ ${item.groundProgress || 0}% \n`;
+          textContent += `AC = ${item.groundAC || "-"} Ω \n`;
+          textContent += `Equip = ${item.groundEquip || "-"} Ω\n`;
+          textContent += `3.สาย Feeder ${item.feederProgress || 0}%\n`;
+          textContent += `Yagi No. ${item.yagiNo || "-"} SN. ${item.sn || "-"} ระยะ feed = ${item.feedDistance || "-"} m\n`;
+          textContent += `งานเพิ่มเติม / ปัญหาอุปสรรค: ${item.remark || "-"}\n`;
+          textContent += `วันที่เริ่มงาน: ${formatDate(item.startDate || "-")}\n`;
+          textContent += `วันที่เสร็จงาน: ${formatDate(item.endDate || "-")}\n\n`;
 
-        if (index < stations.length - 1) {
-          textContent += `---\n\n`;
+          if (index < items.length - 1) {
+            textContent += `---\n\n`;
+          }
+        });
+
+        if (dIndex < districtKeys.length - 1) {
+          textContent += `=========================================\n\n`;
         }
       });
+    } else {
+      textContent += `รายงานความคืบหน้างานก่อสร้างฐานรากและติดตั้งเสาสัญญาณ 9 เมตร สถานีลูกข่าย "อ.เลาขวัญ" และ "อ.ห้วยกระเจา" จ.กาญจนบุรี เขต11 (เพชรบุรี)\n\n`;
 
-      if (dIndex < districtKeys.length - 1) {
-        textContent += `=========================================\n\n`;
-      }
-    });
+      const districtKeys = Object.keys(groupedByDistrict);
+      districtKeys.forEach((district, dIndex) => {
+        const displayDistrict = district.startsWith('อำเภอ') ? district : `อำเภอ${district}`;
+        textContent += `📍 ${displayDistrict}\n\n`;
+
+        const stations = groupedByDistrict[district] as StationData[];
+        stations.forEach((station, index) => {
+          textContent += `[${index + 1}]. สถานีลูกข่าย ${station.stationName} (${station.poleHeight || "ไม่ระบุ"}) ${station.type}\n`;
+          textContent += `งานก่อสร้างฐานราก: ${station.foundationProgress || 0}%\n`;
+          textContent += `งานติดตั้งโครงเสา: ${station.poleInstallationProgress || 0}%\n`;
+          textContent += `** หมายเหตุ: ${station.remark || "-"}\n`;
+          textContent += `เริ่มงาน: ${formatDate(station.startDate || "-")}\n`;
+          textContent += `เสร็จงาน: ${formatDate(station.endDate || "-")}\n\n`;
+
+          if (index < stations.length - 1) {
+            textContent += `---\n\n`;
+          }
+        });
+
+        if (dIndex < districtKeys.length - 1) {
+          textContent += `=========================================\n\n`;
+        }
+      });
+    }
 
     const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -319,20 +358,39 @@ export default function Home() {
   const districts = Array.from(new Set(data.map(d => d.district).filter(Boolean)));
 
   // ── Search, Filter & Sort Logic ──────────────────────────────
-  const filteredData = data.filter((station) => {
-    const matchesSearch = station.stationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      station.district.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredData = data.filter((item) => {
+    const matchesSearch = item.stationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.district.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesDistrict = filterDistrict === "All" || station.district === filterDistrict;
-    const matchesType = filterType === "All" || station.type === filterType;
+    const matchesDistrict = filterDistrict === "All" || item.district === filterDistrict;
+    
+    // Type filter only applies to station category for now
+    const matchesType = activeCategory === 'client' ? true : (filterType === "All" || item.type === filterType);
+    
     let matchesStatus = true;
-    if (filterStatus === "Completed") {
-      matchesStatus = station.foundationProgress === 100 && station.poleInstallationProgress === 100;
-    } else if (filterStatus === "In Progress") {
-      matchesStatus = (station.foundationProgress > 0 || station.poleInstallationProgress > 0) &&
-        !(station.foundationProgress === 100 && station.poleInstallationProgress === 100);
-    } else if (filterStatus === "Not Started") {
-      matchesStatus = station.foundationProgress === 0 && station.poleInstallationProgress === 0;
+    if (activeCategory === 'client') {
+      const ep = parseFloat(item.electricProgress as any) || 0;
+      const gp = parseFloat(item.groundProgress as any) || 0;
+      const fp = parseFloat(item.feederProgress as any) || 0;
+      
+      if (filterStatus === "Completed") {
+        matchesStatus = ep === 100 && gp === 100 && fp === 100;
+      } else if (filterStatus === "In Progress") {
+        matchesStatus = (ep > 0 || gp > 0 || fp > 0) && !(ep === 100 && gp === 100 && fp === 100);
+      } else if (filterStatus === "Not Started") {
+        matchesStatus = ep === 0 && gp === 0 && fp === 0;
+      }
+    } else {
+      const fnd = parseFloat(item.foundationProgress as any) || 0;
+      const ple = parseFloat(item.poleInstallationProgress as any) || 0;
+      
+      if (filterStatus === "Completed") {
+        matchesStatus = fnd === 100 && ple === 100;
+      } else if (filterStatus === "In Progress") {
+        matchesStatus = (fnd > 0 || ple > 0) && !(fnd === 100 && ple === 100);
+      } else if (filterStatus === "Not Started") {
+        matchesStatus = fnd === 0 && ple === 0;
+      }
     }
 
     return matchesSearch && matchesDistrict && matchesType && matchesStatus;
@@ -349,15 +407,15 @@ export default function Home() {
     return 0;
   });
 
-  const handleSort = (key: keyof StationData) => {
+  const handleSort = (key: string) => {
     let direction: "asc" | "desc" = "asc";
     if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
       direction = "desc";
     }
-    setSortConfig({ key, direction });
+    setSortConfig({ key: key as any, direction });
   };
 
-  const getSortIndicator = (key: keyof StationData) => {
+  const getSortIndicator = (key: string) => {
     if (!sortConfig || sortConfig.key !== key) return null;
     return sortConfig.direction === "asc" ? " ↑" : " ↓";
   };
@@ -374,26 +432,60 @@ export default function Home() {
         districts={districts}
       />
 
+      {/* Client System Modal */}
+      <ClientSystemModal
+        isOpen={isClientModalOpen}
+        onClose={() => { setIsClientModalOpen(false); setEditingStation(null); }}
+        onSave={fetchSheetData}
+        editingStation={editingStation}
+        districts={districts}
+      />
+
       <header className="mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Progress Dashboard
+              {activeCategory === 'client' ? "ระบบลูกข่าย" : "ข้อมูลสถานีเดิม"}
             </h1>
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Real-time tracking for station installation progress
+              {activeCategory === 'client' ? "ติดตามความคืบหน้างานติดตั้งระบบลูกข่าย" : "ติดตามความคืบหน้างานก่อสร้างฐานรากและเสา"}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-white dark:bg-zinc-800 p-1.5 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-700 mx-auto sm:mx-0">
+            <button
+              onClick={() => setActiveCategory('station')}
+              className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${activeCategory === 'station'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-none'
+                : 'text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-700'
+                }`}
+            >
+              ข้อมูลสถานีเดิม
+            </button>
+            <button
+              onClick={() => setActiveCategory('client')}
+              className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${activeCategory === 'client'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-none'
+                : 'text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-700'
+                }`}
+            >
+              ระบบลูกข่าย
+            </button>
             {/* Add Station button */}
             <button
-              onClick={() => { setEditingStation(null); setIsStationModalOpen(true); }}
+              onClick={() => {
+                setEditingStation(null);
+                if (activeCategory === 'client') {
+                  setIsClientModalOpen(true);
+                } else {
+                  setIsStationModalOpen(true);
+                }
+              }}
               className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              <span className="hidden sm:inline">เพิ่มสถานี</span>
+              <span className="hidden sm:inline">เพิ่ม{activeCategory === 'client' ? 'ข้อมูล' : 'สถานี'}</span>
               <span className="sm:hidden">เพิ่ม</span>
             </button>
             {/* Export TXT button */}
@@ -494,7 +586,9 @@ export default function Home() {
 
               {/* Completed */}
               {(() => {
-                const count = data.filter(s => parseFloat(s.foundationProgress as any) === 100 && parseFloat(s.poleInstallationProgress as any) === 100).length;
+                const count = activeCategory === 'client' 
+                  ? data.filter(s => parseFloat(s.electricProgress as any) === 100 && parseFloat(s.groundProgress as any) === 100 && parseFloat(s.feederProgress as any) === 100).length
+                  : data.filter(s => parseFloat(s.foundationProgress as any) === 100 && parseFloat(s.poleInstallationProgress as any) === 100).length;
                 return (
                   <div className="flex flex-col justify-between rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 p-4 sm:p-5 shadow-sm">
                     <div className="flex items-center justify-between">
@@ -514,9 +608,16 @@ export default function Home() {
               {/* In Progress */}
               {(() => {
                 const count = data.filter(s => {
-                  const fp = parseFloat(s.foundationProgress as any) || 0;
-                  const pp = parseFloat(s.poleInstallationProgress as any) || 0;
-                  return (fp > 0 || pp > 0) && !(fp === 100 && pp === 100);
+                  if (activeCategory === 'client') {
+                    const ep = parseFloat(s.electricProgress as any) || 0;
+                    const gp = parseFloat(s.groundProgress as any) || 0;
+                    const fp = parseFloat(s.feederProgress as any) || 0;
+                    return (ep > 0 || gp > 0 || fp > 0) && !(ep === 100 && gp === 100 && fp === 100);
+                  } else {
+                    const fnd = parseFloat(s.foundationProgress as any) || 0;
+                    const ple = parseFloat(s.poleInstallationProgress as any) || 0;
+                    return (fnd > 0 || ple > 0) && !(fnd === 100 && ple === 100);
+                  }
                 }).length;
                 return (
                   <div className="flex flex-col justify-between rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 p-4 sm:p-5 shadow-sm">
@@ -537,9 +638,16 @@ export default function Home() {
               {/* Not Started */}
               {(() => {
                 const count = data.filter(s => {
-                  const fp = parseFloat(s.foundationProgress as any) || 0;
-                  const pp = parseFloat(s.poleInstallationProgress as any) || 0;
-                  return fp === 0 && pp === 0;
+                  if (activeCategory === 'client') {
+                    const ep = parseFloat(s.electricProgress as any) || 0;
+                    const gp = parseFloat(s.groundProgress as any) || 0;
+                    const fp = parseFloat(s.feederProgress as any) || 0;
+                    return ep === 0 && gp === 0 && fp === 0;
+                  } else {
+                    const fnd = parseFloat(s.foundationProgress as any) || 0;
+                    const ple = parseFloat(s.poleInstallationProgress as any) || 0;
+                    return fnd === 0 && ple === 0;
+                  }
                 }).length;
                 return (
                   <div className="flex flex-col justify-between rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 p-4 sm:p-5 shadow-sm">
@@ -560,49 +668,93 @@ export default function Home() {
 
             {/* Overall Progress Bar */}
             {!isLoading && data.length > 0 && (() => {
-              const avgFoundation = data.reduce((a, c) => a + (parseFloat(c.foundationProgress as any) || 0), 0) / data.length;
-              const avgPole = data.reduce((a, c) => a + (parseFloat(c.poleInstallationProgress as any) || 0), 0) / data.length;
-              const overall = (avgFoundation + avgPole) / 2;
-              return (
-                <div className="rounded-2xl bg-white dark:bg-zinc-800 p-4 sm:p-5 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">ความคืบหน้าโดยรวม</p>
-                    <span className="text-2xl font-bold text-zinc-900 dark:text-white">{Math.round(overall)}%</span>
-                  </div>
-                  <div className="space-y-2">
-                    <div>
-                      <div className="flex justify-between text-xs text-zinc-500 mb-1">
-                        <span>ฐานราก (เฉลี่ย)</span>
-                        <span className="font-medium text-indigo-600">{Math.round(avgFoundation)}%</span>
+              if (activeCategory === 'client') {
+                const avgElectric = data.reduce((a, c) => a + (parseFloat(c.electricProgress as any) || 0), 0) / data.length;
+                const avgGround = data.reduce((a, c) => a + (parseFloat(c.groundProgress as any) || 0), 0) / data.length;
+                const avgFeeder = data.reduce((a, c) => a + (parseFloat(c.feederProgress as any) || 0), 0) / data.length;
+                const overall = (avgElectric + avgGround + avgFeeder) / 3;
+                return (
+                  <div className="rounded-2xl bg-white dark:bg-zinc-800 p-4 sm:p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">ความคืบหน้าโดยรวม</p>
+                      <span className="text-2xl font-bold text-zinc-900 dark:text-white">{Math.round(overall)}%</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <div className="flex justify-between text-xs text-zinc-500 mb-1">
+                          <span>ระบบไฟฟ้า</span>
+                          <span className="font-medium text-indigo-600">{Math.round(avgElectric)}%</span>
+                        </div>
+                        <div className="h-2.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-indigo-500 transition-all duration-700" style={{ width: `${avgElectric}%` }} />
+                        </div>
                       </div>
-                      <div className="h-2.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-700"
-                          style={{ width: `${avgFoundation}%` }}
-                        />
+                      <div>
+                        <div className="flex justify-between text-xs text-zinc-500 mb-1">
+                          <span>ระบบกราวด์</span>
+                          <span className="font-medium text-emerald-600">{Math.round(avgGround)}%</span>
+                        </div>
+                        <div className="h-2.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-emerald-500 transition-all duration-700" style={{ width: `${avgGround}%` }} />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-xs text-zinc-500 mb-1">
+                          <span>สาย Feeder</span>
+                          <span className="font-medium text-cyan-600">{Math.round(avgFeeder)}%</span>
+                        </div>
+                        <div className="h-2.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-cyan-500 transition-all duration-700" style={{ width: `${avgFeeder}%` }} />
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <div className="flex justify-between text-xs text-zinc-500 mb-1">
-                        <span>ติดตั้งเสา (เฉลี่ย)</span>
-                        <span className="font-medium text-cyan-600">{Math.round(avgPole)}%</span>
+                  </div>
+                );
+              } else {
+                const avgFoundation = data.reduce((a, c) => a + (parseFloat(c.foundationProgress as any) || 0), 0) / data.length;
+                const avgPole = data.reduce((a, c) => a + (parseFloat(c.poleInstallationProgress as any) || 0), 0) / data.length;
+                const overall = (avgFoundation + avgPole) / 2;
+                return (
+                  <div className="rounded-2xl bg-white dark:bg-zinc-800 p-4 sm:p-5 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">ความคืบหน้าโดยรวม</p>
+                      <span className="text-2xl font-bold text-zinc-900 dark:text-white">{Math.round(overall)}%</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div>
+                        <div className="flex justify-between text-xs text-zinc-500 mb-1">
+                          <span>ฐานราก (เฉลี่ย)</span>
+                          <span className="font-medium text-indigo-600">{Math.round(avgFoundation)}%</span>
+                        </div>
+                        <div className="h-2.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-700"
+                            style={{ width: `${avgFoundation}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-2.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-cyan-400 transition-all duration-700"
-                          style={{ width: `${avgPole}%` }}
-                        />
+                      <div>
+                        <div className="flex justify-between text-xs text-zinc-500 mb-1">
+                          <span>ติดตั้งเสา (เฉลี่ย)</span>
+                          <span className="font-medium text-cyan-600">{Math.round(avgPole)}%</span>
+                        </div>
+                        <div className="h-2.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-cyan-400 transition-all duration-700"
+                            style={{ width: `${avgPole}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
+                );
+              }
             })()}
           </div>
 
           {/* Map View */}
           <div className="h-[260px] sm:h-[400px] overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-zinc-800 z-0">
-            {!isLoading && <MapView data={data} />}
+            {!isLoading && <MapView data={data} category={activeCategory} />}
           </div>
         </div>
 
@@ -623,10 +775,11 @@ export default function Home() {
               </button>
               <button
                 onClick={() => setChartTab('comparison')}
+                disabled={activeCategory === 'client'}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${chartTab === 'comparison'
                   ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm'
                   : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
-                  }`}
+                  } ${activeCategory === 'client' ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 ฐานราก vs ติดตั้งเสา
               </button>
@@ -713,47 +866,73 @@ export default function Home() {
                 <thead className="sticky top-0 z-10 bg-zinc-50 text-xs uppercase text-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-300 shadow-sm backdrop-blur-sm">
                   <tr>
                     <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => handleSort('district')}>
-                      อำเภอ{getSortIndicator('district')}
+                      อำเภอ{getSortIndicator('district' as any)}
                     </th>
                     <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => handleSort('stationName')}>
-                      ชื่อสถานี{getSortIndicator('stationName')}
+                      ชื่อสถานี{getSortIndicator('stationName' as any)}
                     </th>
-                    <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => handleSort('type')}>
-                      Type{getSortIndicator('type')}
-                    </th>
-                    <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => handleSort('foundationProgress')}>
-                      ฐานราก (%){getSortIndicator('foundationProgress')}
-                    </th>
-                    <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => handleSort('poleInstallationProgress')}>
-                      เสา (%){getSortIndicator('poleInstallationProgress')}
-                    </th>
+                    {activeCategory === 'station' ? (
+                      <>
+                        <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => handleSort('type' as any)}>
+                          Type{getSortIndicator('type' as any)}
+                        </th>
+                        <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => handleSort('foundationProgress' as any)}>
+                          ฐานราก (%){getSortIndicator('foundationProgress' as any)}
+                        </th>
+                        <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => handleSort('poleInstallationProgress' as any)}>
+                          เสา (%){getSortIndicator('poleInstallationProgress' as any)}
+                        </th>
+                      </>
+                    ) : (
+                      <>
+                        <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => handleSort('electricProgress' as any)}>
+                          ไฟฟ้า (%){getSortIndicator('electricProgress' as any)}
+                        </th>
+                        <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => handleSort('groundProgress' as any)}>
+                          กราวด์ (%){getSortIndicator('groundProgress' as any)}
+                        </th>
+                        <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => handleSort('feederProgress' as any)}>
+                          Feeder (%){getSortIndicator('feederProgress' as any)}
+                        </th>
+                      </>
+                    )}
                     <th className="px-4 py-3 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedData.length > 0 ? (
-                    sortedData.map((station, idx) => (
+                    sortedData.map((item, idx) => (
                       <tr key={idx} className="border-b border-zinc-100 hover:bg-zinc-50/50 dark:border-zinc-800 dark:hover:bg-zinc-800/30 transition-colors">
-                        <td className="px-4 py-3">{station.district}</td>
-                        <td className="px-4 py-3 font-medium text-zinc-900 dark:text-white">{station.stationName}</td>
-                        <td className="px-4 py-3">
-                          <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">
-                            {station.type}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">{station.foundationProgress}%</td>
-                        <td className="px-4 py-3">{station.poleInstallationProgress}%</td>
+                        <td className="px-4 py-3">{item.district}</td>
+                        <td className="px-4 py-3 font-medium text-zinc-900 dark:text-white">{item.stationName}</td>
+                        {activeCategory === 'station' ? (
+                          <>
+                            <td className="px-4 py-3">
+                              <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-800 dark:bg-zinc-700 dark:text-zinc-200">
+                                {item.type}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">{item.foundationProgress}%</td>
+                            <td className="px-4 py-3">{item.poleInstallationProgress}%</td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-4 py-3">{item.electricProgress}%</td>
+                            <td className="px-4 py-3">{item.groundProgress}%</td>
+                            <td className="px-4 py-3">{item.feederProgress}%</td>
+                          </>
+                        )}
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => handleEditClick(station)}
+                              onClick={() => handleEditClick(item)}
                               className="inline-flex items-center gap-1 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 px-2.5 py-1 text-xs font-semibold transition-colors"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                               แก้ไข
                             </button>
                             <button
-                              onClick={() => handleDeleteClick(station)}
+                              onClick={() => handleDeleteClick(item)}
                               className="inline-flex items-center gap-1 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 px-2.5 py-1 text-xs font-semibold transition-colors"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /></svg>

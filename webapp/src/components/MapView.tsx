@@ -8,21 +8,37 @@ import 'leaflet-defaulticon-compatibility';
 import { useEffect } from 'react';
 
 // ─── Helper: compute overall progress for a station ────────────────────────
-function getOverallProgress(station: any): number {
-    const fp = parseFloat(station.foundationProgress) || 0;
-    const pp = parseFloat(station.poleInstallationProgress) || 0;
-    return (fp + pp) / 2;
+function getOverallProgress(station: any, category: 'station' | 'client' = 'station'): number {
+    if (category === 'client') {
+        const ep = parseFloat(station.electricProgress) || 0;
+        const gp = parseFloat(station.groundProgress) || 0;
+        const fp = parseFloat(station.feederProgress) || 0;
+        return (ep + gp + fp) / 3;
+    } else {
+        const fp = parseFloat(station.foundationProgress) || 0;
+        const pp = parseFloat(station.poleInstallationProgress) || 0;
+        return (fp + pp) / 2;
+    }
 }
 
 // ─── Status logic ────────────────────────────────────────────────────────────
 type StatusKey = 'not_started' | 'in_progress' | 'completed';
 
-function getStatus(station: any): StatusKey {
-    const fp = parseFloat(station.foundationProgress) || 0;
-    const pp = parseFloat(station.poleInstallationProgress) || 0;
-    if (fp === 100 && pp === 100) return 'completed';
-    if (fp === 0 && pp === 0) return 'not_started';
-    return 'in_progress';
+function getStatus(station: any, category: 'station' | 'client' = 'station'): StatusKey {
+    if (category === 'client') {
+        const ep = parseFloat(station.electricProgress) || 0;
+        const gp = parseFloat(station.groundProgress) || 0;
+        const fp = parseFloat(station.feederProgress) || 0;
+        if (ep === 100 && gp === 100 && fp === 100) return 'completed';
+        if (ep === 0 && gp === 0 && fp === 0) return 'not_started';
+        return 'in_progress';
+    } else {
+        const fp = parseFloat(station.foundationProgress) || 0;
+        const pp = parseFloat(station.poleInstallationProgress) || 0;
+        if (fp === 100 && pp === 100) return 'completed';
+        if (fp === 0 && pp === 0) return 'not_started';
+        return 'in_progress';
+    }
 }
 
 const STATUS_CONFIG: Record<StatusKey, { color: string; label: string; bg: string }> = {
@@ -116,7 +132,7 @@ function Legend() {
 }
 
 // ─── Main MapView ─────────────────────────────────────────────────────────────
-export default function MapView({ data }: { data: any[] }) {
+export default function MapView({ data, category = 'station' }: { data: any[], category?: 'station' | 'client' }) {
     const defaultCenter: [number, number] = [14.5, 100.5]; // Thailand center
 
     return (
@@ -143,9 +159,9 @@ export default function MapView({ data }: { data: any[] }) {
                 const lon = parseFloat(station.lon);
                 if (isNaN(lat) || isNaN(lon) || (lat === 0 && lon === 0)) return null;
 
-                const status = getStatus(station);
+                const status = getStatus(station, category);
                 const cfg = STATUS_CONFIG[status];
-                const overall = Math.round(getOverallProgress(station));
+                const overall = Math.round(getOverallProgress(station, category));
                 const icon = createColoredIcon(cfg.color);
 
                 const popupContent = `
@@ -154,15 +170,21 @@ export default function MapView({ data }: { data: any[] }) {
                             ${station.stationName || 'Unknown Station'}
                         </div>
                         <div style="font-size:12px;color:#6B7280;margin-bottom:10px">
-                            อำเภอ ${station.district} &nbsp;·&nbsp; Type ${station.type}
+                            อำเภอ ${station.district} &nbsp;·&nbsp; ${category === 'client' ? 'Client System' : `Type ${station.type}`}
                         </div>
                         <div style="display:inline-flex;align-items:center;gap:6px;background:${cfg.bg};color:${cfg.color};
                             font-size:11px;font-weight:600;padding:3px 10px;border-radius:9999px;margin-bottom:12px">
                             <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="${cfg.color}"/></svg>
                             ${cfg.label}
                         </div>
-                        ${progressBarHtml('ความคืบหน้าฐานราก', parseFloat(station.foundationProgress) || 0, '#6366F1')}
-                        ${progressBarHtml('ติดตั้งเสา', parseFloat(station.poleInstallationProgress) || 0, '#8B5CF6')}
+                        ${category === 'client' ? `
+                            ${progressBarHtml('ระบบไฟฟ้า', parseFloat(station.electricProgress) || 0, '#6366F1')}
+                            ${progressBarHtml('ระบบกราวด์', parseFloat(station.groundProgress) || 0, '#10B981')}
+                            ${progressBarHtml('สาย Feeder', parseFloat(station.feederProgress) || 0, '#06B6D4')}
+                        ` : `
+                            ${progressBarHtml('ความคืบหน้าฐานราก', parseFloat(station.foundationProgress) || 0, '#6366F1')}
+                            ${progressBarHtml('ติดตั้งเสา', parseFloat(station.poleInstallationProgress) || 0, '#8B5CF6')}
+                        `}
                         <div style="margin-top:10px;padding-top:8px;border-top:1px solid #F3F4F6;
                             display:flex;align-items:center;justify-content:space-between">
                             <span style="font-size:11px;color:#6B7280">ความคืบหน้าโดยรวม</span>

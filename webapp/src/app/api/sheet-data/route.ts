@@ -16,6 +16,24 @@ export interface StationData {
     rowIndex?: number;     // For updating specific rows
 }
 
+export interface ClientSystemData {
+    district: string;       // อำเภอ
+    stationName: string;   // ชื่อสถานีลูกข่าย
+    electricProgress: number; // ระบบไฟฟ้า (%)
+    electricMain: string;   // ระยะสาย Main
+    groundProgress: number;   // ระบบกราวด์ (%)
+    groundAC: string;       // AC Ω
+    groundEquip: string;    // Equip Ω
+    feederProgress: number; // สาย Feeder (%)
+    yagiNo: string;         // Yagi No
+    sn: string;             // SN
+    feedDistance: string;   // ระยะ feed
+    remark?: string;        // งานเพิ่มเติม / ปัญหาอุปสรรค
+    startDate?: string;     // วันที่เริ่มงาน
+    endDate?: string;       // วันที่เสร็จงาน
+    rowIndex?: number;      // For updating specific rows
+}
+
 // Normalize date from Google Sheet (DD/MM/YY) to HTML Date Input (YYYY-MM-DD)
 function formatDateForUI(dateStr: string): string {
     if (!dateStr || !dateStr.includes("/")) return "";
@@ -33,15 +51,17 @@ function formatDateForSheet(dateStr: string): string {
     return `${day}/${month}/${shortYear}`;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        console.log("PRIVATE KEY FORMAT DEBUG:",
-            JSON.stringify(process.env.GOOGLE_PRIVATE_KEY).substring(0, 50),
-            "Length:", process.env.GOOGLE_PRIVATE_KEY?.length
-        );
+        const { searchParams } = new URL(req.url);
+        const sheetType = searchParams.get("sheet") || "station";
         const sheetId = getSpreadsheetId();
-        // Omitting sheet name defaults to the first visible sheet
-        const range = "A2:K"; // A to K covers all 11 columns
+        
+        // Define ranges based on sheet type
+        // Station: A-K (11 columns)
+        // ClientSystem: A-N (14 columns)
+        const sheetName = sheetType === "client" ? "ClientSystem" : "Sheet1";
+        const range = sheetType === "client" ? `${sheetName}!A2:N` : `${sheetName}!A2:K`;
 
         const rows = await getSheetData(range, sheetId);
 
@@ -49,22 +69,42 @@ export async function GET() {
             return NextResponse.json({ data: [] });
         }
 
-        const data: StationData[] = rows.map((row: any[], index: number) => ({
-            district: row[0] || "",
-            stationName: row[1] || "",
-            type: row[2] || "",
-            foundationProgress: parseFloat(row[3]) || 0,
-            poleInstallationProgress: parseFloat(row[4]) || 0,
-            lat: parseFloat(row[5]) || 0,
-            lon: parseFloat(row[6]) || 0,
-            poleHeight: row[7] || "",
-            startDate: formatDateForUI(row[8] || ""),
-            endDate: formatDateForUI(row[9] || ""),
-            remark: row[10] || "",
-            rowIndex: index + 2 // Assuming data starts at row 2 in the sheet
-        }));
-
-        return NextResponse.json({ data });
+        if (sheetType === "client") {
+            const data: ClientSystemData[] = rows.map((row: any[], index: number) => ({
+                district: row[0] || "",
+                stationName: row[1] || "",
+                electricProgress: parseFloat(row[2]) || 0,
+                electricMain: row[3] || "",
+                groundProgress: parseFloat(row[4]) || 0,
+                groundAC: row[5] || "",
+                groundEquip: row[6] || "",
+                feederProgress: parseFloat(row[7]) || 0,
+                yagiNo: row[8] || "",
+                sn: row[9] || "",
+                feedDistance: row[10] || "",
+                remark: row[11] || "",
+                startDate: formatDateForUI(row[12] || ""),
+                endDate: formatDateForUI(row[13] || ""),
+                rowIndex: index + 2
+            }));
+            return NextResponse.json({ data });
+        } else {
+            const data: StationData[] = rows.map((row: any[], index: number) => ({
+                district: row[0] || "",
+                stationName: row[1] || "",
+                type: row[2] || "",
+                foundationProgress: parseFloat(row[3]) || 0,
+                poleInstallationProgress: parseFloat(row[4]) || 0,
+                lat: parseFloat(row[5]) || 0,
+                lon: parseFloat(row[6]) || 0,
+                poleHeight: row[7] || "",
+                startDate: formatDateForUI(row[8] || ""),
+                endDate: formatDateForUI(row[9] || ""),
+                remark: row[10] || "",
+                rowIndex: index + 2
+            }));
+            return NextResponse.json({ data });
+        }
 
     } catch (error: any) {
         console.error("Error in GET /api/sheet-data:", error);
@@ -77,28 +117,49 @@ export async function GET() {
 
 export async function POST(req: Request) {
     try {
-        const body: StationData = await req.json();
+        const { searchParams } = new URL(req.url);
+        const sheetType = searchParams.get("sheet") || "station";
+        const body = await req.json();
         const sheetId = getSpreadsheetId();
-        const range = "A:K"; // Append anywhere in these columns
+        const sheetName = sheetType === "client" ? "ClientSystem" : "Sheet1";
+        const range = `${sheetName}!A:N`;
 
-        // Convert the object into an array of values matching the column order
-        const values = [
-            [
-                body.district,
-                body.stationName,
-                body.type,
-                body.foundationProgress,
-                body.poleInstallationProgress,
-                body.lat,
-                body.lon,
-                body.poleHeight || "",
-                formatDateForSheet(body.startDate || ""),
-                formatDateForSheet(body.endDate || ""),
-                body.remark || ""
-            ]
-        ];
+        let values: any[][] = [];
 
-        await getSheetData(range, sheetId); // just for pinging, we'll actually use append
+        if (sheetType === "client") {
+            const data = body as ClientSystemData;
+            values = [[
+                data.district,
+                data.stationName,
+                data.electricProgress,
+                data.electricMain,
+                data.groundProgress,
+                data.groundAC,
+                data.groundEquip,
+                data.feederProgress,
+                data.yagiNo,
+                data.sn,
+                data.feedDistance,
+                data.remark || "",
+                formatDateForSheet(data.startDate || ""),
+                formatDateForSheet(data.endDate || "")
+            ]];
+        } else {
+            const data = body as StationData;
+            values = [[
+                data.district,
+                data.stationName,
+                data.type,
+                data.foundationProgress,
+                data.poleInstallationProgress,
+                data.lat,
+                data.lon,
+                data.poleHeight || "",
+                formatDateForSheet(data.startDate || ""),
+                formatDateForSheet(data.endDate || ""),
+                data.remark || ""
+            ]];
+        }
 
         const response = await sheets.spreadsheets.values.append({
             spreadsheetId: sheetId,
@@ -121,32 +182,56 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
     try {
-        const body: StationData = await req.json();
+        const { searchParams } = new URL(req.url);
+        const sheetType = searchParams.get("sheet") || "station";
+        const body = await req.json();
 
         if (!body.rowIndex) {
             return NextResponse.json({ error: "Missing rowIndex for update operation" }, { status: 400 });
         }
 
         const sheetId = getSpreadsheetId();
-        // Target the specific row index
-        const range = `A${body.rowIndex}:K${body.rowIndex}`;
+        const sheetName = sheetType === "client" ? "ClientSystem" : "Sheet1";
+        const range = sheetType === "client" 
+            ? `${sheetName}!A${body.rowIndex}:N${body.rowIndex}`
+            : `${sheetName}!A${body.rowIndex}:K${body.rowIndex}`;
 
-        // Convert the object into an array of values matching the column order
-        const values = [
-            [
-                body.district,
-                body.stationName,
-                body.type,
-                body.foundationProgress,
-                body.poleInstallationProgress,
-                body.lat,
-                body.lon,
-                body.poleHeight || "",
-                formatDateForSheet(body.startDate || ""),
-                formatDateForSheet(body.endDate || ""),
-                body.remark || ""
-            ]
-        ];
+        let values: any[][] = [];
+
+        if (sheetType === "client") {
+            const data = body as ClientSystemData;
+            values = [[
+                data.district,
+                data.stationName,
+                data.electricProgress,
+                data.electricMain,
+                data.groundProgress,
+                data.groundAC,
+                data.groundEquip,
+                data.feederProgress,
+                data.yagiNo,
+                data.sn,
+                data.feedDistance,
+                data.remark || "",
+                formatDateForSheet(data.startDate || ""),
+                formatDateForSheet(data.endDate || "")
+            ]];
+        } else {
+            const data = body as StationData;
+            values = [[
+                data.district,
+                data.stationName,
+                data.type,
+                data.foundationProgress,
+                data.poleInstallationProgress,
+                data.lat,
+                data.lon,
+                data.poleHeight || "",
+                formatDateForSheet(data.startDate || ""),
+                formatDateForSheet(data.endDate || ""),
+                data.remark || ""
+            ]];
+        }
 
         const response = await sheets.spreadsheets.values.update({
             spreadsheetId: sheetId,
@@ -169,6 +254,8 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
     try {
+        const { searchParams } = new URL(req.url);
+        const sheetType = searchParams.get("sheet") || "station";
         const body = await req.json();
 
         if (!body.rowIndex) {
@@ -176,18 +263,19 @@ export async function DELETE(req: Request) {
         }
 
         const sheetId = getSpreadsheetId();
-
-        // First, we need to get the sheet's actual ID (gid) to use with batchUpdate.
-        // Assuming we are operating on the first sheet (index 0).
         const spreadsheetInfo = await sheets.spreadsheets.get({
             spreadsheetId: sheetId,
         });
 
-        const firstSheetId = spreadsheetInfo.data.sheets?.[0]?.properties?.sheetId;
+        // Find the sheetId (gid) by title
+        const sheetName = sheetType === "client" ? "ClientSystem" : "Sheet1";
+        const sheet = spreadsheetInfo.data.sheets?.find(s => s.properties?.title === sheetName);
+        const actualSheetId = sheet?.properties?.sheetId;
 
-        // batchUpdate uses 0-based indexing for rows.
-        // If our Frontend sends rowIndex=2 (meaning row 2 in the sheet UI), 
-        // startIndex should be 1, and endIndex should be 2.
+        if (actualSheetId === undefined) {
+            throw new Error(`Sheet "${sheetName}" not found`);
+        }
+
         const rowToDelete = body.rowIndex - 1;
 
         const request = {
@@ -197,7 +285,7 @@ export async function DELETE(req: Request) {
                     {
                         deleteDimension: {
                             range: {
-                                sheetId: firstSheetId,
+                                sheetId: actualSheetId,
                                 dimension: "ROWS",
                                 startIndex: rowToDelete,
                                 endIndex: rowToDelete + 1
@@ -219,3 +307,4 @@ export async function DELETE(req: Request) {
         );
     }
 }
+
