@@ -24,11 +24,12 @@ async function updateHeaders() {
         const headers = [
             "อำเภอ",
             "ชื่อสถานีลูกข่าย",
+            "lat",
+            "lon",
+            "ความสูงเสา",
             "ระบบไฟฟ้า (%)",
             "ระยะสาย Main",
             "ระบบกราวด์ (%)",
-            "lat",
-            "lon",
             "AC Ω",
             "Equip Ω",
             "สาย Feeder (%)",
@@ -43,7 +44,7 @@ async function updateHeaders() {
         console.log("Updating headers for 'ClientSystem'...");
         await sheets.spreadsheets.values.update({
             spreadsheetId,
-            range: "ClientSystem!A1:P1",
+            range: "ClientSystem!A1:Q1",
             valueInputOption: "USER_ENTERED",
             requestBody: {
                 values: [headers],

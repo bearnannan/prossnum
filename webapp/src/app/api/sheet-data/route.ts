@@ -19,11 +19,12 @@ export interface StationData {
 export interface ClientSystemData {
     district: string;       // อำเภอ
     stationName: string;   // ชื่อสถานีลูกข่าย
+    lat: number;            // lat (Column C)
+    lon: number;            // lon (Column D)
+    poleHeight: string;     // ความสูงเสา (Column E)
     electricProgress: number; // ระบบไฟฟ้า (%)
     electricMain: string;   // ระยะสาย Main
     groundProgress: number;   // ระบบกราวด์ (%)
-    lat: number;            // lat (Column F)
-    lon: number;            // lon (Column G)
     groundAC: string;       // AC Ω
     groundEquip: string;    // Equip Ω
     feederProgress: number; // สาย Feeder (%)
@@ -63,7 +64,7 @@ export async function GET(req: Request) {
         // Station: A-K (11 columns)
         // ClientSystem: A-N (14 columns)
         const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
-        const range = sheetType === "client" ? `${sheetName}!A2:P` : `${sheetName}!A2:K`;
+        const range = sheetType === "client" ? `${sheetName}!A2:Q` : `${sheetName}!A2:K`;
 
         const rows = await getSheetData(range, sheetId);
 
@@ -75,20 +76,21 @@ export async function GET(req: Request) {
             const data: ClientSystemData[] = rows.map((row: any[], index: number) => ({
                 district: row[0] || "",
                 stationName: row[1] || "",
-                electricProgress: parseFloat(row[2]) || 0,
-                electricMain: row[3] || "",
-                groundProgress: parseFloat(row[4]) || 0,
-                lat: parseFloat(row[5]) || 0,
-                lon: parseFloat(row[6]) || 0,
-                groundAC: row[7] || "",
-                groundEquip: row[8] || "",
-                feederProgress: parseFloat(row[9]) || 0,
-                yagiNo: row[10] || "",
-                sn: row[11] || "",
-                feedDistance: row[12] || "",
-                remark: row[13] || "",
-                startDate: formatDateForUI(row[14] || ""),
-                endDate: formatDateForUI(row[15] || ""),
+                lat: parseFloat(row[2]) || 0,
+                lon: parseFloat(row[3]) || 0,
+                poleHeight: row[4] || "",
+                electricProgress: parseFloat(row[5]) || 0,
+                electricMain: row[6] || "",
+                groundProgress: parseFloat(row[7]) || 0,
+                groundAC: row[8] || "",
+                groundEquip: row[9] || "",
+                feederProgress: parseFloat(row[10]) || 0,
+                yagiNo: row[11] || "",
+                sn: row[12] || "",
+                feedDistance: row[13] || "",
+                remark: row[14] || "",
+                startDate: formatDateForUI(row[15] || ""),
+                endDate: formatDateForUI(row[16] || ""),
                 rowIndex: index + 2
             }));
             return NextResponse.json({ data });
@@ -125,8 +127,8 @@ export async function POST(req: Request) {
         const sheetType = searchParams.get("sheet") || "station";
         const body = await req.json();
         const sheetId = getSpreadsheetId();
-        const sheetName = sheetType === "client" ? "ClientSystem" : "Sheet1";
-        const range = `${sheetName}!A:N`;
+        const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
+        const range = `${sheetName}!A:Q`;
 
         let values: any[][] = [];
 
@@ -135,11 +137,12 @@ export async function POST(req: Request) {
             values = [[
                 data.district,
                 data.stationName,
+                data.lat || 0,
+                data.lon || 0,
+                data.poleHeight || "",
                 data.electricProgress,
                 data.electricMain,
                 data.groundProgress,
-                data.lat || 0,
-                data.lon || 0,
                 data.groundAC,
                 data.groundEquip,
                 data.feederProgress,
@@ -197,9 +200,9 @@ export async function PUT(req: Request) {
         }
 
         const sheetId = getSpreadsheetId();
-        const sheetName = sheetType === "client" ? "ClientSystem" : "Sheet1";
+        const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
         const range = sheetType === "client" 
-            ? `${sheetName}!A${body.rowIndex}:N${body.rowIndex}`
+            ? `${sheetName}!A${body.rowIndex}:Q${body.rowIndex}`
             : `${sheetName}!A${body.rowIndex}:K${body.rowIndex}`;
 
         let values: any[][] = [];
@@ -209,11 +212,12 @@ export async function PUT(req: Request) {
             values = [[
                 data.district,
                 data.stationName,
+                data.lat || 0,
+                data.lon || 0,
+                data.poleHeight || "",
                 data.electricProgress,
                 data.electricMain,
                 data.groundProgress,
-                data.lat || 0,
-                data.lon || 0,
                 data.groundAC,
                 data.groundEquip,
                 data.feederProgress,

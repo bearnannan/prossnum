@@ -20,6 +20,7 @@ const defaultForm = {
     groundProgress: 0,
     lat: 14.0,
     lon: 99.0,
+    poleHeight: "",
     groundAC: "",
     groundEquip: "",
     feederProgress: 0,
@@ -54,6 +55,7 @@ export default function ClientSystemModal({
                 groundProgress: editingStation.groundProgress,
                 lat: editingStation.lat || 14.0,
                 lon: editingStation.lon || 99.0,
+                poleHeight: editingStation.poleHeight || "",
                 groundAC: editingStation.groundAC || "",
                 groundEquip: editingStation.groundEquip || "",
                 feederProgress: editingStation.feederProgress,
@@ -205,10 +207,10 @@ export default function ClientSystemModal({
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-3">
                         {/* Latitude */}
                         <div>
-                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">Latitude (lat)</label>
+                            <label className="block text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wide">Latitude (lat)</label>
                             <input
                                 name="lat"
                                 type="number"
@@ -221,7 +223,7 @@ export default function ClientSystemModal({
                         </div>
                         {/* Longitude */}
                         <div>
-                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">Longitude (lon)</label>
+                            <label className="block text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wide">Longitude (lon)</label>
                             <input
                                 name="lon"
                                 type="number"
@@ -229,6 +231,17 @@ export default function ClientSystemModal({
                                 value={formData.lon}
                                 onChange={handleChange}
                                 placeholder="99.xxxx"
+                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                            />
+                        </div>
+                        {/* Pole Height */}
+                        <div>
+                            <label className="block text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wide">ความสูงเสา</label>
+                            <input
+                                name="poleHeight"
+                                value={formData.poleHeight}
+                                onChange={handleChange}
+                                placeholder="เช่น 18 เมตร"
                                 className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                             />
                         </div>
