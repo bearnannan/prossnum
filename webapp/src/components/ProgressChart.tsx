@@ -34,15 +34,35 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
-export default function ProgressChart({ data }: { data: any[] }) {
-    const chartData = data.map((d, index) => ({
-        id: index, // Add unique index for refArea
-        name: d.stationName || d.district,
-        district: d.district,
-        type: d.type,
-        foundation: parseFloat(d.foundationProgress) || 0,
-        pole: parseFloat(d.poleInstallationProgress) || 0
-    }));
+export default function ProgressChart({ data, category = 'station' }: { data: any[], category?: string }) {
+    const isClient = category === 'client';
+    
+    const chartData = data.map((d, index) => {
+        const base = {
+            id: index,
+            name: d.stationName || d.district,
+            district: d.district,
+            type: d.type || (isClient ? 'Client' : 'Station'),
+        };
+        
+        if (isClient) {
+            return {
+                ...base,
+                electric: parseFloat(d.electricProgress) || 0,
+                ground: parseFloat(d.groundProgress) || 0,
+                feeder: parseFloat(d.feederProgress) || 0,
+                tower: parseFloat(d.towerProgress) || 0,
+                radio: parseFloat(d.radioProgress) || 0,
+                link: parseFloat(d.linkProgress) || 0,
+            };
+        }
+        
+        return {
+            ...base,
+            foundation: parseFloat(d.foundationProgress) || 0,
+            pole: parseFloat(d.poleInstallationProgress) || 0,
+        };
+    });
 
     // State for zoom and pan
     const [left, setLeft] = useState<string | number>('dataMin');
@@ -127,8 +147,22 @@ export default function ProgressChart({ data }: { data: any[] }) {
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                    <Bar dataKey="foundation" name="ฐานราก" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={20} />
-                    <Bar dataKey="pole" name="ติดตั้งเสา" fill="#10B981" radius={[4, 4, 0, 0]} barSize={20} />
+                    
+                    {!isClient ? (
+                        <>
+                            <Bar dataKey="foundation" name="ฐานราก" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={20} />
+                            <Bar dataKey="pole" name="ติดตั้งเสา" fill="#10B981" radius={[4, 4, 0, 0]} barSize={20} />
+                        </>
+                    ) : (
+                        <>
+                            <Bar dataKey="electric" name="ระบบไฟฟ้า" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={12} />
+                            <Bar dataKey="ground" name="ระบบกราวด์" fill="#10B981" radius={[4, 4, 0, 0]} barSize={12} />
+                            <Bar dataKey="feeder" name="สาย Feeder" fill="#F59E0B" radius={[4, 4, 0, 0]} barSize={12} />
+                            <Bar dataKey="tower" name="อุปกรณ์บนเสา" fill="#8B5CF6" radius={[4, 4, 0, 0]} barSize={12} />
+                            <Bar dataKey="radio" name="เครื่องวิทยุ" fill="#EC4899" radius={[4, 4, 0, 0]} barSize={12} />
+                            <Bar dataKey="link" name="ทดสอบสัญญาณ" fill="#06B6D4" radius={[4, 4, 0, 0]} barSize={12} />
+                        </>
+                    )}
 
                     {refAreaLeft && refAreaRight ? (
                         <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#8884d8" fillOpacity={0.3} />

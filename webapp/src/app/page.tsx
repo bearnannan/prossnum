@@ -283,6 +283,7 @@ export default function Home() {
               <ExportBentoReportRaw
                 district={district}
                 stations={stationsForThisDistrict}
+                category={activeCategory}
               />
             </div>
           );
@@ -786,7 +787,7 @@ export default function Home() {
             </div>
           </div>
           <div className="h-[320px] sm:h-[360px]">
-            {!isLoading && chartTab === 'average' && <DistrictProgressChart data={data} />}
+            {!isLoading && chartTab === 'average' && <DistrictProgressChart data={data} category={activeCategory} />}
             {!isLoading && chartTab === 'comparison' && <ComparisonChart data={data} />}
           </div>
         </div>
@@ -800,7 +801,7 @@ export default function Home() {
           return (
             <div key={district} className="col-span-1 md:col-span-2 lg:col-span-3 w-full rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-800 h-[550px]">
               <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">Progress by Station - {displayDistrict}</h2>
-              <ProgressChart data={districtData} />
+              <ProgressChart data={districtData} category={activeCategory} />
             </div>
           );
         })}

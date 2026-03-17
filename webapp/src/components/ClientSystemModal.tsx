@@ -24,6 +24,9 @@ const defaultForm = {
     groundAC: "",
     groundEquip: "",
     feederProgress: 0,
+    towerProgress: 0,
+    radioProgress: 0,
+    linkProgress: 0,
     yagiNo: "",
     sn: "",
     feedDistance: "",
@@ -59,6 +62,9 @@ export default function ClientSystemModal({
                 groundAC: editingStation.groundAC || "",
                 groundEquip: editingStation.groundEquip || "",
                 feederProgress: editingStation.feederProgress,
+                towerProgress: editingStation.towerProgress || 0,
+                radioProgress: editingStation.radioProgress || 0,
+                linkProgress: editingStation.linkProgress || 0,
                 yagiNo: editingStation.yagiNo || "",
                 sn: editingStation.sn || "",
                 feedDistance: editingStation.feedDistance || "",
@@ -80,10 +86,16 @@ export default function ClientSystemModal({
         const ep = Number(formData.electricProgress);
         const gp = Number(formData.groundProgress);
         const fp = Number(formData.feederProgress);
+        const tp = Number(formData.towerProgress);
+        const rp = Number(formData.radioProgress);
+        const lp = Number(formData.linkProgress);
         
         if (isNaN(ep) || ep < 0 || ep > 100) newErrors.electricProgress = "0–100";
         if (isNaN(gp) || gp < 0 || gp > 100) newErrors.groundProgress = "0–100";
         if (isNaN(fp) || fp < 0 || fp > 100) newErrors.feederProgress = "0–100";
+        if (isNaN(tp) || tp < 0 || tp > 100) newErrors.towerProgress = "0–100";
+        if (isNaN(rp) || rp < 0 || rp > 100) newErrors.radioProgress = "0–100";
+        if (isNaN(lp) || lp < 0 || lp > 100) newErrors.linkProgress = "0–100";
         
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -357,6 +369,47 @@ export default function ClientSystemModal({
                                     value={formData.feedDistance}
                                     onChange={handleChange}
                                     placeholder="ระยะ feed (m)"
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr className="border-zinc-100 dark:border-zinc-800" />
+
+                    {/* Tower/Radio/Link Progress */}
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-3 gap-3">
+                            <div>
+                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">4. ติดตั้งอุปกรณ์บนเสา (%)</label>
+                                <input
+                                    name="towerProgress"
+                                    type="number"
+                                    min="0" max="100"
+                                    value={formData.towerProgress}
+                                    onChange={handleChange}
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">5. ติดตั้งเครื่องวิทยุ (%)</label>
+                                <input
+                                    name="radioProgress"
+                                    type="number"
+                                    min="0" max="100"
+                                    value={formData.radioProgress}
+                                    onChange={handleChange}
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">6. ทดสอบสัญญาณ (%)</label>
+                                <input
+                                    name="linkProgress"
+                                    type="number"
+                                    min="0" max="100"
+                                    value={formData.linkProgress}
+                                    onChange={handleChange}
                                     className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
                                 />
                             </div>

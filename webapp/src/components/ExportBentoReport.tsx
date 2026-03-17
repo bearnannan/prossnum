@@ -17,20 +17,38 @@ interface StationData {
 
 interface ExportBentoReportProps {
     district: string;
-    stations: StationData[];
+    stations: any[];
+    category?: 'station' | 'client';
 }
 
-function avg(stations: StationData[], key: keyof StationData): number {
+function avg(stations: any[], key: string): number {
     if (stations.length === 0) return 0;
     const sum = stations.reduce((acc, s) => acc + (parseFloat(s[key] as any) || 0), 0);
     return Math.round(sum / stations.length);
 }
 
-export default function ExportBentoReport({ district, stations }: ExportBentoReportProps) {
+export default function ExportBentoReport({ district, stations, category = 'station' }: ExportBentoReportProps) {
+    const isClient = category === 'client';
     const displayDistrict = district.startsWith('อำเภอ') ? district : `อำเภอ${district}`;
-    const avgFoundation = avg(stations, 'foundationProgress');
-    const avgPole = avg(stations, 'poleInstallationProgress');
-    const avgOverall = Math.round((avgFoundation + avgPole) / 2);
+    
+    let avgOverall = 0;
+    let stat1 = { label: '', value: 0, color: '' };
+    let stat2 = { label: '', value: 0, color: '' };
+
+    if (isClient) {
+        const avgElectric = avg(stations, 'electricProgress');
+        const avgGround = avg(stations, 'groundProgress');
+        const avgFeeder = avg(stations, 'feederProgress');
+        avgOverall = Math.round((avgElectric + avgGround + avgFeeder) / 3);
+        stat1 = { label: 'ไฟฟ้า', value: avgElectric, color: '#60A5FA' };
+        stat2 = { label: 'กราวด์', value: avgGround, color: '#34D399' };
+    } else {
+        const avgFoundation = avg(stations, 'foundationProgress');
+        const avgPole = avg(stations, 'poleInstallationProgress');
+        avgOverall = Math.round((avgFoundation + avgPole) / 2);
+        stat1 = { label: 'ฐานราก', value: avgFoundation, color: '#60A5FA' };
+        stat2 = { label: 'ติดตั้งเสา', value: avgPole, color: '#34D399' };
+    }
 
     // Progress ring color
     const ringColor =
@@ -63,26 +81,26 @@ export default function ExportBentoReport({ district, stations }: ExportBentoRep
             }}>
                 <div>
                     <div style={{ color: '#94A3B8', fontSize: '11px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '4px' }}>
-                        รายงานความคืบหน้า
+                        รายงานความคืบหน้า{isClient ? 'ติดตั้งระบบลูกข่าย' : 'ก่อสร้างฐานรากและเสา'}
                     </div>
                     <div style={{ color: '#FFFFFF', fontSize: '28px', fontWeight: 700, lineHeight: 1.2 }}>
                         {displayDistrict}
                     </div>
                     <div style={{ color: '#94A3B8', fontSize: '12px', marginTop: '4px' }}>
-                        {stations.length} สถานี
+                        {stations.length} สถานีลูกข่าย
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                    {/* Foundation stat */}
+                    {/* Stat 1 */}
                     <div style={{ textAlign: 'center', backgroundColor: 'rgba(59,130,246,0.15)', borderRadius: '12px', padding: '12px 20px' }}>
-                        <div style={{ color: '#60A5FA', fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>ฐานราก</div>
-                        <div style={{ color: '#FFFFFF', fontSize: '32px', fontWeight: 700, lineHeight: 1 }}>{avgFoundation}<span style={{ fontSize: '14px' }}>%</span></div>
+                        <div style={{ color: stat1.color, fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>{stat1.label}</div>
+                        <div style={{ color: '#FFFFFF', fontSize: '32px', fontWeight: 700, lineHeight: 1 }}>{stat1.value}<span style={{ fontSize: '14px' }}>%</span></div>
                         <div style={{ color: '#94A3B8', fontSize: '10px', marginTop: '2px' }}>เฉลี่ย</div>
                     </div>
-                    {/* Pole stat */}
+                    {/* Stat 2 */}
                     <div style={{ textAlign: 'center', backgroundColor: 'rgba(16,185,129,0.15)', borderRadius: '12px', padding: '12px 20px' }}>
-                        <div style={{ color: '#34D399', fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>ติดตั้งเสา</div>
-                        <div style={{ color: '#FFFFFF', fontSize: '32px', fontWeight: 700, lineHeight: 1 }}>{avgPole}<span style={{ fontSize: '14px' }}>%</span></div>
+                        <div style={{ color: stat2.color, fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>{stat2.label}</div>
+                        <div style={{ color: '#FFFFFF', fontSize: '32px', fontWeight: 700, lineHeight: 1 }}>{stat2.value}<span style={{ fontSize: '14px' }}>%</span></div>
                         <div style={{ color: '#94A3B8', fontSize: '10px', marginTop: '2px' }}>เฉลี่ย</div>
                     </div>
                     {/* Overall progress */}
@@ -113,7 +131,7 @@ export default function ExportBentoReport({ district, stations }: ExportBentoRep
                             ความคืบหน้าแยกตามสถานี
                         </div>
                         <div style={{ flex: 1, minHeight: 0 }}>
-                            <ExportChartStatic data={stations} width={616} height={320} />
+                            <ExportChartStatic data={stations} category={category} width={616} height={320} />
                         </div>
                     </div>
 
@@ -153,45 +171,56 @@ export default function ExportBentoReport({ district, stations }: ExportBentoRep
                             รายชื่อสถานี
                         </div>
                         <div style={{ overflow: 'hidden', flex: 1 }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
                                 <thead>
                                     <tr style={{ backgroundColor: '#F9FAFB' }}>
-                                        <th style={{ textAlign: 'left', padding: '6px 8px', color: '#6B7280', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>สถานี</th>
-                                        <th style={{ textAlign: 'center', padding: '6px 8px', color: '#6B7280', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>Type</th>
-                                        <th style={{ textAlign: 'right', padding: '6px 8px', color: '#3B82F6', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>ฐานราก</th>
-                                        <th style={{ textAlign: 'right', padding: '6px 8px', color: '#10B981', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>เสา</th>
+                                        <th style={{ textAlign: 'left', padding: '6px 4px', color: '#6B7280', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>สถานี</th>
+                                        {!isClient ? (
+                                            <>
+                                                <th style={{ textAlign: 'center', padding: '6px 4px', color: '#6B7280', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>Type</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 4px', color: '#3B82F6', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>ฐานราก</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 4px', color: '#10B981', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>เสา</th>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#3B82F6', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>ไฟฟ้า</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#10B981', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>กราวด์</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#F59E0B', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>สาย</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#8B5CF6', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>เสา</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '# EC4899', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>วิทยุ</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#06B6D4', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>Link</th>
+                                            </>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {stations.map((s, i) => {
-                                        const fPct = parseFloat(s.foundationProgress as any) || 0;
-                                        const pPct = parseFloat(s.poleInstallationProgress as any) || 0;
-                                        return (
-                                            <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }}>
-                                                <td style={{ padding: '5px 8px', color: '#111827', fontWeight: 500, borderBottom: '1px solid #F3F4F6' }}>
-                                                    {s.stationName}
-                                                </td>
-                                                <td style={{ padding: '5px 8px', textAlign: 'center', borderBottom: '1px solid #F3F4F6' }}>
-                                                    <span style={{
-                                                        backgroundColor: '#E0E7FF',
-                                                        color: '#4338CA',
-                                                        padding: '1px 6px',
-                                                        borderRadius: '999px',
-                                                        fontSize: '10px',
-                                                        fontWeight: 600,
-                                                    }}>
-                                                        {s.type}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: '5px 8px', textAlign: 'right', color: fPct >= 100 ? '#059669' : '#374151', fontWeight: fPct >= 100 ? 700 : 400, borderBottom: '1px solid #F3F4F6' }}>
-                                                    {fPct}%
-                                                </td>
-                                                <td style={{ padding: '5px 8px', textAlign: 'right', color: pPct >= 100 ? '#059669' : '#374151', fontWeight: pPct >= 100 ? 700 : 400, borderBottom: '1px solid #F3F4F6' }}>
-                                                    {pPct}%
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
+                                    {stations.map((s, i) => (
+                                        <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }}>
+                                            <td style={{ padding: '4px', color: '#111827', fontWeight: 500, borderBottom: '1px solid #F3F4F6', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {s.stationName}
+                                            </td>
+                                            {!isClient ? (
+                                                <>
+                                                    <td style={{ padding: '4px', textAlign: 'center', borderBottom: '1px solid #F3F4F6' }}>
+                                                        <span style={{ backgroundColor: '#E0E7FF', color: '#4338CA', padding: '1px 4px', borderRadius: '4px', fontSize: '9px', fontWeight: 600 }}>
+                                                            {s.type}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding: '4px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.foundationProgress}%</td>
+                                                    <td style={{ padding: '4px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.poleInstallationProgress}%</td>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.electricProgress || 0}%</td>
+                                                    <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.groundProgress || 0}%</td>
+                                                    <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.feederProgress || 0}%</td>
+                                                    <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.towerProgress || 0}%</td>
+                                                    <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.radioProgress || 0}%</td>
+                                                    <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.linkProgress || 0}%</td>
+                                                </>
+                                            )}
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>

@@ -11,30 +11,65 @@ import {
     ResponsiveContainer
 } from 'recharts';
 
-export default function DistrictProgressChart({ data }: { data: any[] }) {
+export default function DistrictProgressChart({ data, category = 'station' }: { data: any[], category?: string }) {
     // 1. Group by district and calculate averages
-    const districtStats: Record<string, { foundationSum: number, poleSum: number, count: number }> = {};
+    const isClient = category === 'client';
+    
+    const districtStats: Record<string, any> = {};
 
     data.forEach(d => {
         const dist = d.district || 'Unknown';
         if (!districtStats[dist]) {
-            districtStats[dist] = { foundationSum: 0, poleSum: 0, count: 0 };
+            if (isClient) {
+                districtStats[dist] = { 
+                    electricSum: 0, groundSum: 0, feederSum: 0, 
+                    towerSum: 0, radioSum: 0, linkSum: 0,
+                    count: 0 
+                };
+            } else {
+                districtStats[dist] = { foundationSum: 0, poleSum: 0, count: 0 };
+            }
         }
-        districtStats[dist].foundationSum += (parseFloat(d.foundationProgress) || 0);
-        districtStats[dist].poleSum += (parseFloat(d.poleInstallationProgress) || 0);
+        
+        if (isClient) {
+            districtStats[dist].electricSum += (parseFloat(d.electricProgress) || 0);
+            districtStats[dist].groundSum += (parseFloat(d.groundProgress) || 0);
+            districtStats[dist].feederSum += (parseFloat(d.feederProgress) || 0);
+            districtStats[dist].towerSum += (parseFloat(d.towerProgress) || 0);
+            districtStats[dist].radioSum += (parseFloat(d.radioProgress) || 0);
+            districtStats[dist].linkSum += (parseFloat(d.linkProgress) || 0);
+        } else {
+            districtStats[dist].foundationSum += (parseFloat(d.foundationProgress) || 0);
+            districtStats[dist].poleSum += (parseFloat(d.poleInstallationProgress) || 0);
+        }
         districtStats[dist].count += 1;
     });
 
     // 2. Map to chart data
     const chartData = Object.keys(districtStats).map(district => {
         const stats = districtStats[district];
+        if (isClient) {
+            return {
+                name: district,
+                electric: Math.round(stats.electricSum / stats.count),
+                ground: Math.round(stats.groundSum / stats.count),
+                feeder: Math.round(stats.feederSum / stats.count),
+                tower: Math.round(stats.towerSum / stats.count),
+                radio: Math.round(stats.radioSum / stats.count),
+                link: Math.round(stats.linkSum / stats.count),
+                count: stats.count
+            };
+        }
         return {
             name: district,
             foundation: Math.round(stats.foundationSum / stats.count),
             pole: Math.round(stats.poleSum / stats.count),
             count: stats.count
         };
-    }).sort((a, b) => b.foundation - a.foundation); // Sort by highest foundation progress
+    }).sort((a, b) => {
+        if (isClient) return (b.electric || 0) - (a.electric || 0);
+        return (b.foundation || 0) - (a.foundation || 0);
+    });
 
     if (chartData.length === 0) {
         return <div className="flex items-center justify-center h-full text-gray-500">No data available for chart</div>;
@@ -86,8 +121,21 @@ export default function DistrictProgressChart({ data }: { data: any[] }) {
                 />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F3F4F6' }} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                <Bar dataKey="foundation" name="เฉลี่ยฐานราก" fill="#3B82F6" radius={[0, 4, 4, 0]} barSize={16} />
-                <Bar dataKey="pole" name="เฉลี่ยติดตั้งเสา" fill="#10B981" radius={[0, 4, 4, 0]} barSize={16} />
+                {!isClient ? (
+                    <>
+                        <Bar dataKey="foundation" name="เฉลี่ยฐานราก" fill="#3B82F6" radius={[0, 4, 4, 0]} barSize={16} />
+                        <Bar dataKey="pole" name="เฉลี่ยติดตั้งเสา" fill="#10B981" radius={[0, 4, 4, 0]} barSize={16} />
+                    </>
+                ) : (
+                    <>
+                        <Bar dataKey="electric" name="เฉลี่ยระบบไฟฟ้า" fill="#3B82F6" radius={[0, 4, 4, 0]} barSize={10} />
+                        <Bar dataKey="ground" name="เฉลี่ยระบบกราวด์" fill="#10B981" radius={[0, 4, 4, 0]} barSize={10} />
+                        <Bar dataKey="feeder" name="เฉลี่ยสาย Feeder" fill="#F59E0B" radius={[0, 4, 4, 0]} barSize={10} />
+                        <Bar dataKey="tower" name="อุปกรณ์บนเสา" fill="#8B5CF6" radius={[0, 4, 4, 0]} barSize={10} />
+                        <Bar dataKey="radio" name="เครื่องวิทยุ" fill="#EC4899" radius={[0, 4, 4, 0]} barSize={10} />
+                        <Bar dataKey="link" name="ทดสอบสัญญาณ" fill="#06B6D4" radius={[0, 4, 4, 0]} barSize={10} />
+                    </>
+                )}
             </BarChart>
         </ResponsiveContainer>
     );

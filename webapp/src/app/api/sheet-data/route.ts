@@ -31,6 +31,9 @@ export interface ClientSystemData {
     yagiNo: string;         // Yagi No
     sn: string;             // SN
     feedDistance: string;   // ระยะ feed
+    towerProgress: number;  // การติดตั้งอุปกรณ์บนเสา (%)
+    radioProgress: number;  // การติดตั้งเครื่องวิทยุและอุปกรณ์ประกอบ (%)
+    linkProgress: number;   // การทดสอบสัญญาณ (%)
     remark?: string;        // งานเพิ่มเติม / ปัญหาอุปสรรค
     startDate?: string;     // วันที่เริ่มงาน
     endDate?: string;       // วันที่เสร็จงาน
@@ -64,7 +67,7 @@ export async function GET(req: Request) {
         // Station: A-K (11 columns)
         // ClientSystem: A-N (14 columns)
         const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
-        const range = sheetType === "client" ? `${sheetName}!A2:Q` : `${sheetName}!A2:K`;
+        const range = sheetType === "client" ? `${sheetName}!A2:T` : `${sheetName}!A2:K`;
 
         const rows = await getSheetData(range, sheetId);
 
@@ -88,9 +91,12 @@ export async function GET(req: Request) {
                 yagiNo: row[11] || "",
                 sn: row[12] || "",
                 feedDistance: row[13] || "",
-                remark: row[14] || "",
-                startDate: formatDateForUI(row[15] || ""),
-                endDate: formatDateForUI(row[16] || ""),
+                towerProgress: parseFloat(row[14]) || 0,
+                radioProgress: parseFloat(row[15]) || 0,
+                linkProgress: parseFloat(row[16]) || 0,
+                remark: row[17] || "",
+                startDate: formatDateForUI(row[18] || ""),
+                endDate: formatDateForUI(row[19] || ""),
                 rowIndex: index + 2
             }));
             return NextResponse.json({ data });
@@ -128,7 +134,7 @@ export async function POST(req: Request) {
         const body = await req.json();
         const sheetId = getSpreadsheetId();
         const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
-        const range = `${sheetName}!A:Q`;
+        const range = `${sheetName}!A:T`;
 
         let values: any[][] = [];
 
@@ -149,6 +155,9 @@ export async function POST(req: Request) {
                 data.yagiNo,
                 data.sn,
                 data.feedDistance,
+                data.towerProgress,
+                data.radioProgress,
+                data.linkProgress,
                 data.remark || "",
                 formatDateForSheet(data.startDate || ""),
                 formatDateForSheet(data.endDate || "")
@@ -202,7 +211,7 @@ export async function PUT(req: Request) {
         const sheetId = getSpreadsheetId();
         const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
         const range = sheetType === "client" 
-            ? `${sheetName}!A${body.rowIndex}:Q${body.rowIndex}`
+            ? `${sheetName}!A${body.rowIndex}:T${body.rowIndex}`
             : `${sheetName}!A${body.rowIndex}:K${body.rowIndex}`;
 
         let values: any[][] = [];
@@ -224,6 +233,9 @@ export async function PUT(req: Request) {
                 data.yagiNo,
                 data.sn,
                 data.feedDistance,
+                data.towerProgress,
+                data.radioProgress,
+                data.linkProgress,
                 data.remark || "",
                 formatDateForSheet(data.startDate || ""),
                 formatDateForSheet(data.endDate || "")
