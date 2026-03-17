@@ -11,6 +11,7 @@ export interface StationData {
     lon: number;           // lon
     poleHeight?: string;   // ความสูงเสา
     startDate?: string;    // วันที่เริ่มงาน
+    endDate?: string;      // วันที่เสร็จงาน
     remark?: string;       // หมายเหตุ
     rowIndex?: number;     // For updating specific rows
 }
@@ -23,7 +24,7 @@ export async function GET() {
         );
         const sheetId = getSpreadsheetId();
         // Omitting sheet name defaults to the first visible sheet
-        const range = "A2:J"; // A to J covers all 10 columns
+        const range = "A2:K"; // A to K covers all 11 columns
 
         const rows = await getSheetData(range, sheetId);
 
@@ -41,7 +42,8 @@ export async function GET() {
             lon: parseFloat(row[6]) || 0,
             poleHeight: row[7] || "",
             startDate: row[8] || "",
-            remark: row[9] || "",
+            endDate: row[9] || "",
+            remark: row[10] || "",
             rowIndex: index + 2 // Assuming data starts at row 2 in the sheet
         }));
 
@@ -60,7 +62,7 @@ export async function POST(req: Request) {
     try {
         const body: StationData = await req.json();
         const sheetId = getSpreadsheetId();
-        const range = "A:J"; // Append anywhere in these columns
+        const range = "A:K"; // Append anywhere in these columns
 
         // Convert the object into an array of values matching the column order
         const values = [
@@ -74,6 +76,7 @@ export async function POST(req: Request) {
                 body.lon,
                 body.poleHeight || "",
                 body.startDate || "",
+                body.endDate || "",
                 body.remark || ""
             ]
         ];
@@ -109,7 +112,7 @@ export async function PUT(req: Request) {
 
         const sheetId = getSpreadsheetId();
         // Target the specific row index
-        const range = `A${body.rowIndex}:J${body.rowIndex}`;
+        const range = `A${body.rowIndex}:K${body.rowIndex}`;
 
         // Convert the object into an array of values matching the column order
         const values = [
@@ -123,6 +126,7 @@ export async function PUT(req: Request) {
                 body.lon,
                 body.poleHeight || "",
                 body.startDate || "",
+                body.endDate || "",
                 body.remark || ""
             ]
         ];

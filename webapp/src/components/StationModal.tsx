@@ -22,6 +22,7 @@ const defaultForm = {
     lon: 99.0,
     poleHeight: "",
     startDate: "",
+    endDate: "",
     remark: "",
 };
 
@@ -50,6 +51,7 @@ export default function StationModal({
                 lon: editingStation.lon || 99.0,
                 poleHeight: editingStation.poleHeight || "",
                 startDate: editingStation.startDate || "",
+                endDate: editingStation.endDate || "",
                 remark: editingStation.remark || "",
             });
         } else {
@@ -274,6 +276,16 @@ export default function StationModal({
                                 name="startDate"
                                 type="date"
                                 value={formData.startDate}
+                                onChange={handleChange}
+                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2.5 text-sm bg-white dark:bg-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">วันที่เสร็จงาน</label>
+                            <input
+                                name="endDate"
+                                type="date"
+                                value={formData.endDate}
                                 onChange={handleChange}
                                 className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2.5 text-sm bg-white dark:bg-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                             />
