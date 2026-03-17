@@ -136,11 +136,21 @@ export default function Home() {
       return acc;
     }, {} as Record<string, typeof filteredExportData>);
 
-    // Format date as DD-MM-YY (e.g. 05-03-26)
+    // Date formatting helper: YYYY-MM-DD -> DD-MM-YYYY
+    const formatDate = (dateStr: string) => {
+      if (!dateStr || dateStr === "-") return "-";
+      // If it's already in DD/MM/YY format (historical data), just return as is or normalize
+      if (dateStr.includes('/')) return dateStr;
+      const [y, m, d] = dateStr.split('-');
+      if (!y || !m || !d) return dateStr;
+      return `${d}-${m}-${y}`;
+    };
+
+    // Format header date as DD-MM-YYYY
     const today = new Date();
     const day = String(today.getDate()).padStart(2, '0');
     const month = String(today.getMonth() + 1).padStart(2, '0');
-    const year = String(today.getFullYear()).slice(-2);
+    const year = today.getFullYear();
     const dateStr = `${day}-${month}-${year}`;
 
     let textContent = `${dateStr}\n`;
@@ -158,7 +168,8 @@ export default function Home() {
         textContent += `งานก่อสร้างฐานราก: ${station.foundationProgress || 0}%\n`;
         textContent += `งานติดตั้งโครงเสา: ${station.poleInstallationProgress || 0}%\n`;
         textContent += `** หมายเหตุ: ${station.remark || "-"}\n`;
-        textContent += `เริ่มงาน: ${station.startDate || "-"}\n\n`;
+        textContent += `เริ่มงาน: ${formatDate(station.startDate || "-")}\n`;
+        textContent += `เสร็จงาน: ${formatDate(station.endDate || "-")}\n\n`;
 
         if (index < stations.length - 1) {
           textContent += `---\n\n`;
