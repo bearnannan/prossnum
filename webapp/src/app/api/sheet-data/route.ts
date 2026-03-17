@@ -22,6 +22,8 @@ export interface ClientSystemData {
     electricProgress: number; // ระบบไฟฟ้า (%)
     electricMain: string;   // ระยะสาย Main
     groundProgress: number;   // ระบบกราวด์ (%)
+    lat: number;            // lat (Column F)
+    lon: number;            // lon (Column G)
     groundAC: string;       // AC Ω
     groundEquip: string;    // Equip Ω
     feederProgress: number; // สาย Feeder (%)
@@ -60,8 +62,8 @@ export async function GET(req: Request) {
         // Define ranges based on sheet type
         // Station: A-K (11 columns)
         // ClientSystem: A-N (14 columns)
-        const sheetName = sheetType === "client" ? "ClientSystem" : "Sheet1";
-        const range = sheetType === "client" ? `${sheetName}!A2:N` : `${sheetName}!A2:K`;
+        const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
+        const range = sheetType === "client" ? `${sheetName}!A2:P` : `${sheetName}!A2:K`;
 
         const rows = await getSheetData(range, sheetId);
 
@@ -76,15 +78,17 @@ export async function GET(req: Request) {
                 electricProgress: parseFloat(row[2]) || 0,
                 electricMain: row[3] || "",
                 groundProgress: parseFloat(row[4]) || 0,
-                groundAC: row[5] || "",
-                groundEquip: row[6] || "",
-                feederProgress: parseFloat(row[7]) || 0,
-                yagiNo: row[8] || "",
-                sn: row[9] || "",
-                feedDistance: row[10] || "",
-                remark: row[11] || "",
-                startDate: formatDateForUI(row[12] || ""),
-                endDate: formatDateForUI(row[13] || ""),
+                lat: parseFloat(row[5]) || 0,
+                lon: parseFloat(row[6]) || 0,
+                groundAC: row[7] || "",
+                groundEquip: row[8] || "",
+                feederProgress: parseFloat(row[9]) || 0,
+                yagiNo: row[10] || "",
+                sn: row[11] || "",
+                feedDistance: row[12] || "",
+                remark: row[13] || "",
+                startDate: formatDateForUI(row[14] || ""),
+                endDate: formatDateForUI(row[15] || ""),
                 rowIndex: index + 2
             }));
             return NextResponse.json({ data });
@@ -134,6 +138,8 @@ export async function POST(req: Request) {
                 data.electricProgress,
                 data.electricMain,
                 data.groundProgress,
+                data.lat || 0,
+                data.lon || 0,
                 data.groundAC,
                 data.groundEquip,
                 data.feederProgress,
@@ -206,6 +212,8 @@ export async function PUT(req: Request) {
                 data.electricProgress,
                 data.electricMain,
                 data.groundProgress,
+                data.lat || 0,
+                data.lon || 0,
                 data.groundAC,
                 data.groundEquip,
                 data.feederProgress,
