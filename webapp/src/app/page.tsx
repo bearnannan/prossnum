@@ -366,7 +366,9 @@ export default function Home() {
     const matchesDistrict = filterDistrict === "All" || item.district === filterDistrict;
     
     // Type filter only applies to station category for now
-    const matchesType = activeCategory === 'client' ? true : (filterType === "All" || item.type === filterType);
+    const matchesType = activeCategory === 'client' 
+      ? (filterType === "All" || item.poleHeight === filterType)
+      : (filterType === "All" || item.type === filterType);
     
     let matchesStatus = true;
     if (activeCategory === 'client') {
@@ -776,19 +778,18 @@ export default function Home() {
               </button>
               <button
                 onClick={() => setChartTab('comparison')}
-                disabled={activeCategory === 'client'}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${chartTab === 'comparison'
                   ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm'
                   : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
-                  } ${activeCategory === 'client' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  }`}
               >
-                ฐานราก vs ติดตั้งเสา
+                {activeCategory === 'client' ? 'ไฟฟ้า vs กราวด์' : 'ฐานราก vs ติดตั้งเสา'}
               </button>
             </div>
           </div>
           <div className="h-[320px] sm:h-[360px]">
             {!isLoading && chartTab === 'average' && <DistrictProgressChart data={data} category={activeCategory} />}
-            {!isLoading && chartTab === 'comparison' && <ComparisonChart data={data} />}
+            {!isLoading && chartTab === 'comparison' && <ComparisonChart data={data} category={activeCategory} />}
           </div>
         </div>
 
@@ -834,10 +835,21 @@ export default function Home() {
                   onChange={(e) => setFilterType(e.target.value)}
                   className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
                 >
-                  <option value="All">ทุก Type</option>
-                  <option value="A">Type A</option>
-                  <option value="B">Type B</option>
-                  <option value="C">Type C</option>
+                  {activeCategory === 'client' ? (
+                    <>
+                      <option value="All">ทุกความสูง</option>
+                      <option value="18 เมตร">18 เมตร</option>
+                      <option value="25 เมตร">25 เมตร</option>
+                      <option value="30 เมตร">30 เมตร</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="All">ทุก Type</option>
+                      <option value="A">Type A</option>
+                      <option value="B">Type B</option>
+                      <option value="C">Type C</option>
+                    </>
+                  )}
                 </select>
                 <select
                   value={filterStatus}
