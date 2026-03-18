@@ -70,6 +70,7 @@ export default function LoginPage() {
                             placeholder="e.g. อำเภอเมือง"
                             value={district}
                             onChange={(e) => setDistrict(e.target.value)}
+                            autoComplete="username"
                             className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-blue-500"
                         />
                     </div>
