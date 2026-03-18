@@ -13,19 +13,19 @@ export function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // Get the auth cookie
+    // Get the auth tokens
     const authSession = request.cookies.get('auth_session')?.value || '';
+    const nextAuthToken = request.cookies.get('authjs.session-token')?.value || 
+                          request.cookies.get('__Secure-authjs.session-token')?.value || '';
+
+    const isAuthenticated = authSession || nextAuthToken;
 
     // Redirect Logic
-    // If user is trying to access a public path (like login) but is already authenticated,
-    // redirect them to the dashboard
-    if (isPublicPath && authSession) {
+    if (isPublicPath && isAuthenticated) {
         return NextResponse.redirect(new URL('/', request.nextUrl));
     }
 
-    // If user is trying to access a protected path (like the dashboard / or /api/sheet-data)
-    // and is NOT authenticated, redirect to login
-    if (!isPublicPath && !authSession) {
+    if (!isPublicPath && !isAuthenticated) {
         return NextResponse.redirect(new URL('/login', request.nextUrl));
     }
 

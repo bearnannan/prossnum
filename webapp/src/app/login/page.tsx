@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
     const [district, setDistrict] = useState("");
@@ -95,7 +97,40 @@ export default function LoginPage() {
                     >
                         {isLoading ? "Signing in..." : "Sign in"}
                     </button>
+
+                    <div className="relative my-6">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-zinc-100 dark:border-zinc-800"></div>
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-white px-2 text-zinc-400 dark:bg-zinc-900 dark:text-zinc-500">
+                                Or continue with
+                            </span>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => signIn("line", { callbackUrl: "/" })}
+                        className="flex w-full items-center justify-center gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:focus:ring-offset-zinc-900"
+                    >
+                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="#06C755">
+                            <path d="M21 10.32c0-4.507-4.038-8.161-9-8.161s-9 3.654-9 8.161c0 4.041 3.201 7.413 7.545 8.041.294.062.693.194.793.447.091.23.059.589.029.819l-.173 1.041c-.021.129-.101.503.437.275.539-.228 2.906-1.71 3.961-2.927.012-.014.024-.028.035-.042 3.033-.919 5.374-3.834 5.374-7.653zm-11.859 2.955c-.244 0-.441-.197-.441-.441v-3.351h-.963c-.244 0-.441-.197-.441-.441s.197-.441.441-.441h2.845c.244 0 .441.197.441.441s-.197.441-.441.441h-.963v3.351c0 .244-.197.441-.441.441zm3.179 0c-.244 0-.441-.197-.441-.441v-3.792c0-.244.197-.441.441-.441s.441.197.441.441v3.792c0 .244-.197.441-.441.441zm4.194 0h-2.522c-.244 0-.441-.197-.441-.441v-3.792c0-.244.197-.441.441-.441s.441.197.441.441v3.351h2.081c.244 0 .441.197.441.441s-.197.441-.441.441zm3.178 0h-2.522c-.244 0-.441-.197-.441-.441v-3.792c0-.244.197-.441.441-.441s.441.197.441.441v.441h2.081c.244 0 .441.197.441.441s-.197.441-.441.441h-2.081v1.168h2.081c.244 0 .441.197.441.441s-.197.441-.441.441h-2.081v1.168h2.081c.244 0 .441.197.441.441s-.197.441-.441.441z" />
+                        </svg>
+                        Sign in with LINE
+                    </button>
                 </form>
+
+                {/* Footer links */}
+                <div className="mt-6 flex items-center justify-center gap-4 border-t border-zinc-100 pt-5 dark:border-zinc-800">
+                    <Link href="/privacy-policy" className="text-xs text-zinc-400 transition-colors hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300">
+                        นโยบายความเป็นส่วนตัว
+                    </Link>
+                    <span className="text-zinc-300 dark:text-zinc-700">·</span>
+                    <Link href="/terms-of-use" className="text-xs text-zinc-400 transition-colors hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300">
+                        ข้อกำหนดการใช้งาน
+                    </Link>
+                </div>
             </div>
         </div>
     );

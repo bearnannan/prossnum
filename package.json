@@ -1,5 +1,10 @@
 {
   "dependencies": {
+    "maplibre-gl": "^5.20.2",
+    "next-auth": "^5.0.0-beta.30",
     "recharts": "^3.7.0"
+  },
+  "devDependencies": {
+    "@types/maplibre-gl": "^1.13.2"
   }
 }
