@@ -32,8 +32,11 @@ export interface ClientSystemData {
     sn: string;             // SN
     feedDistance: string;   // ระยะ feed
     towerProgress: number;  // การติดตั้งอุปกรณ์บนเสา (%)
-    radioProgress: number;  // การติดตั้งเครื่องวิทยุและอุปกรณ์ประกอบ (%)
+    radioProgress: number;  // การติดตั้งเครื่องวิทยุฯ (%)
     linkProgress: number;   // การทดสอบสัญญาณ (%)
+    radioSN: string;        // SN เครื่องวิทยุ MT680 Plus (col 18)
+    batterySN: string;      // SN แบตเตอรี่ 50AH (col 19)
+    rssi: string;           // ค่า RSSI dBm (col 20)
     remark?: string;        // งานเพิ่มเติม / ปัญหาอุปสรรค
     startDate?: string;     // วันที่เริ่มงาน
     endDate?: string;       // วันที่เสร็จงาน
@@ -67,7 +70,7 @@ export async function GET(req: Request) {
         // Station: A-K (11 columns)
         // ClientSystem: A-N (14 columns)
         const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
-        const range = sheetType === "client" ? `${sheetName}!A2:T` : `${sheetName}!A2:K`;
+        const range = sheetType === "client" ? `${sheetName}!A2:W` : `${sheetName}!A2:K`;
 
         const rows = await getSheetData(range, sheetId);
 
@@ -94,9 +97,12 @@ export async function GET(req: Request) {
                 towerProgress: parseFloat(row[14]) || 0,
                 radioProgress: parseFloat(row[15]) || 0,
                 linkProgress: parseFloat(row[16]) || 0,
-                remark: row[17] || "",
-                startDate: formatDateForUI(row[18] || ""),
-                endDate: formatDateForUI(row[19] || ""),
+                radioSN: row[17] || "",
+                batterySN: row[18] || "",
+                rssi: row[19] || "",
+                remark: row[20] || "",
+                startDate: formatDateForUI(row[21] || ""),
+                endDate: formatDateForUI(row[22] || ""),
                 rowIndex: index + 2
             }));
             return NextResponse.json({ data });
@@ -134,7 +140,7 @@ export async function POST(req: Request) {
         const body = await req.json();
         const sheetId = getSpreadsheetId();
         const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
-        const range = `${sheetName}!A:T`;
+        const range = `${sheetName}!A:W`;
 
         let values: any[][] = [];
 
@@ -158,6 +164,9 @@ export async function POST(req: Request) {
                 data.towerProgress,
                 data.radioProgress,
                 data.linkProgress,
+                data.radioSN || "",
+                data.batterySN || "",
+                data.rssi || "",
                 data.remark || "",
                 formatDateForSheet(data.startDate || ""),
                 formatDateForSheet(data.endDate || "")
@@ -211,7 +220,7 @@ export async function PUT(req: Request) {
         const sheetId = getSpreadsheetId();
         const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
         const range = sheetType === "client" 
-            ? `${sheetName}!A${body.rowIndex}:T${body.rowIndex}`
+            ? `${sheetName}!A${body.rowIndex}:W${body.rowIndex}`
             : `${sheetName}!A${body.rowIndex}:K${body.rowIndex}`;
 
         let values: any[][] = [];
@@ -236,6 +245,9 @@ export async function PUT(req: Request) {
                 data.towerProgress,
                 data.radioProgress,
                 data.linkProgress,
+                data.radioSN || "",
+                data.batterySN || "",
+                data.rssi || "",
                 data.remark || "",
                 formatDateForSheet(data.startDate || ""),
                 formatDateForSheet(data.endDate || "")

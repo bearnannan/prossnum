@@ -26,6 +26,9 @@ const defaultForm = {
     feederProgress: 0,
     towerProgress: 0,
     radioProgress: 0,
+    radioSN: "",
+    batterySN: "",
+    rssi: "",
     linkProgress: 0,
     yagiNo: "",
     sn: "",
@@ -64,6 +67,9 @@ export default function ClientSystemModal({
                 feederProgress: editingStation.feederProgress,
                 towerProgress: editingStation.towerProgress || 0,
                 radioProgress: editingStation.radioProgress || 0,
+                radioSN: editingStation.radioSN || "",
+                batterySN: editingStation.batterySN || "",
+                rssi: editingStation.rssi || "",
                 linkProgress: editingStation.linkProgress || 0,
                 yagiNo: editingStation.yagiNo || "",
                 sn: editingStation.sn || "",
@@ -379,7 +385,7 @@ export default function ClientSystemModal({
 
                     {/* Tower/Radio/Link Progress */}
                     <div className="space-y-4">
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">4. ติดตั้งอุปกรณ์บนเสา (%)</label>
                                 <input
@@ -387,17 +393,6 @@ export default function ClientSystemModal({
                                     type="number"
                                     min="0" max="100"
                                     value={formData.towerProgress}
-                                    onChange={handleChange}
-                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">5. ติดตั้งเครื่องวิทยุ (%)</label>
-                                <input
-                                    name="radioProgress"
-                                    type="number"
-                                    min="0" max="100"
-                                    value={formData.radioProgress}
                                     onChange={handleChange}
                                     className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
                                 />
@@ -412,6 +407,61 @@ export default function ClientSystemModal({
                                     onChange={handleChange}
                                     className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
                                 />
+                            </div>
+                        </div>
+
+                        {/* Section 5: Radio Installation */}
+                        <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 p-3 space-y-3">
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300 whitespace-nowrap">5. ติดตั้งเครื่องวิทยุ</h3>
+                                <div className="flex-1">
+                                    <input
+                                        name="radioProgress"
+                                        type="number"
+                                        min="0" max="100"
+                                        value={formData.radioProgress}
+                                        onChange={handleChange}
+                                        placeholder="%"
+                                        className={`w-full rounded-xl border px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white ${errors.radioProgress ? 'border-red-400' : 'border-zinc-200 dark:border-zinc-700'}`}
+                                    />
+                                    {errors.radioProgress && <p className="text-[10px] text-red-500 mt-0.5">{errors.radioProgress}</p>}
+                                </div>
+                                <span className="text-sm text-zinc-500 font-medium">%</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">[MT680 Plus (S) F5] SN</label>
+                                    <input
+                                        name="radioSN"
+                                        value={formData.radioSN}
+                                        onChange={handleChange}
+                                        placeholder="SN เครื่องวิทยุ..."
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Battery 50AH SN</label>
+                                    <input
+                                        name="batterySN"
+                                        value={formData.batterySN}
+                                        onChange={handleChange}
+                                        placeholder="SN แบตเตอรี่..."
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">รับแม่ข่าย BS-261 BS หนองนกแก้ว รับได้ (dBm)</label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        name="rssi"
+                                        value={formData.rssi}
+                                        onChange={handleChange}
+                                        placeholder="เช่น -85"
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                    <span className="text-sm text-zinc-500 font-medium whitespace-nowrap">dBm</span>
+                                </div>
                             </div>
                         </div>
                     </div>
