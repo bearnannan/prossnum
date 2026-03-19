@@ -39,6 +39,9 @@ async function updateHeaders() {
             "อุปกรณ์บนเสา (%)",
             "เครื่องวิทยุ (%)",
             "ทดสอบสัญญาณ (%)",
+            "SN เครื่องวิทยุ MT680 Plus",
+            "SN แบตเตอรี่ 50AH",
+            "ค่า RSSI dBm",
             "งานเพิ่มเติม / ปัญหาอุปสรรค",
             "วันที่เริ่มงาน",
             "วันที่เสร็จงาน"
@@ -47,7 +50,7 @@ async function updateHeaders() {
         console.log("Updating headers for 'ClientSystem'...");
         await sheets.spreadsheets.values.update({
             spreadsheetId,
-            range: "ClientSystem!A1:T1",
+            range: "ClientSystem!A1:W1",
             valueInputOption: "USER_ENTERED",
             requestBody: {
                 values: [headers],
