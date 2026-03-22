@@ -15,6 +15,17 @@ const fetcher = (url: string) => fetch(url).then(res => {
   return res.json();
 });
 
+// Helper to format YYYY-MM-DD to DD/MM/YYYY for display
+const formatDateDisplay = (dateStr?: string) => {
+  if (!dateStr || dateStr === "-" || dateStr === "") return "-";
+  if (dateStr.includes('/')) return dateStr; // Already formatted
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const [y, m, d] = parts;
+  const yy = y.slice(-2);
+  return `${d}/${m}/${yy}`;
+};
+
 const MapView = dynamic(() => import('@/components/MapView'), {
   ssr: false,
   loading: () => <div className="h-full w-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-800/50 rounded-xl text-zinc-500 text-sm">Loading Map...</div>
@@ -371,29 +382,15 @@ export default function Home() {
       : (filterType === "All" || item.type === filterType);
     
     let matchesStatus = true;
-    if (activeCategory === 'client') {
-      const ep = parseFloat(item.electricProgress as any) || 0;
-      const gp = parseFloat(item.groundProgress as any) || 0;
-      const fp = parseFloat(item.feederProgress as any) || 0;
-      
-      if (filterStatus === "Completed") {
-        matchesStatus = ep === 100 && gp === 100 && fp === 100;
-      } else if (filterStatus === "In Progress") {
-        matchesStatus = (ep > 0 || gp > 0 || fp > 0) && !(ep === 100 && gp === 100 && fp === 100);
-      } else if (filterStatus === "Not Started") {
-        matchesStatus = ep === 0 && gp === 0 && fp === 0;
-      }
-    } else {
-      const fnd = parseFloat(item.foundationProgress as any) || 0;
-      const ple = parseFloat(item.poleInstallationProgress as any) || 0;
-      
-      if (filterStatus === "Completed") {
-        matchesStatus = fnd === 100 && ple === 100;
-      } else if (filterStatus === "In Progress") {
-        matchesStatus = (fnd > 0 || ple > 0) && !(fnd === 100 && ple === 100);
-      } else if (filterStatus === "Not Started") {
-        matchesStatus = fnd === 0 && ple === 0;
-      }
+    const hasStart = !!item.startDate && item.startDate !== "" && item.startDate !== "-";
+    const hasEnd = !!item.endDate && item.endDate !== "" && item.endDate !== "-";
+
+    if (filterStatus === "Completed") {
+      matchesStatus = hasEnd;
+    } else if (filterStatus === "In Progress") {
+      matchesStatus = hasStart && !hasEnd;
+    } else if (filterStatus === "Not Started") {
+      matchesStatus = !hasStart && !hasEnd;
     }
 
     return matchesSearch && matchesDistrict && matchesType && matchesStatus;
@@ -589,9 +586,7 @@ export default function Home() {
 
               {/* Completed */}
               {(() => {
-                const count = activeCategory === 'client' 
-                  ? data.filter(s => parseFloat(s.electricProgress as any) === 100 && parseFloat(s.groundProgress as any) === 100 && parseFloat(s.feederProgress as any) === 100).length
-                  : data.filter(s => parseFloat(s.foundationProgress as any) === 100 && parseFloat(s.poleInstallationProgress as any) === 100).length;
+                const count = data.filter(s => !!s.endDate && s.endDate !== "" && s.endDate !== "-").length;
                 return (
                   <div className="flex flex-col justify-between rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 p-4 sm:p-5 shadow-sm">
                     <div className="flex items-center justify-between">
@@ -611,16 +606,9 @@ export default function Home() {
               {/* In Progress */}
               {(() => {
                 const count = data.filter(s => {
-                  if (activeCategory === 'client') {
-                    const ep = parseFloat(s.electricProgress as any) || 0;
-                    const gp = parseFloat(s.groundProgress as any) || 0;
-                    const fp = parseFloat(s.feederProgress as any) || 0;
-                    return (ep > 0 || gp > 0 || fp > 0) && !(ep === 100 && gp === 100 && fp === 100);
-                  } else {
-                    const fnd = parseFloat(s.foundationProgress as any) || 0;
-                    const ple = parseFloat(s.poleInstallationProgress as any) || 0;
-                    return (fnd > 0 || ple > 0) && !(fnd === 100 && ple === 100);
-                  }
+                  const hasStart = !!s.startDate && s.startDate !== "" && s.startDate !== "-";
+                  const hasEnd = !!s.endDate && s.endDate !== "" && s.endDate !== "-";
+                  return hasStart && !hasEnd;
                 }).length;
                 return (
                   <div className="flex flex-col justify-between rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 p-4 sm:p-5 shadow-sm">
@@ -641,16 +629,9 @@ export default function Home() {
               {/* Not Started */}
               {(() => {
                 const count = data.filter(s => {
-                  if (activeCategory === 'client') {
-                    const ep = parseFloat(s.electricProgress as any) || 0;
-                    const gp = parseFloat(s.groundProgress as any) || 0;
-                    const fp = parseFloat(s.feederProgress as any) || 0;
-                    return ep === 0 && gp === 0 && fp === 0;
-                  } else {
-                    const fnd = parseFloat(s.foundationProgress as any) || 0;
-                    const ple = parseFloat(s.poleInstallationProgress as any) || 0;
-                    return fnd === 0 && ple === 0;
-                  }
+                  const hasStart = !!s.startDate && s.startDate !== "" && s.startDate !== "-";
+                  const hasEnd = !!s.endDate && s.endDate !== "" && s.endDate !== "-";
+                  return !hasStart && !hasEnd;
                 }).length;
                 return (
                   <div className="flex flex-col justify-between rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 p-4 sm:p-5 shadow-sm">
@@ -909,6 +890,15 @@ export default function Home() {
                         </th>
                       </>
                     )}
+                    <th className="px-4 py-3">Lat/Lon</th>
+                    <th className="px-4 py-3">ความสูงเสา</th>
+                    <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => handleSort('startDate' as any)}>
+                      เริ่มงาน{getSortIndicator('startDate' as any)}
+                    </th>
+                    <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => handleSort('endDate' as any)}>
+                      เสร็จงาน{getSortIndicator('endDate' as any)}
+                    </th>
+                    <th className="px-4 py-3">หมายเหตุ</th>
                     <th className="px-4 py-3 text-right">Action</th>
                   </tr>
                 </thead>
@@ -935,6 +925,13 @@ export default function Home() {
                             <td className="px-4 py-3">{item.feederProgress}%</td>
                           </>
                         )}
+                        <td className="px-4 py-3 text-xs text-zinc-500">
+                          {item.lat}, {item.lon}
+                        </td>
+                        <td className="px-4 py-3">{item.poleHeight || "-"}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{formatDateDisplay(item.startDate)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">{formatDateDisplay(item.endDate)}</td>
+                        <td className="px-4 py-3 text-xs italic">{item.remark || "-"}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button

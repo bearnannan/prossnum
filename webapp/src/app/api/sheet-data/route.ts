@@ -66,8 +66,13 @@ async function fetchPublishedCsv(sheetType: string): Promise<any[][]> {
     const gid = sheetType === "client" ? process.env.GID_CLIENT_SYSTEM : process.env.GID_STATION_DATA;
     
     if (!baseUrl) {
-        console.error("PUBLISHED_SHEET_URL is not set");
-        return [];
+        console.error("PUBLISHED_SHEET_URL is not set in environment variables");
+        throw new Error("PUBLISHED_SHEET_URL is not configured");
+    }
+
+    if (!gid) {
+        console.error(`GID for ${sheetType} is not set in environment variables (GID_STATION_DATA or GID_CLIENT_SYSTEM)`);
+        throw new Error(`Sheet GID for ${sheetType} is not configured`);
     }
 
     const url = `${baseUrl}&gid=${gid}`;
@@ -125,7 +130,7 @@ export async function GET(req: Request) {
             console.warn("Failed to fetch from published CSV, falling back to API...", csvError);
             // Fallback to Google Sheets API if configured
             const sheetId = getSpreadsheetId();
-            const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
+            const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
             const range = sheetType === "client" ? `${sheetName}!A2:W` : `${sheetName}!A2:K`;
             rows = await getSheetData(range, sheetId) || [];
         }
@@ -142,6 +147,8 @@ export async function GET(req: Request) {
                 lat: parseFloat(String(row[2]).replace(/,/g, '')) || 0,
                 lon: parseFloat(String(row[3]).replace(/,/g, '')) || 0,
                 poleHeight: row[4] || "",
+                foundationProgress: 0, // Not in client tab
+                poleInstallationProgress: 0, // Not in client tab
                 electricProgress: parseFloat(String(row[5]).replace(/,/g, '')) || 0,
                 electricMain: row[6] || "",
                 groundProgress: parseFloat(String(row[7]).replace(/,/g, '')) || 0,
@@ -153,13 +160,13 @@ export async function GET(req: Request) {
                 feedDistance: row[13] || "",
                 towerProgress: parseFloat(String(row[14]).replace(/,/g, '')) || 0,
                 radioProgress: parseFloat(String(row[15]).replace(/,/g, '')) || 0,
-                linkProgress: parseFloat(String(row[16]).replace(/,/g, '')) || 0,
-                radioSN: row[16] || "", // Column Q
-                batterySN: row[17] || "", // Column R
-                rssi: row[18] || "", // Column S
-                remark: row[19] || "", // Column T
-                startDate: formatDateForUI(row[20] || ""), // Column U
-                endDate: formatDateForUI(row[21] || ""), // Column V
+                linkProgress: 0, // Adjusted: Not found in CSV columns
+                radioSN: row[16] || "",
+                batterySN: row[17] || "",
+                rssi: row[18] || "",
+                remark: row[19] || "",
+                startDate: formatDateForUI(row[20] || ""),
+                endDate: formatDateForUI(row[21] || ""),
                 rowIndex: index + 2
             }));
             return NextResponse.json({ data });
@@ -167,15 +174,15 @@ export async function GET(req: Request) {
             const data: StationData[] = rows.map((row: any[], index: number) => ({
                 district: row[0] || "",
                 stationName: row[1] || "",
-                type: "Client", // Default type
-                foundationProgress: parseFloat(String(row[14]).replace(/,/g, '')) || 0, 
-                poleInstallationProgress: parseFloat(String(row[14]).replace(/,/g, '')) || 0,
-                lat: parseFloat(String(row[2]).replace(/,/g, '')) || 0,
-                lon: parseFloat(String(row[3]).replace(/,/g, '')) || 0,
-                poleHeight: row[4] || "",
-                startDate: formatDateForUI(row[20] || ""), // Column U
-                endDate: formatDateForUI(row[21] || ""), // Column V
-                remark: row[19] || "", // Column T
+                type: row[2] || "Client",
+                foundationProgress: parseFloat(String(row[3]).replace(/,/g, '')) || 0, 
+                poleInstallationProgress: parseFloat(String(row[4]).replace(/,/g, '')) || 0,
+                lat: parseFloat(String(row[5]).replace(/,/g, '')) || 0,
+                lon: parseFloat(String(row[6]).replace(/,/g, '')) || 0,
+                poleHeight: row[7] || "",
+                startDate: formatDateForUI(row[8] || ""),
+                endDate: formatDateForUI(row[9] || ""),
+                remark: row[10] || "",
                 rowIndex: index + 2
             }));
             return NextResponse.json({ data });
@@ -196,7 +203,7 @@ export async function POST(req: Request) {
         const sheetType = searchParams.get("sheet") || "station";
         const body = await req.json();
         const sheetId = getSpreadsheetId();
-        const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
+        const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
         const range = `${sheetName}!A:W`;
 
         let values: any[][] = [];
@@ -275,7 +282,7 @@ export async function PUT(req: Request) {
         }
 
         const sheetId = getSpreadsheetId();
-        const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
+        const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
         const range = sheetType === "client" 
             ? `${sheetName}!A${body.rowIndex}:W${body.rowIndex}`
             : `${sheetName}!A${body.rowIndex}:K${body.rowIndex}`;
@@ -361,7 +368,7 @@ export async function DELETE(req: Request) {
         });
 
         // Find the sheetId (gid) by title
-        const sheetName = sheetType === "client" ? "ClientSystem" : "Sheet1";
+        const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
         const sheet = spreadsheetInfo.data.sheets?.find(s => s.properties?.title === sheetName);
         const actualSheetId = sheet?.properties?.sheetId;
 
