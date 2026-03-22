@@ -37,5 +37,9 @@ yarn-error.log*
 .vercel
 
 # typescript
-*.tsbuildinfo
-next-env.d.ts
+# scripts
+/scripts/test-*
+/scripts/sync-*
+/auth-out.txt
+/auth_debug.log
+/auth_out.txt

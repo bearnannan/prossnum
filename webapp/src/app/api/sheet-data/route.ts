@@ -60,49 +60,106 @@ function formatDateForSheet(dateStr: string): string {
     return `${day}/${month}/${shortYear}`;
 }
 
+// Helper to fetch and parse CSV from public URL
+async function fetchPublishedCsv(sheetType: string): Promise<any[][]> {
+    const baseUrl = process.env.PUBLISHED_SHEET_URL;
+    const gid = sheetType === "client" ? process.env.GID_CLIENT_SYSTEM : process.env.GID_STATION_DATA;
+    
+    if (!baseUrl) {
+        console.error("PUBLISHED_SHEET_URL is not set");
+        return [];
+    }
+
+    const url = `${baseUrl}&gid=${gid}`;
+    console.log("Fetching CSV from:", url);
+
+    try {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch CSV: ${response.statusText}`);
+        }
+        const csvText = await response.text();
+        
+        // Simple manual CSV parser handles quotes and escaped characters
+        const lines = csvText.split(/\r?\n/);
+        const result: any[][] = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (!line.trim()) continue;
+            
+            const row: string[] = [];
+            let inQuotes = false;
+            let start = 0;
+            
+            for (let j = 0; j < line.length; j++) {
+                if (line[j] === '"') {
+                    inQuotes = !inQuotes;
+                } else if (line[j] === ',' && !inQuotes) {
+                    row.push(line.substring(start, j).replace(/^"|"$/g, '').trim());
+                    start = j + 1;
+                }
+            }
+            row.push(line.substring(start).replace(/^"|"$/g, '').trim());
+            result.push(row);
+        }
+        
+        // Return without headers (skip first row)
+        return result.slice(1);
+    } catch (error) {
+        console.error("CSV Fetch Error:", error);
+        throw error;
+    }
+}
+
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
         const sheetType = searchParams.get("sheet") || "station";
-        const sheetId = getSpreadsheetId();
-        
-        // Define ranges based on sheet type
-        // Station: A-K (11 columns)
-        // ClientSystem: A-N (14 columns)
-        const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
-        const range = sheetType === "client" ? `${sheetName}!A2:W` : `${sheetName}!A2:K`;
 
-        const rows = await getSheetData(range, sheetId);
+        // Try to fetch from published CSV first as a robust fallback
+        let rows: any[][] = [];
+        try {
+            rows = await fetchPublishedCsv(sheetType);
+        } catch (csvError) {
+            console.warn("Failed to fetch from published CSV, falling back to API...", csvError);
+            // Fallback to Google Sheets API if configured
+            const sheetId = getSpreadsheetId();
+            const sheetName = sheetType === "client" ? "ClientSystem" : "station_data_template";
+            const range = sheetType === "client" ? `${sheetName}!A2:W` : `${sheetName}!A2:K`;
+            rows = await getSheetData(range, sheetId) || [];
+        }
 
         if (!rows || rows.length === 0) {
             return NextResponse.json({ data: [] });
         }
 
+        // Updated Mapping based on user's spreadsheet structure (CSV index starts at 0 for column A)
         if (sheetType === "client") {
             const data: ClientSystemData[] = rows.map((row: any[], index: number) => ({
                 district: row[0] || "",
                 stationName: row[1] || "",
-                lat: parseFloat(row[2]) || 0,
-                lon: parseFloat(row[3]) || 0,
+                lat: parseFloat(String(row[2]).replace(/,/g, '')) || 0,
+                lon: parseFloat(String(row[3]).replace(/,/g, '')) || 0,
                 poleHeight: row[4] || "",
-                electricProgress: parseFloat(row[5]) || 0,
+                electricProgress: parseFloat(String(row[5]).replace(/,/g, '')) || 0,
                 electricMain: row[6] || "",
-                groundProgress: parseFloat(row[7]) || 0,
+                groundProgress: parseFloat(String(row[7]).replace(/,/g, '')) || 0,
                 groundAC: row[8] || "",
                 groundEquip: row[9] || "",
-                feederProgress: parseFloat(row[10]) || 0,
+                feederProgress: parseFloat(String(row[10]).replace(/,/g, '')) || 0,
                 yagiNo: row[11] || "",
                 sn: row[12] || "",
                 feedDistance: row[13] || "",
-                towerProgress: parseFloat(row[14]) || 0,
-                radioProgress: parseFloat(row[15]) || 0,
-                linkProgress: parseFloat(row[16]) || 0,
-                radioSN: row[17] || "",
-                batterySN: row[18] || "",
-                rssi: row[19] || "",
-                remark: row[20] || "",
-                startDate: formatDateForUI(row[21] || ""),
-                endDate: formatDateForUI(row[22] || ""),
+                towerProgress: parseFloat(String(row[14]).replace(/,/g, '')) || 0,
+                radioProgress: parseFloat(String(row[15]).replace(/,/g, '')) || 0,
+                linkProgress: parseFloat(String(row[16]).replace(/,/g, '')) || 0,
+                radioSN: row[16] || "", // Column Q
+                batterySN: row[17] || "", // Column R
+                rssi: row[18] || "", // Column S
+                remark: row[19] || "", // Column T
+                startDate: formatDateForUI(row[20] || ""), // Column U
+                endDate: formatDateForUI(row[21] || ""), // Column V
                 rowIndex: index + 2
             }));
             return NextResponse.json({ data });
@@ -110,15 +167,15 @@ export async function GET(req: Request) {
             const data: StationData[] = rows.map((row: any[], index: number) => ({
                 district: row[0] || "",
                 stationName: row[1] || "",
-                type: row[2] || "",
-                foundationProgress: parseFloat(row[3]) || 0,
-                poleInstallationProgress: parseFloat(row[4]) || 0,
-                lat: parseFloat(row[5]) || 0,
-                lon: parseFloat(row[6]) || 0,
-                poleHeight: row[7] || "",
-                startDate: formatDateForUI(row[8] || ""),
-                endDate: formatDateForUI(row[9] || ""),
-                remark: row[10] || "",
+                type: "Client", // Default type
+                foundationProgress: parseFloat(String(row[14]).replace(/,/g, '')) || 0, 
+                poleInstallationProgress: parseFloat(String(row[14]).replace(/,/g, '')) || 0,
+                lat: parseFloat(String(row[2]).replace(/,/g, '')) || 0,
+                lon: parseFloat(String(row[3]).replace(/,/g, '')) || 0,
+                poleHeight: row[4] || "",
+                startDate: formatDateForUI(row[20] || ""), // Column U
+                endDate: formatDateForUI(row[21] || ""), // Column V
+                remark: row[19] || "", // Column T
                 rowIndex: index + 2
             }));
             return NextResponse.json({ data });
