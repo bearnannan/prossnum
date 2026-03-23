@@ -7,14 +7,14 @@ oracleJdk-25/
 .DS_Store
 __pycache__/
 *.pyc
-*.json
-*.log
-*.txt
-*.png
-*.ini
-*.ttf
-*.code-workspace
-*.csv
+
+# Allow essential config files
+!package.json
+!package-lock.json
+!tsconfig.json
+!next.config.*
+!postcss.config.*
+!tailwind.config.*
 
 # next.js
 /.next/
