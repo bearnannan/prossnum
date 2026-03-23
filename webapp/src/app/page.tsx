@@ -59,6 +59,8 @@ export default function Home() {
     keepPreviousData: true,
   });
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const data: any[] = responseData?.data || [];
   const isLoading = swrIsLoading && !responseData;
   const error = swrError?.message || null;
@@ -424,11 +426,19 @@ export default function Home() {
 
   return (
     <div className="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen font-sans">
-      <TopNavBar onLogout={handleLogout} />
-      <SideNavBar activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
+      <TopNavBar onLogout={handleLogout} onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+      <SideNavBar 
+        activeCategory={activeCategory} 
+        onCategoryChange={(cat) => {
+          setActiveCategory(cat);
+          setIsMobileMenuOpen(false);
+        }} 
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
 
       {/* Main Content Area */}
-      <main className="lg:ml-[280px] pt-20 p-4 sm:p-6 lg:p-8 min-h-screen flex flex-col gap-6 lg:gap-8 transition-all duration-300">
+      <main className="lg:ml-[280px] pt-16 lg:pt-20 p-4 sm:p-6 lg:p-8 min-h-screen flex flex-col gap-6 lg:gap-8 transition-all duration-300">
 
       {/* Station Modal */}
       <StationModal

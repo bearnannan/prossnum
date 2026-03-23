@@ -5,11 +5,29 @@ import React from "react";
 interface SideNavBarProps {
     activeCategory: 'station' | 'client';
     onCategoryChange: (cat: 'station' | 'client') => void;
+    isOpen?: boolean;
+    onClose?: () => void;
 }
 
-export default function SideNavBar({ activeCategory, onCategoryChange }: SideNavBarProps) {
+export default function SideNavBar({ activeCategory, onCategoryChange, isOpen, onClose }: SideNavBarProps) {
     return (
-        <aside className="hidden lg:flex h-screen w-64 fixed left-0 top-16 bg-zinc-50 dark:bg-zinc-950 border-r border-zinc-200/50 dark:border-zinc-800 flex-col pt-6 px-4 gap-2 z-40">
+        <>
+            {/* Mobile Overlay */}
+            {isOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+                    onClick={onClose}
+                />
+            )}
+            
+            <aside className={`fixed left-0 top-0 lg:top-16 h-full lg:h-[calc(100vh-64px)] w-64 bg-zinc-50 dark:bg-zinc-950 border-r border-zinc-200/50 dark:border-zinc-800 flex-col pt-6 px-4 gap-2 z-50 transition-transform duration-300 lg:translate-x-0 ${
+                isOpen ? 'translate-x-0' : '-translate-x-full'
+            } lg:flex`}>
+                <div className="lg:hidden flex justify-end mb-4">
+                    <button onClick={onClose} className="p-2 text-zinc-500">
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
             <div className="mb-6 px-4">
                 <h2 className="text-zinc-900 dark:text-white font-bold text-lg">Project Alpha</h2>
                 <p className="text-zinc-500 text-xs font-medium">Phase 2 Construction</p>
@@ -50,6 +68,7 @@ export default function SideNavBar({ activeCategory, onCategoryChange }: SideNav
                     Help Center
                 </a>
             </div>
-        </aside>
+            </aside>
+        </>
     );
 }

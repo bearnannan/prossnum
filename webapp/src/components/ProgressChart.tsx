@@ -116,7 +116,7 @@ export default function ProgressChart({ data, category = 'station' }: { data: an
             <ResponsiveContainer width="100%" height="90%">
                 <BarChart
                     data={chartData}
-                    margin={{ top: 25, right: 30, left: 0, bottom: 80 }}
+                    margin={{ top: 25, right: 10, left: -20, bottom: 80 }}
                     onMouseDown={(e) => e && setRefAreaLeft(e.activeLabel || '')}
                     onMouseMove={(e) => refAreaLeft && e && setRefAreaRight(e.activeLabel || '')}
                     onMouseUp={zoom}
@@ -127,7 +127,7 @@ export default function ProgressChart({ data, category = 'station' }: { data: an
                         domain={[left, right]}
                         type="category"
                         allowDataOverflow
-                        tick={{ fill: '#6B7280', fontSize: 10 }}
+                        tick={{ fill: '#6B7280', fontSize: 9 }}
                         angle={-60}
                         textAnchor="end"
                         interval={0}

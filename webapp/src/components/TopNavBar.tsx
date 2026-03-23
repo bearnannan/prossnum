@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 
 interface TopNavBarProps {
   onLogout?: () => void;
+  onMenuToggle?: () => void;
 }
 
-export default function TopNavBar({ onLogout }: TopNavBarProps) {
+export default function TopNavBar({ onLogout, onMenuToggle }: TopNavBarProps) {
   const router = useRouter();
   
   const handleLogout = async () => {
@@ -25,8 +26,18 @@ export default function TopNavBar({ onLogout }: TopNavBarProps) {
   };
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md shadow-sm dark:shadow-none h-16 flex justify-between items-center px-8 border-b dark:border-zinc-800">
-      <div className="text-xl font-black text-blue-950 dark:text-blue-200">Infrastructure Progress</div>
+    <nav className="fixed top-0 w-full z-50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-sm dark:shadow-none h-16 flex justify-between items-center px-4 sm:px-8 border-b dark:border-zinc-800">
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={onMenuToggle}
+          className="lg:hidden p-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all"
+        >
+          <span className="material-symbols-outlined">menu</span>
+        </button>
+        <div className="text-lg sm:text-xl font-black text-blue-950 dark:text-blue-200 truncate max-w-[150px] sm:max-w-none">
+          Infrastructure
+        </div>
+      </div>
       
       <div className="hidden md:flex items-center gap-8">
         <a className="text-blue-900 dark:text-blue-400 border-b-2 border-blue-900 pb-1 font-bold tracking-tight" href="#">
@@ -37,11 +48,11 @@ export default function TopNavBar({ onLogout }: TopNavBarProps) {
         </a>
       </div>
 
-      <div className="flex items-center gap-4">
-        <button className="p-2 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all">
+      <div className="flex items-center gap-2 sm:gap-4">
+        <button className="hidden sm:block p-2 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all">
           <span className="material-symbols-outlined">notifications</span>
         </button>
-        <button className="p-2 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all">
+        <button className="hidden sm:block p-2 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all">
           <span className="material-symbols-outlined">settings</span>
         </button>
         

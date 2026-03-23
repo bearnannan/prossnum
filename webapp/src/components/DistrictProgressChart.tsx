@@ -100,7 +100,7 @@ export default function DistrictProgressChart({ data, category = 'station' }: { 
             <BarChart
                 data={chartData}
                 layout="vertical"
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
             >
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
                 <XAxis
@@ -114,10 +114,10 @@ export default function DistrictProgressChart({ data, category = 'station' }: { 
                 <YAxis
                     dataKey="name"
                     type="category"
-                    tick={{ fill: '#4B5563', fontSize: 12, fontWeight: 500 }}
+                    tick={{ fill: '#4B5563', fontSize: 10, fontWeight: 500 }}
                     axisLine={false}
                     tickLine={false}
-                    width={80}
+                    width={70}
                 />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F3F4F6' }} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
