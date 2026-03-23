@@ -33,6 +33,10 @@ const defaultForm = {
     yagiNo: "",
     sn: "",
     feedDistance: "",
+    mountType: "",
+    angle: "",
+    testFeeder: "",
+    meterRequest: "",
     startDate: "",
     endDate: "" ,
     remark: "",
@@ -74,6 +78,10 @@ export default function ClientSystemModal({
                 yagiNo: editingStation.yagiNo || "",
                 sn: editingStation.sn || "",
                 feedDistance: editingStation.feedDistance || "",
+                mountType: editingStation.mountType || "",
+                angle: editingStation.angle || "",
+                testFeeder: editingStation.testFeeder || "",
+                meterRequest: editingStation.meterRequest || "",
                 startDate: editingStation.startDate || "",
                 endDate: editingStation.endDate || "",
                 remark: editingStation.remark || "",
@@ -378,6 +386,34 @@ export default function ClientSystemModal({
                                     className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
                                 />
                             </div>
+                            <div>
+                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ขาติดตั้ง</label>
+                                <input
+                                    name="mountType"
+                                    value={formData.mountType}
+                                    onChange={handleChange}
+                                    list="mountType-list"
+                                    placeholder="เลือกขาติดตั้ง"
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                />
+                                <datalist id="mountType-list">
+                                    <option value="A" />
+                                    <option value="B" />
+                                    <option value="C" />
+                                    <option value="D" />
+                                </datalist>
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">องศา (°)</label>
+                                <input
+                                    name="angle"
+                                    value={formData.angle}
+                                    type="number"
+                                    onChange={handleChange}
+                                    placeholder="เช่น 20"
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -463,6 +499,43 @@ export default function ClientSystemModal({
                                     <span className="text-sm text-zinc-500 font-medium whitespace-nowrap">dBm</span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <hr className="border-zinc-100 dark:border-zinc-800" />
+
+                    {/* Additional Tracking */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">ค่า Test Feeder</label>
+                            <input
+                                name="testFeeder"
+                                value={formData.testFeeder}
+                                onChange={handleChange}
+                                list="testFeeder-list"
+                                placeholder="เลือกสถานะ"
+                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                            />
+                            <datalist id="testFeeder-list">
+                                <option value="ยังไม่ได้เก็บ" />
+                                <option value="เก็บแล้ว" />
+                            </datalist>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">ยื่นขอมิเตอร์</label>
+                            <input
+                                name="meterRequest"
+                                value={formData.meterRequest}
+                                onChange={handleChange}
+                                list="meterRequest-list"
+                                placeholder="เลือกสถานะ"
+                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                            />
+                            <datalist id="meterRequest-list">
+                                <option value="ยังไม่ได้ยื่น" />
+                                <option value="รออนุมัติ" />
+                                <option value="ติดตั้งแล้ว" />
+                            </datalist>
                         </div>
                     </div>
 

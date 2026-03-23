@@ -40,6 +40,10 @@ export interface ClientSystemData {
     remark?: string;        // งานเพิ่มเติม / ปัญหาอุปสรรค
     startDate?: string;     // วันที่เริ่มงาน
     endDate?: string;       // วันที่เสร็จงาน
+    mountType?: string;     // ขาติดตั้ง (col 22)
+    angle?: string;         // องศา (col 23)
+    testFeeder?: string;    // ค่า Test Feeder (col 24)
+    meterRequest?: string;  // ยื่นขอมิเตอร์ (col 25)
     rowIndex?: number;      // For updating specific rows
 }
 
@@ -130,8 +134,8 @@ export async function GET(req: Request) {
             console.warn("Failed to fetch from published CSV, falling back to API...", csvError);
             // Fallback to Google Sheets API if configured
             const sheetId = getSpreadsheetId();
-            const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
-            const range = sheetType === "client" ? `${sheetName}!A2:W` : `${sheetName}!A2:K`;
+            const sheetName = sheetType === "client" ? "ClientSystem" : "Stationdata";
+            const range = sheetType === "client" ? `${sheetName}!A2:Z` : `${sheetName}!A2:K`;
             rows = await getSheetData(range, sheetId) || [];
         }
 
@@ -167,6 +171,10 @@ export async function GET(req: Request) {
                 remark: row[19] || "",
                 startDate: formatDateForUI(row[20] || ""),
                 endDate: formatDateForUI(row[21] || ""),
+                mountType: row[22] || "",
+                angle: row[23] || "",
+                testFeeder: row[24] || "",
+                meterRequest: row[25] || "",
                 rowIndex: index + 2
             }));
             return NextResponse.json({ data });
@@ -203,8 +211,8 @@ export async function POST(req: Request) {
         const sheetType = searchParams.get("sheet") || "station";
         const body = await req.json();
         const sheetId = getSpreadsheetId();
-        const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
-        const range = `${sheetName}!A:W`;
+        const sheetName = sheetType === "client" ? "ClientSystem" : "Stationdata";
+        const range = sheetType === "client" ? `${sheetName}!A:Z` : `${sheetName}!A:W`;
 
         let values: any[][] = [];
 
@@ -233,7 +241,11 @@ export async function POST(req: Request) {
                 data.rssi || "",
                 data.remark || "",
                 formatDateForSheet(data.startDate || ""),
-                formatDateForSheet(data.endDate || "")
+                formatDateForSheet(data.endDate || ""),
+                data.mountType || "",
+                data.angle || "",
+                data.testFeeder || "",
+                data.meterRequest || ""
             ]];
         } else {
             const data = body as StationData;
@@ -282,9 +294,9 @@ export async function PUT(req: Request) {
         }
 
         const sheetId = getSpreadsheetId();
-        const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
+        const sheetName = sheetType === "client" ? "ClientSystem" : "Stationdata";
         const range = sheetType === "client" 
-            ? `${sheetName}!A${body.rowIndex}:W${body.rowIndex}`
+            ? `${sheetName}!A${body.rowIndex}:Z${body.rowIndex}`
             : `${sheetName}!A${body.rowIndex}:K${body.rowIndex}`;
 
         let values: any[][] = [];
@@ -314,7 +326,11 @@ export async function PUT(req: Request) {
                 data.rssi || "",
                 data.remark || "",
                 formatDateForSheet(data.startDate || ""),
-                formatDateForSheet(data.endDate || "")
+                formatDateForSheet(data.endDate || ""),
+                data.mountType || "",
+                data.angle || "",
+                data.testFeeder || "",
+                data.meterRequest || ""
             ]];
         } else {
             const data = body as StationData;
@@ -368,7 +384,7 @@ export async function DELETE(req: Request) {
         });
 
         // Find the sheetId (gid) by title
-        const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
+        const sheetName = sheetType === "client" ? "ClientSystem" : "Stationdata";
         const sheet = spreadsheetInfo.data.sheets?.find(s => s.properties?.title === sheetName);
         const actualSheetId = sheet?.properties?.sheetId;
 

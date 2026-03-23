@@ -188,12 +188,18 @@ export default function Home() {
         items.forEach((item, index) => {
           textContent += `[${index + 1}]. สถานีลูกข่าย ${item.stationName}\n`;
           textContent += `1.ระบบไฟฟ้า ${item.electricProgress || 0}%\n`;
-          textContent += `ระยะสาย Main = ${item.electricMain || "-"}\n`;
+          textContent += `ระยะสาย Main = ${item.electricMain || "-"} m\n`;
           textContent += `2.ระบบกราวด์ ${item.groundProgress || 0}% \n`;
           textContent += `AC = ${item.groundAC || "-"} Ω \n`;
           textContent += `Equip = ${item.groundEquip || "-"} Ω\n`;
           textContent += `3.สาย Feeder ${item.feederProgress || 0}%\n`;
-          textContent += `Yagi No. ${item.yagiNo || "-"} SN. ${item.sn || "-"} ระยะ feed = ${item.feedDistance || "-"} m\n`;
+          textContent += `Yagi No. ${item.yagiNo || "-"}\n`;
+          textContent += `SN. ${item.sn || "-"}\n`;
+          textContent += `ระยะ feed = ${item.feedDistance || "-"} m\n`;
+          textContent += `ขาติดตั้ง = ${item.mountType || "-"}\n`;
+          textContent += `องศา = ${item.angle || "-"} °\n`;
+          textContent += `4.ค่า Test Feeder = ${item.testFeeder || "-"}\n`;
+          textContent += `5.ยื่นขอมิเตอร์ = ${item.meterRequest || "-"}\n`;
           textContent += `งานเพิ่มเติม / ปัญหาอุปสรรค: ${item.remark || "-"}\n`;
           textContent += `วันที่เริ่มงาน: ${formatDate(item.startDate || "-")}\n`;
           textContent += `วันที่เสร็จงาน: ${formatDate(item.endDate || "-")}\n\n`;
