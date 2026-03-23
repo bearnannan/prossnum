@@ -33,10 +33,9 @@ export interface ClientSystemData {
     feedDistance: string;   // ระยะ feed
     towerProgress: number;  // การติดตั้งอุปกรณ์บนเสา (%)
     radioProgress: number;  // การติดตั้งเครื่องวิทยุฯ (%)
-    linkProgress: number;   // การทดสอบสัญญาณ (%)
-    radioSN: string;        // SN เครื่องวิทยุ MT680 Plus (col 18)
-    batterySN: string;      // SN แบตเตอรี่ 50AH (col 19)
-    rssi: string;           // ค่า RSSI dBm (col 20)
+    radioSN: string;        // SN เครื่องวิทยุ MT680 Plus (col 16)
+    batterySN: string;      // SN แบตเตอรี่ 50AH (col 17)
+    rssi: string;           // ค่า RSSI dBm (col 18)
     remark?: string;        // งานเพิ่มเติม / ปัญหาอุปสรรค
     startDate?: string;     // วันที่เริ่มงาน
     endDate?: string;       // วันที่เสร็จงาน
@@ -178,7 +177,6 @@ export async function GET(req: Request) {
                 feedDistance: row[13] || "",
                 towerProgress: parseFloat(String(row[14]).replace(/,/g, '')) || 0,
                 radioProgress: parseFloat(String(row[15]).replace(/,/g, '')) || 0,
-                linkProgress: 0, // Adjusted: Not found in CSV columns
                 radioSN: row[16] || "",
                 batterySN: row[17] || "",
                 rssi: row[18] || "",
@@ -222,7 +220,7 @@ export async function POST(req: Request) {
         const body = await req.json();
         const sheetId = getSpreadsheetId();
         const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
-        const range = `${sheetName}!A:W`;
+        const range = `${sheetName}!A:V`;
 
         let values: any[][] = [];
 
@@ -245,7 +243,6 @@ export async function POST(req: Request) {
                 data.feedDistance,
                 data.towerProgress,
                 data.radioProgress,
-                data.linkProgress,
                 data.radioSN || "",
                 data.batterySN || "",
                 data.rssi || "",
@@ -302,7 +299,7 @@ export async function PUT(req: Request) {
         const sheetId = getSpreadsheetId();
         const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
         const range = sheetType === "client" 
-            ? `${sheetName}!A${body.rowIndex}:W${body.rowIndex}`
+            ? `${sheetName}!A${body.rowIndex}:V${body.rowIndex}`
             : `${sheetName}!A${body.rowIndex}:K${body.rowIndex}`;
 
         let values: any[][] = [];
@@ -326,7 +323,6 @@ export async function PUT(req: Request) {
                 data.feedDistance,
                 data.towerProgress,
                 data.radioProgress,
-                data.linkProgress,
                 data.radioSN || "",
                 data.batterySN || "",
                 data.rssi || "",
