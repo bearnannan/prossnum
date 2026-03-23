@@ -38,8 +38,16 @@ PUBLISHED_SHEET_URL=https://docs.google.com/spreadsheets/d/e/2PACX-1vS-x6wrhvu6t
 GID_STATION_DATA=425872468
 GID_CLIENT_SYSTEM=2070776408
 
-// (ถ้ามีการใช้งาน Service Account สำหรับระบบแก้ไขข้อมูลให้เพิ่มตัวแปร GOOGLE_CLIENT_EMAIL และ GOOGLE_PRIVATE_KEY ด้วย)
+# Service Account Credentials (Required for Edit/Delete functions)
+GOOGLE_SERVICE_ACCOUNT_EMAIL=progress-webapp-bot@prossnum.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYourKeyContentHere\n-----END PRIVATE KEY-----\n"
 ```
+
+> [!IMPORTANT]
+> **การตั้งค่า GOOGLE_PRIVATE_KEY**:
+> - ต้องคัดลอกค่า `private_key` จากไฟล์ JSON ของ Service Account มาทั้งหมด
+> - ต้องรวมเครื่องหมาย `\n` (newline) ไว้ในสตริงด้วย
+> - ต้องครอบด้วยเครื่องหมายอัญประกาศคู่ (`"..."`) ในไฟล์ `.env.local` หรือใน Vercel Environment Variables
 
 > **ข้อกำหนด GID**:
 > - `GID_STATION_DATA` (425872468) คือ รหัสชีตแผ่น "ข้อมูลสถานีเดิม" 
