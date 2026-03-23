@@ -2,15 +2,42 @@ import { google } from "googleapis";
 
 // Initialize the Google Sheets client
 const getAuthClient = () => {
-    return new google.auth.GoogleAuth({
-        credentials: {
-            client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-            private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"), // Handle newlines in env variables
-        },
-        scopes: [
-            "https://www.googleapis.com/auth/spreadsheets", // Full read/write access
-        ],
-    });
+    const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    let privateKey = process.env.GOOGLE_PRIVATE_KEY;
+
+    if (!email) {
+        console.error("GOOGLE_SERVICE_ACCOUNT_EMAIL is not set");
+        throw new Error("GOOGLE_SERVICE_ACCOUNT_EMAIL is not configured");
+    }
+
+    if (!privateKey) {
+        console.error("GOOGLE_PRIVATE_KEY is not set");
+        throw new Error("GOOGLE_PRIVATE_KEY is not configured");
+    }
+
+    // Advanced cleaning of the private key
+    // 1. Remove literal quotes if they exist
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+        privateKey = privateKey.substring(1, privateKey.length - 1);
+    }
+    
+    // 2. Convert literal \n or escaped \\n to actual newlines
+    const formattedKey = privateKey.replace(/\\n/g, "\n");
+
+    try {
+        return new google.auth.GoogleAuth({
+            credentials: {
+                client_email: email,
+                private_key: formattedKey,
+            },
+            scopes: [
+                "https://www.googleapis.com/auth/spreadsheets", // Full read/write access
+            ],
+        });
+    } catch (authError: any) {
+        console.error("Failed to initialize Google Auth:", authError.message);
+        throw authError;
+    }
 };
 
 export const sheets = google.sheets({ version: "v4", auth: getAuthClient() });

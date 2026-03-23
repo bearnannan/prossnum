@@ -66,25 +66,32 @@ async function fetchPublishedCsv(sheetType: string): Promise<any[][]> {
     const gid = sheetType === "client" ? process.env.GID_CLIENT_SYSTEM : process.env.GID_STATION_DATA;
     
     if (!baseUrl) {
-        console.error("PUBLISHED_SHEET_URL is not set in environment variables");
-        throw new Error("PUBLISHED_SHEET_URL is not configured");
+        throw new Error("PUBLISHED_SHEET_URL is not set in environment variables");
     }
 
     if (!gid) {
-        console.error(`GID for ${sheetType} is not set in environment variables (GID_STATION_DATA or GID_CLIENT_SYSTEM)`);
-        throw new Error(`Sheet GID for ${sheetType} is not configured`);
+        throw new Error(`Sheet GID for ${sheetType} is not set in environment variables (GID_STATION_DATA or GID_CLIENT_SYSTEM)`);
     }
 
-    const url = `${baseUrl}&gid=${gid}`;
-    console.log("Fetching CSV from:", url);
+    // Ensure no extra quotes in URL parts
+    const cleanBaseUrl = baseUrl.replace(/^"|"$/g, '');
+    const cleanGid = gid.replace(/^"|"$/g, '');
+    const url = `${cleanBaseUrl}&gid=${cleanGid}`;
+    
+    console.log(`[CSV Fetch] Attempting to fetch ${sheetType} data from:`, url);
 
     try {
-        const response = await fetch(url, { cache: "no-store" });
+        const response = await fetch(url, { cache: "no-store", timeout: 10000 } as any);
         if (!response.ok) {
-            throw new Error(`Failed to fetch CSV: ${response.statusText}`);
+            console.error(`[CSV Fetch] HTTP Error: ${response.status} ${response.statusText}`);
+            throw new Error(`Failed to fetch CSV: ${response.statusText} (${response.status})`);
         }
         const csvText = await response.text();
         
+        if (!csvText || csvText.length < 10) {
+            throw new Error("Received empty or corrupt CSV data");
+        }
+
         // Simple manual CSV parser handles quotes and escaped characters
         const lines = csvText.split(/\r?\n/);
         const result: any[][] = [];
@@ -109,10 +116,11 @@ async function fetchPublishedCsv(sheetType: string): Promise<any[][]> {
             result.push(row);
         }
         
+        console.log(`[CSV Fetch] Successfully parsed ${result.length} rows (including header)`);
         // Return without headers (skip first row)
         return result.slice(1);
-    } catch (error) {
-        console.error("CSV Fetch Error:", error);
+    } catch (error: any) {
+        console.error("[CSV Fetch] Exception during fetch:", error.message);
         throw error;
     }
 }
@@ -124,15 +132,25 @@ export async function GET(req: Request) {
 
         // Try to fetch from published CSV first as a robust fallback
         let rows: any[][] = [];
+        let lastError = null;
+
         try {
             rows = await fetchPublishedCsv(sheetType);
-        } catch (csvError) {
-            console.warn("Failed to fetch from published CSV, falling back to API...", csvError);
+        } catch (csvError: any) {
+            console.warn(`[API] Fallback to Google Sheets API because CSV fetch failed: ${csvError.message}`);
+            lastError = csvError;
+            
             // Fallback to Google Sheets API if configured
-            const sheetId = getSpreadsheetId();
-            const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
-            const range = sheetType === "client" ? `${sheetName}!A2:W` : `${sheetName}!A2:K`;
-            rows = await getSheetData(range, sheetId) || [];
+            try {
+                const sheetId = getSpreadsheetId();
+                const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
+                const range = sheetType === "client" ? `${sheetName}!A2:W` : `${sheetName}!A2:K`;
+                rows = await getSheetData(range, sheetId) || [];
+            } catch (apiError: any) {
+                console.error("[API] Both CSV and Google Sheets API failed.");
+                // Preserve the more important error (usually API error)
+                throw apiError; 
+            }
         }
 
         if (!rows || rows.length === 0) {
@@ -345,8 +363,14 @@ export async function PUT(req: Request) {
         return NextResponse.json({ success: true, updatedRange: response.data.updatedRange });
     } catch (error: any) {
         console.error("Error in PUT /api/sheet-data:", error);
+        const message = error.message || "Unknown error";
+        const isAuthError = message.includes("invalid_grant") || message.includes("JWT");
+        
         return NextResponse.json(
-            { error: "Failed to update data in Google Sheets", details: error.message },
+            { 
+                error: isAuthError ? "Authentication error: Please check Google Service Account credentials" : "Failed to update data in Google Sheets", 
+                details: message 
+            },
             { status: 500 }
         );
     }

@@ -8,10 +8,13 @@ oracleJdk-25/
 __pycache__/
 *.pyc
 
-# Allow essential config files
+# sensitive data
+.env*
+*.json
 !package.json
 !package-lock.json
 !tsconfig.json
+!components.json
 !next.config.*
 !postcss.config.*
 !tailwind.config.*
