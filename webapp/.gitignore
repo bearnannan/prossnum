@@ -1,23 +1,17 @@
-# dependencies
-node_modules/
-.venv/
-oracleJdk-25/
-.agent/
-.env*
-.DS_Store
-__pycache__/
-*.pyc
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# sensitive data
-.env*
-*.json
-!package.json
-!package-lock.json
-!tsconfig.json
-!components.json
-!next.config.*
-!postcss.config.*
-!tailwind.config.*
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
 
 # next.js
 /.next/
@@ -36,13 +30,16 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# env files (can opt-in for committing if needed)
+.env*
+
 # vercel
 .vercel
 
-# typescript templates
+# typescript
+# scripts
 /scripts/test-*
 /scripts/sync-*
 /auth-out.txt
 /auth_debug.log
 /auth_out.txt
-

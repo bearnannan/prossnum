@@ -31,15 +31,12 @@ export interface ClientSystemData {
     yagiNo: string;         // Yagi No
     sn: string;             // SN
     feedDistance: string;   // ระยะ feed
-    feederMount?: string;   // ขาติดตั้ง (Column W)
-    feederDegree?: string;  // องศา (Column X)
-    testFeeder?: string;    // ค่า Test Feeder (Column Y)
-    meterRequest?: string;  // ยื่นขอมิเตอร์ (Column Z)
     towerProgress: number;  // การติดตั้งอุปกรณ์บนเสา (%)
     radioProgress: number;  // การติดตั้งเครื่องวิทยุฯ (%)
-    radioSN: string;        // SN เครื่องวิทยุ MT680 Plus (col 16)
-    batterySN: string;      // SN แบตเตอรี่ 50AH (col 17)
-    rssi: string;           // ค่า RSSI dBm (col 18)
+    linkProgress: number;   // การทดสอบสัญญาณ (%)
+    radioSN: string;        // SN เครื่องวิทยุ MT680 Plus (col 18)
+    batterySN: string;      // SN แบตเตอรี่ 50AH (col 19)
+    rssi: string;           // ค่า RSSI dBm (col 20)
     remark?: string;        // งานเพิ่มเติม / ปัญหาอุปสรรค
     startDate?: string;     // วันที่เริ่มงาน
     endDate?: string;       // วันที่เสร็จงาน
@@ -69,32 +66,25 @@ async function fetchPublishedCsv(sheetType: string): Promise<any[][]> {
     const gid = sheetType === "client" ? process.env.GID_CLIENT_SYSTEM : process.env.GID_STATION_DATA;
     
     if (!baseUrl) {
-        throw new Error("PUBLISHED_SHEET_URL is not set in environment variables");
+        console.error("PUBLISHED_SHEET_URL is not set in environment variables");
+        throw new Error("PUBLISHED_SHEET_URL is not configured");
     }
 
     if (!gid) {
-        throw new Error(`Sheet GID for ${sheetType} is not set in environment variables (GID_STATION_DATA or GID_CLIENT_SYSTEM)`);
+        console.error(`GID for ${sheetType} is not set in environment variables (GID_STATION_DATA or GID_CLIENT_SYSTEM)`);
+        throw new Error(`Sheet GID for ${sheetType} is not configured`);
     }
 
-    // Ensure no extra quotes in URL parts
-    const cleanBaseUrl = baseUrl.replace(/^"|"$/g, '');
-    const cleanGid = gid.replace(/^"|"$/g, '');
-    const url = `${cleanBaseUrl}&gid=${cleanGid}`;
-    
-    console.log(`[CSV Fetch] Attempting to fetch ${sheetType} data from:`, url);
+    const url = `${baseUrl}&gid=${gid}`;
+    console.log("Fetching CSV from:", url);
 
     try {
-        const response = await fetch(url, { cache: "no-store", timeout: 10000 } as any);
+        const response = await fetch(url, { cache: "no-store" });
         if (!response.ok) {
-            console.error(`[CSV Fetch] HTTP Error: ${response.status} ${response.statusText}`);
-            throw new Error(`Failed to fetch CSV: ${response.statusText} (${response.status})`);
+            throw new Error(`Failed to fetch CSV: ${response.statusText}`);
         }
         const csvText = await response.text();
         
-        if (!csvText || csvText.length < 10) {
-            throw new Error("Received empty or corrupt CSV data");
-        }
-
         // Simple manual CSV parser handles quotes and escaped characters
         const lines = csvText.split(/\r?\n/);
         const result: any[][] = [];
@@ -119,11 +109,10 @@ async function fetchPublishedCsv(sheetType: string): Promise<any[][]> {
             result.push(row);
         }
         
-        console.log(`[CSV Fetch] Successfully parsed ${result.length} rows (including header)`);
         // Return without headers (skip first row)
         return result.slice(1);
-    } catch (error: any) {
-        console.error("[CSV Fetch] Exception during fetch:", error.message);
+    } catch (error) {
+        console.error("CSV Fetch Error:", error);
         throw error;
     }
 }
@@ -135,25 +124,15 @@ export async function GET(req: Request) {
 
         // Try to fetch from published CSV first as a robust fallback
         let rows: any[][] = [];
-        let lastError = null;
-
         try {
             rows = await fetchPublishedCsv(sheetType);
-        } catch (csvError: any) {
-            console.warn(`[API] Fallback to Google Sheets API because CSV fetch failed: ${csvError.message}`);
-            lastError = csvError;
-            
+        } catch (csvError) {
+            console.warn("Failed to fetch from published CSV, falling back to API...", csvError);
             // Fallback to Google Sheets API if configured
-            try {
-                const sheetId = getSpreadsheetId();
-                const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
-                const range = sheetType === "client" ? `${sheetName}!A2:Z` : `${sheetName}!A2:K`;
-                rows = await getSheetData(range, sheetId) || [];
-            } catch (apiError: any) {
-                console.error("[API] Both CSV and Google Sheets API failed.");
-                // Preserve the more important error (usually API error)
-                throw apiError; 
-            }
+            const sheetId = getSpreadsheetId();
+            const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
+            const range = sheetType === "client" ? `${sheetName}!A2:W` : `${sheetName}!A2:K`;
+            rows = await getSheetData(range, sheetId) || [];
         }
 
         if (!rows || rows.length === 0) {
@@ -181,16 +160,13 @@ export async function GET(req: Request) {
                 feedDistance: row[13] || "",
                 towerProgress: parseFloat(String(row[14]).replace(/,/g, '')) || 0,
                 radioProgress: parseFloat(String(row[15]).replace(/,/g, '')) || 0,
+                linkProgress: 0, // Adjusted: Not found in CSV columns
                 radioSN: row[16] || "",
                 batterySN: row[17] || "",
                 rssi: row[18] || "",
                 remark: row[19] || "",
                 startDate: formatDateForUI(row[20] || ""),
                 endDate: formatDateForUI(row[21] || ""),
-                feederMount: row[22] || "",
-                feederDegree: row[23] || "",
-                testFeeder: row[24] || "",
-                meterRequest: row[25] || "",
                 rowIndex: index + 2
             }));
             return NextResponse.json({ data });
@@ -228,7 +204,7 @@ export async function POST(req: Request) {
         const body = await req.json();
         const sheetId = getSpreadsheetId();
         const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
-        const range = sheetType === "client" ? `${sheetName}!A:Z` : `${sheetName}!A:V`;
+        const range = `${sheetName}!A:W`;
 
         let values: any[][] = [];
 
@@ -251,16 +227,13 @@ export async function POST(req: Request) {
                 data.feedDistance,
                 data.towerProgress,
                 data.radioProgress,
+                data.linkProgress,
                 data.radioSN || "",
                 data.batterySN || "",
                 data.rssi || "",
                 data.remark || "",
                 formatDateForSheet(data.startDate || ""),
-                formatDateForSheet(data.endDate || ""),
-                data.feederMount || "",
-                data.feederDegree || "",
-                data.testFeeder || "",
-                data.meterRequest || ""
+                formatDateForSheet(data.endDate || "")
             ]];
         } else {
             const data = body as StationData;
@@ -311,7 +284,7 @@ export async function PUT(req: Request) {
         const sheetId = getSpreadsheetId();
         const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
         const range = sheetType === "client" 
-            ? `${sheetName}!A${body.rowIndex}:Z${body.rowIndex}`
+            ? `${sheetName}!A${body.rowIndex}:W${body.rowIndex}`
             : `${sheetName}!A${body.rowIndex}:K${body.rowIndex}`;
 
         let values: any[][] = [];
@@ -335,16 +308,13 @@ export async function PUT(req: Request) {
                 data.feedDistance,
                 data.towerProgress,
                 data.radioProgress,
+                data.linkProgress,
                 data.radioSN || "",
                 data.batterySN || "",
                 data.rssi || "",
                 data.remark || "",
                 formatDateForSheet(data.startDate || ""),
-                formatDateForSheet(data.endDate || ""),
-                data.feederMount || "",
-                data.feederDegree || "",
-                data.testFeeder || "",
-                data.meterRequest || ""
+                formatDateForSheet(data.endDate || "")
             ]];
         } else {
             const data = body as StationData;
@@ -375,14 +345,8 @@ export async function PUT(req: Request) {
         return NextResponse.json({ success: true, updatedRange: response.data.updatedRange });
     } catch (error: any) {
         console.error("Error in PUT /api/sheet-data:", error);
-        const message = error.message || "Unknown error";
-        const isAuthError = message.includes("invalid_grant") || message.includes("JWT");
-        
         return NextResponse.json(
-            { 
-                error: isAuthError ? "Authentication error: Please check Google Service Account credentials" : "Failed to update data in Google Sheets", 
-                details: message 
-            },
+            { error: "Failed to update data in Google Sheets", details: error.message },
             { status: 500 }
         );
     }
