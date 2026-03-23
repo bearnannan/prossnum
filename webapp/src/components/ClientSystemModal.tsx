@@ -32,6 +32,10 @@ const defaultForm = {
     yagiNo: "",
     sn: "",
     feedDistance: "",
+    feederMount: "",
+    feederDegree: "",
+    testFeeder: "",
+    meterRequest: "",
     startDate: "",
     endDate: "" ,
     remark: "",
@@ -72,6 +76,10 @@ export default function ClientSystemModal({
                 yagiNo: editingStation.yagiNo || "",
                 sn: editingStation.sn || "",
                 feedDistance: editingStation.feedDistance || "",
+                feederMount: editingStation.feederMount || "",
+                feederDegree: editingStation.feederDegree || "",
+                testFeeder: editingStation.testFeeder || "",
+                meterRequest: editingStation.meterRequest || "",
                 startDate: editingStation.startDate || "",
                 endDate: editingStation.endDate || "",
                 remark: editingStation.remark || "",
@@ -373,6 +381,30 @@ export default function ClientSystemModal({
                                     className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
                                 />
                             </div>
+                            <div>
+                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ขาติดตั้ง</label>
+                                <select
+                                    name="feederMount"
+                                    value={formData.feederMount}
+                                    onChange={handleChange}
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                >
+                                    <option value="">- เลือก -</option>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">องศา (°)</label>
+                                <input
+                                    name="feederDegree"
+                                    value={formData.feederDegree}
+                                    onChange={handleChange}
+                                    placeholder="องศา (°)"
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -391,6 +423,19 @@ export default function ClientSystemModal({
                                     onChange={handleChange}
                                     className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">ค่า Test Feeder</label>
+                                <select
+                                    name="testFeeder"
+                                    value={formData.testFeeder}
+                                    onChange={handleChange}
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                >
+                                    <option value="">- เลือก -</option>
+                                    <option value="ยังไม่ได้เก็บ">ยังไม่ได้เก็บ</option>
+                                    <option value="เก็บค่า Test Feeder">เก็บค่า Test Feeder</option>
+                                </select>
                             </div>
                         </div>
 
@@ -448,6 +493,23 @@ export default function ClientSystemModal({
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <hr className="border-zinc-100 dark:border-zinc-800" />
+                    
+                    {/* Meter Request */}
+                    <div>
+                        <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">6. ยื่นขอมิเตอร์ไฟฟ้า</label>
+                        <select
+                            name="meterRequest"
+                            value={formData.meterRequest}
+                            onChange={handleChange}
+                            className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                        >
+                            <option value="">- เลือก -</option>
+                            <option value="ยังไม่ได้ยื่น">ยังไม่ได้ยื่น</option>
+                            <option value="ยื่นเอกสารแล้ว">ยื่นเอกสารแล้ว</option>
+                        </select>
                     </div>
 
                     <hr className="border-zinc-100 dark:border-zinc-800" />

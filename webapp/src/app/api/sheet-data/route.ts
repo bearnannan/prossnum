@@ -31,6 +31,10 @@ export interface ClientSystemData {
     yagiNo: string;         // Yagi No
     sn: string;             // SN
     feedDistance: string;   // ระยะ feed
+    feederMount?: string;   // ขาติดตั้ง (Column W)
+    feederDegree?: string;  // องศา (Column X)
+    testFeeder?: string;    // ค่า Test Feeder (Column Y)
+    meterRequest?: string;  // ยื่นขอมิเตอร์ (Column Z)
     towerProgress: number;  // การติดตั้งอุปกรณ์บนเสา (%)
     radioProgress: number;  // การติดตั้งเครื่องวิทยุฯ (%)
     radioSN: string;        // SN เครื่องวิทยุ MT680 Plus (col 16)
@@ -143,7 +147,7 @@ export async function GET(req: Request) {
             try {
                 const sheetId = getSpreadsheetId();
                 const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
-                const range = sheetType === "client" ? `${sheetName}!A2:W` : `${sheetName}!A2:K`;
+                const range = sheetType === "client" ? `${sheetName}!A2:Z` : `${sheetName}!A2:K`;
                 rows = await getSheetData(range, sheetId) || [];
             } catch (apiError: any) {
                 console.error("[API] Both CSV and Google Sheets API failed.");
@@ -183,6 +187,10 @@ export async function GET(req: Request) {
                 remark: row[19] || "",
                 startDate: formatDateForUI(row[20] || ""),
                 endDate: formatDateForUI(row[21] || ""),
+                feederMount: row[22] || "",
+                feederDegree: row[23] || "",
+                testFeeder: row[24] || "",
+                meterRequest: row[25] || "",
                 rowIndex: index + 2
             }));
             return NextResponse.json({ data });
@@ -220,7 +228,7 @@ export async function POST(req: Request) {
         const body = await req.json();
         const sheetId = getSpreadsheetId();
         const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
-        const range = `${sheetName}!A:V`;
+        const range = sheetType === "client" ? `${sheetName}!A:Z` : `${sheetName}!A:V`;
 
         let values: any[][] = [];
 
@@ -248,7 +256,11 @@ export async function POST(req: Request) {
                 data.rssi || "",
                 data.remark || "",
                 formatDateForSheet(data.startDate || ""),
-                formatDateForSheet(data.endDate || "")
+                formatDateForSheet(data.endDate || ""),
+                data.feederMount || "",
+                data.feederDegree || "",
+                data.testFeeder || "",
+                data.meterRequest || ""
             ]];
         } else {
             const data = body as StationData;
@@ -299,7 +311,7 @@ export async function PUT(req: Request) {
         const sheetId = getSpreadsheetId();
         const sheetName = sheetType === "client" ? "ClientSystem" : "station_data";
         const range = sheetType === "client" 
-            ? `${sheetName}!A${body.rowIndex}:V${body.rowIndex}`
+            ? `${sheetName}!A${body.rowIndex}:Z${body.rowIndex}`
             : `${sheetName}!A${body.rowIndex}:K${body.rowIndex}`;
 
         let values: any[][] = [];
@@ -328,7 +340,11 @@ export async function PUT(req: Request) {
                 data.rssi || "",
                 data.remark || "",
                 formatDateForSheet(data.startDate || ""),
-                formatDateForSheet(data.endDate || "")
+                formatDateForSheet(data.endDate || ""),
+                data.feederMount || "",
+                data.feederDegree || "",
+                data.testFeeder || "",
+                data.meterRequest || ""
             ]];
         } else {
             const data = body as StationData;
