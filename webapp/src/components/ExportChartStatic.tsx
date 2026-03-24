@@ -32,7 +32,6 @@ export default function ExportChartStatic({ data, category = 'station', width = 
                 feeder: parseFloat(d.feederProgress) || 0,
                 tower: parseFloat(d.towerProgress) || 0,
                 radio: parseFloat(d.radioProgress) || 0,
-                link: parseFloat(d.linkProgress) || 0,
             };
         }
         
@@ -96,12 +95,11 @@ export default function ExportChartStatic({ data, category = 'station', width = 
                     </>
                 ) : (
                     <>
-                        <Bar dataKey="electric" name="ไฟฟ้า" fill="#3B82F6" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
-                        <Bar dataKey="ground" name="กราวด์" fill="#10B981" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
-                        <Bar dataKey="feeder" name="Feeder" fill="#F59E0B" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
-                        <Bar dataKey="tower" name="Tower" fill="#8B5CF6" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
-                        <Bar dataKey="radio" name="Radio" fill="#EC4899" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
-                        <Bar dataKey="link" name="Link" fill="#06B6D4" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="electric" name="ระบบไฟฟ้า" fill="#3B82F6" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="ground" name="ระบบกราวด์" fill="#10B981" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="feeder" name="สายFeed" fill="#F59E0B" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="tower" name="Yagi" fill="#8B5CF6" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="radio" name="เครื่องวิทยุ" fill="#EC4899" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
                     </>
                 )}
             </BarChart>

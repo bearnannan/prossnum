@@ -40,8 +40,8 @@ export default function ExportBentoReport({ district, stations, category = 'stat
         const avgGround = avg(stations, 'groundProgress');
         const avgFeeder = avg(stations, 'feederProgress');
         avgOverall = Math.round((avgElectric + avgGround + avgFeeder) / 3);
-        stat1 = { label: 'ไฟฟ้า', value: avgElectric, color: '#60A5FA' };
-        stat2 = { label: 'กราวด์', value: avgGround, color: '#34D399' };
+        stat1 = { label: 'เสร็จสมบูรณ์', value: avgElectric, color: '#60A5FA' };
+        stat2 = { label: 'กำลังดำเนินการ', value: avgGround, color: '#34D399' };
     } else {
         const avgFoundation = avg(stations, 'foundationProgress');
         const avgPole = avg(stations, 'poleInstallationProgress');
@@ -183,12 +183,11 @@ export default function ExportBentoReport({ district, stations, category = 'stat
                                             </>
                                         ) : (
                                             <>
-                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#3B82F6', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>ไฟฟ้า</th>
-                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#10B981', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>กราวด์</th>
-                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#F59E0B', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>สาย</th>
-                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#8B5CF6', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>เสา</th>
-                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '# EC4899', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>วิทยุ</th>
-                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#06B6D4', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>Link</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#3B82F6', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>ระบบไฟฟ้า</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#10B981', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>ระบบกราวด์</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#F59E0B', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>สายFeed</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#8B5CF6', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>Yagi</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#EC4899', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>เครื่องวิทยุ</th>
                                             </>
                                         )}
                                     </tr>
@@ -216,7 +215,6 @@ export default function ExportBentoReport({ district, stations, category = 'stat
                                                     <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.feederProgress || 0}%</td>
                                                     <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.towerProgress || 0}%</td>
                                                     <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.radioProgress || 0}%</td>
-                                                    <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.linkProgress || 0}%</td>
                                                 </>
                                             )}
                                         </tr>
