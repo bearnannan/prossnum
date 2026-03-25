@@ -11,7 +11,9 @@ import {
     ResponsiveContainer
 } from 'recharts';
 
-export default function DistrictProgressChart({ data, category = 'station' }: { data: any[], category?: string }) {
+import React from 'react';
+
+export default React.memo(function DistrictProgressChart({ data, category = 'station' }: { data: any[], category?: string }) {
     // 1. Group by district and calculate averages
     const isClient = category === 'client';
     
@@ -139,4 +141,4 @@ export default function DistrictProgressChart({ data, category = 'station' }: { 
             </BarChart>
         </ResponsiveContainer>
     );
-}
+});

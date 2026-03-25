@@ -5,7 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import 'leaflet-defaulticon-compatibility';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 // ─── Helper: compute overall progress for a station ────────────────────────
 function getOverallProgress(station: any, category: 'station' | 'client' = 'station'): number {
@@ -132,7 +132,7 @@ function Legend() {
 }
 
 // ─── Main MapView ─────────────────────────────────────────────────────────────
-export default function MapView({ data, category = 'station' }: { data: any[], category?: 'station' | 'client' }) {
+const MapView = React.memo(function MapView({ data, category = 'station' }: { data: any[], category?: 'station' | 'client' }) {
     const defaultCenter: [number, number] = [14.5, 100.5]; // Thailand center
 
     return (
@@ -209,4 +209,6 @@ export default function MapView({ data, category = 'station' }: { data: any[], c
             })}
         </MapContainer>
     );
-}
+});
+
+export default MapView;

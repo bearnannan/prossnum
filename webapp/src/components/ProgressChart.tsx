@@ -34,7 +34,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
-export default function ProgressChart({ data, category = 'station' }: { data: any[], category?: string }) {
+export default React.memo(function ProgressChart({ data, category = 'station' }: { data: any[], category?: string }) {
     const isClient = category === 'client';
     
     const chartData = data.map((d, index) => {
@@ -171,4 +171,4 @@ export default function ProgressChart({ data, category = 'station' }: { data: an
             </ResponsiveContainer>
         </div>
     );
-}
+});

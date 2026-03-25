@@ -126,21 +126,41 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url);
         const sheetType = searchParams.get("sheet") || "station";
 
-        // Try to fetch from published CSV first as a robust fallback
+        // Try to fetch from real-time API first for immediate updates
         let rows: any[][] = [];
+        let source = "API";
+        
         try {
-            rows = await fetchPublishedCsv(sheetType);
-        } catch (csvError) {
-            console.warn("Failed to fetch from published CSV, falling back to API...", csvError);
-            // Fallback to Google Sheets API if configured
             const sheetId = getSpreadsheetId();
             const sheetName = sheetType === "client" ? "ClientSystem" : "Stationdata";
             const range = sheetType === "client" ? `${sheetName}!A2:Z` : `${sheetName}!A2:K`;
+            
+            console.log(`Fetching ${sheetType} data from Sheets API (Real-time)...`);
             rows = await getSheetData(range, sheetId) || [];
+            
+            if (!rows || rows.length === 0) {
+                console.warn("API returned no rows, trying CSV fallback...");
+                throw new Error("No data from API");
+            }
+        } catch (apiError) {
+            console.error("Failed to fetch from Google Sheets API, falling back to Published CSV...", apiError);
+            source = "CSV_FALLBACK";
+            try {
+                rows = await fetchPublishedCsv(sheetType);
+            } catch (csvError) {
+                console.error("Both API and CSV fallback failed.", csvError);
+                return NextResponse.json({ data: [] }, { 
+                    headers: { 'Cache-Control': 'no-store, max-age=0' } 
+                });
+            }
         }
 
+        console.log(`Successfully fetched ${rows.length} rows from ${source}`);
+
         if (!rows || rows.length === 0) {
-            return NextResponse.json({ data: [] });
+            return NextResponse.json({ data: [] }, { 
+                headers: { 'Cache-Control': 'no-store, max-age=0' } 
+            });
         }
 
         // Updated Mapping based on user's spreadsheet structure (CSV index starts at 0 for column A)
@@ -177,7 +197,9 @@ export async function GET(req: Request) {
                 meterRequest: row[25] || "",
                 rowIndex: index + 2
             }));
-            return NextResponse.json({ data });
+            return NextResponse.json({ data }, { 
+                headers: { 'Cache-Control': 'no-store, max-age=0' } 
+            });
         } else {
             const data: StationData[] = rows.map((row: any[], index: number) => ({
                 district: row[0] || "",
@@ -193,7 +215,9 @@ export async function GET(req: Request) {
                 remark: row[10] || "",
                 rowIndex: index + 2
             }));
-            return NextResponse.json({ data });
+            return NextResponse.json({ data }, { 
+                headers: { 'Cache-Control': 'no-store, max-age=0' } 
+            });
         }
 
     } catch (error: any) {

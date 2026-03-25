@@ -12,7 +12,9 @@ import {
     ReferenceLine,
 } from "recharts";
 
-export default function ComparisonChart({ data, category = 'station' }: { data: any[], category?: string }) {
+import React from 'react';
+
+export default React.memo(function ComparisonChart({ data, category = 'station' }: { data: any[], category?: string }) {
     // Group by district
     const districtStats: Record<string, { val1Sum: number; val2Sum: number; val3Sum?: number; count: number }> = {};
 
@@ -179,4 +181,4 @@ export default function ComparisonChart({ data, category = 'station' }: { data: 
             </ResponsiveContainer>
         </div>
     );
-}
+});

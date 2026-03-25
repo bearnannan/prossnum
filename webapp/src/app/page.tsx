@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createRoot } from "react-dom/client";
 import dynamic from "next/dynamic";
@@ -12,7 +12,7 @@ import ClientSystemModal from '@/components/ClientSystemModal';
 import TopNavBar from '@/components/TopNavBar';
 import SideNavBar from '@/components/SideNavBar';
 
-const fetcher = (url: string) => fetch(url).then(res => {
+const fetcher = (url: string) => fetch(url, { cache: 'no-store' }).then(res => {
   if (!res.ok) throw new Error("Failed to fetch data");
   return res.json();
 });
@@ -377,10 +377,10 @@ export default function Home() {
   // ──────────────────────────────────────────────────────────────
 
   // Districts list (computed once for export refs + export containers)
-  const districts = Array.from(new Set(data.map(d => d.district).filter(Boolean)));
+  const districts = useMemo(() => Array.from(new Set(data.map(d => d.district).filter(Boolean))), [data]);
 
   // ── Search, Filter & Sort Logic ──────────────────────────────
-  const filteredData = data.filter((item) => {
+  const filteredData = useMemo(() => data.filter((item) => {
     const matchesSearch = item.stationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.district.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -404,9 +404,9 @@ export default function Home() {
     }
 
     return matchesSearch && matchesDistrict && matchesType && matchesStatus;
-  });
+  }), [data, searchTerm, filterDistrict, filterType, filterStatus, activeCategory]);
 
-  const sortedData = [...filteredData].sort((a, b) => {
+  const sortedData = useMemo(() => [...filteredData].sort((a, b) => {
     if (!sortConfig) return 0;
     const { key, direction } = sortConfig;
     let aVal = a[key] ?? "";
@@ -415,7 +415,7 @@ export default function Home() {
     if (aVal < bVal) return direction === "asc" ? -1 : 1;
     if (aVal > bVal) return direction === "asc" ? 1 : -1;
     return 0;
-  });
+  }), [filteredData, sortConfig]);
 
   const handleSort = (key: string) => {
     let direction: "asc" | "desc" = "asc";
