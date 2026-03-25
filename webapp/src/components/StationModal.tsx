@@ -85,7 +85,7 @@ export default function StationModal({
         try {
             const method = isEditing ? "PUT" : "POST";
             const payload = isEditing
-                ? { ...formData, rowIndex: editingStation!.rowIndex }
+                ? { ...formData, id: editingStation!.id }
                 : formData;
 
             if (!navigator.onLine) {
@@ -94,7 +94,8 @@ export default function StationModal({
                     id: Date.now().toString(),
                     method,
                     payload,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    sheet: "station"
                 });
                 await set("offline-mutations", queue);
                 alert("Saved as Draft. It will sync automatically when back online.");

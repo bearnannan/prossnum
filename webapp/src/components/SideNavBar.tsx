@@ -29,8 +29,8 @@ export default function SideNavBar({ activeCategory, onCategoryChange, isOpen, o
                     </button>
                 </div>
             <div className="mb-6 px-4">
-                <h2 className="text-zinc-900 dark:text-white font-bold text-lg">Project Alpha</h2>
-                <p className="text-zinc-500 text-xs font-medium">Phase 2 Construction</p>
+                <h2 className="text-zinc-900 dark:text-white font-bold text-lg">ProssNum Dashboard</h2>
+                <p className="text-zinc-500 text-xs font-medium">Infrastructure Management</p>
             </div>
             
             <nav className="flex-1 flex flex-col gap-1">
@@ -43,7 +43,7 @@ export default function SideNavBar({ activeCategory, onCategoryChange, isOpen, o
                     }`}
                 >
                     <span className="material-symbols-outlined">train</span>
-                    ข้อมูลสถานีเดิม
+                    ข้อมูลสถานี
                 </button>
                 <button 
                     onClick={() => onCategoryChange('client')}

@@ -6,9 +6,7 @@ import { cookies } from "next/headers";
 const validCredentials: Record<string, string> = {
     // Basic test case
     "admin": "123456",
-    "test": "0000",
-    "อำเภอห้วยกระเจา": "1234",
-    "อำเภอเลาขวัญ": "5678"
+    "test": "0000"
 };
 
 export async function POST(req: Request) {

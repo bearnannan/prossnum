@@ -23,6 +23,8 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 };
 
+import { ToastProvider } from "@/components/Toast";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -37,8 +39,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <OfflineSyncManager />
-        {children}
+        <ToastProvider>
+          <OfflineSyncManager />
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

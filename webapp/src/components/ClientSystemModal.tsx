@@ -128,7 +128,7 @@ export default function ClientSystemModal({
         try {
             const method = isEditing ? "PUT" : "POST";
             const payload = isEditing
-                ? { ...formData, rowIndex: editingStation!.rowIndex }
+                ? { ...formData, id: editingStation!.id }
                 : formData;
 
             if (!navigator.onLine) {
