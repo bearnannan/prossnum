@@ -179,10 +179,9 @@ export default function Home() {
           text += `   - ความสูงเสา: ${item.poleHeight}\n`;
           text += `   - ระบบไฟฟ้า: ${item.electricProgress}% (ระยะสาย Main: ${item.electricMain})\n`;
           text += `   - ระบบกราวด์: ${item.groundProgress}% (AC: ${item.groundAC} Ω | Equip: ${item.groundEquip} Ω)\n`;
-          text += `   - สาย Feeder: ${item.feederProgress}% (Yagi No: ${item.yagiNo} | SN: ${item.sn} | ระยะ feed: ${item.feedDistance})\n`;
+          text += `   - สาย Feeder: ${item.feederProgress}% (Yagi No: ${item.yagiNo} | ระยะ feed: ${item.feedDistance})\n`;
           text += `   - การติดตั้งอุปกรณ์บนเสา: ${item.towerProgress}%\n`;
-          text += `   - การติดตั้งเครื่องวิทยุฯ: ${item.radioProgress}% (SN: ${item.radioSN})\n`;
-          text += `   - การทดสอบสัญญาณ (Link): ${item.linkProgress}% (RSSI: ${item.rssi} dBm)\n`;
+          text += `   - การติดตั้งเครื่องวิทยุฯ: ${item.radioProgress}%\n`;
           text += `   - แบตเตอรี่ SN: ${item.batterySN}\n`;
           text += `   - ขาติดตั้ง: ${item.mountType} | องศา: ${item.angle} | Test Feeder: ${item.testFeeder}\n`;
           text += `   - ยื่นขอมิเตอร์: ${item.meterRequest || "ยังไม่ได้ยื่น"}\n`;
@@ -516,7 +515,6 @@ export default function Home() {
                       <th className="px-4 py-3">AC Ω</th>
                       <th className="px-4 py-3">Feeder (%)</th>
                       <th className="px-4 py-3">Radio (%)</th>
-                      <th className="px-4 py-3">Link (%)</th>
                       <th className="px-4 py-3">RSSI</th>
                       <th className="px-4 py-3">ขอมิเตอร์</th>
                     </>
@@ -566,7 +564,6 @@ export default function Home() {
                           <td className="px-4 py-3 font-mono">{item.groundAC || "-"}</td>
                           <td className="px-4 py-3">{item.feederProgress}%</td>
                           <td className="px-4 py-3">{item.radioProgress}%</td>
-                          <td className="px-4 py-3 font-bold text-blue-600">{item.linkProgress}%</td>
                           <td className="px-4 py-3 font-mono">{item.rssi || "-"}</td>
                           <td className="px-4 py-3">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.meterRequest === 'ยื่นแล้ว' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>

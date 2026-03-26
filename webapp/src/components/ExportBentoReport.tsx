@@ -187,9 +187,7 @@ export default function ExportBentoReport({ district, stations, category = 'stat
                                                 <th style={{ textAlign: 'right', padding: '6px 2px', color: '#3B82F6', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>ไฟฟ้า</th>
                                                 <th style={{ textAlign: 'right', padding: '6px 2px', color: '#10B981', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>กราวด์</th>
                                                 <th style={{ textAlign: 'right', padding: '6px 2px', color: '#F59E0B', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>Feed</th>
-                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#EC4899', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>Link%</th>
                                                 <th style={{ textAlign: 'right', padding: '6px 2px', color: '#4B5563', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>RSSI</th>
-                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#6366F1', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>SN</th>
                                             </>
                                         )}
                                     </tr>
@@ -216,9 +214,7 @@ export default function ExportBentoReport({ district, stations, category = 'stat
                                                     <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.electricProgress || 0}%</td>
                                                     <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.groundProgress || 0}%</td>
                                                     <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.feederProgress || 0}%</td>
-                                                    <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6', fontWeight: 600, color: '#DB2777' }}>{s.linkProgress || 0}%</td>
                                                     <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6', color: '#4B5563' }}>{s.rssi || "-"}</td>
-                                                    <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6', fontSize: '8px', color: '#9CA3AF' }}>{s.radioSN || "-"}</td>
                                                 </>
                                             )}
                                         </tr>
