@@ -192,6 +192,7 @@ export default function Home() {
           // LEGACY STYLE for Stations
           text += `[${idx + 1}]. ${item.stationName}`;
           if (item.poleHeight) text += ` (${item.poleHeight})`;
+          if (item.baseType) text += ` ${item.baseType}`;
           if (item.type) text += ` ${item.type}`;
           text += `\n`;
           text += `งานก่อสร้างฐานราก: ${item.foundationProgress}%\n`;
