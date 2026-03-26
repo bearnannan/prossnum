@@ -251,11 +251,66 @@ export default function Home() {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600"><span className="material-symbols-outlined">cell_tower</span></div>
-            <div><p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">ทั้งหมด</p><h3 className="text-2xl font-black">{data.length}</h3></div>
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+              <span className="material-symbols-outlined font-icon">cell_tower</span>
+            </div>
+            <div>
+              <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">ทั้งหมด</p>
+              <h3 className="text-2xl font-black">{data.length}</h3>
+            </div>
           </div>
-          {/* Add more stat cards here if needed */}
+
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="w-12 h-12 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-green-600">
+              <span className="material-symbols-outlined font-icon">check_circle</span>
+            </div>
+            <div>
+              <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">เสร็จสมบูรณ์</p>
+              <h3 className="text-2xl font-black text-green-600">
+                {data.filter(d => {
+                  const p = activeCategory === 'client' 
+                    ? (parseFloat(d.electricProgress) + parseFloat(d.groundProgress) + parseFloat(d.feederProgress)) / 3
+                    : (parseFloat(d.foundationProgress) + parseFloat(d.poleInstallationProgress)) / 2;
+                  return p >= 100;
+                }).length}
+              </h3>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="w-12 h-12 rounded-full bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-600">
+              <span className="material-symbols-outlined font-icon">pending</span>
+            </div>
+            <div>
+              <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">กำลังดำเนินการ</p>
+              <h3 className="text-2xl font-black text-yellow-600">
+                {data.filter(d => {
+                  const p = activeCategory === 'client' 
+                    ? (parseFloat(d.electricProgress) + parseFloat(d.groundProgress) + parseFloat(d.feederProgress)) / 3
+                    : (parseFloat(d.foundationProgress) + parseFloat(d.poleInstallationProgress)) / 2;
+                  return p > 0 && p < 100;
+                }).length}
+              </h3>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <div className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600">
+              <span className="material-symbols-outlined font-icon">trending_up</span>
+            </div>
+            <div>
+              <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">ภาพรวมความคืบหน้า</p>
+              <h3 className="text-2xl font-black text-purple-600">
+                {data.length > 0 ? Math.round(data.reduce((acc, d) => {
+                  const p = activeCategory === 'client' 
+                    ? (parseFloat(d.electricProgress) + parseFloat(d.groundProgress) + parseFloat(d.feederProgress)) / 3
+                    : (parseFloat(d.foundationProgress) + parseFloat(d.poleInstallationProgress)) / 2;
+                  return acc + p;
+                }, 0) / data.length) : 0}%
+              </h3>
+            </div>
+          </div>
         </div>
 
         <div className="rounded-2xl bg-white dark:bg-zinc-900 shadow-sm border border-zinc-100 dark:border-zinc-800 p-4">
