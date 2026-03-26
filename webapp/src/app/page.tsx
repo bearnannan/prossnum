@@ -579,18 +579,68 @@ export default function Home() {
                  <button onClick={() => setExportType('txt')} className={`flex-1 py-3 rounded-xl font-bold transition-all ${exportType === 'txt' ? 'bg-white shadow-sm' : 'text-zinc-500'}`}>TXT SUMMARY</button>
               </div>
               <div className="space-y-4">
-                {districts.map(d => (
-                  <div key={d} className="p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
-                    <label className="flex items-center gap-3 cursor-pointer font-bold">
-                       <input type="checkbox" checked={selectedExportStations.filter(s => s.startsWith(d)).length === data.filter(s => s.district === d).length} onChange={(e) => {
-                          const keys = data.filter(s => s.district === d).map(s => `${s.district}|${s.stationName}`);
-                          if (e.target.checked) setSelectedExportStations(prev => [...new Set([...prev, ...keys])]);
-                          else setSelectedExportStations(prev => prev.filter(k => !keys.includes(k)));
-                       }} className="w-5 h-5 rounded-md" />
-                       {d}
-                    </label>
-                  </div>
-                ))}
+                {districts.map(d => {
+                  const districtStations = data.filter(s => s.district === d);
+                  const selectedInDistrict = selectedExportStations.filter(s => s.startsWith(`${d}|`));
+                  const isAllSelected = selectedInDistrict.length === districtStations.length && districtStations.length > 0;
+                  const isExpanded = expandedDistricts.includes(d);
+
+                  return (
+                    <div key={d} className="rounded-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden">
+                      <div className="p-4 bg-zinc-50/50 dark:bg-zinc-800/30 flex items-center justify-between">
+                        <label className="flex items-center gap-3 cursor-pointer font-bold flex-1">
+                          <input 
+                            type="checkbox" 
+                            checked={isAllSelected} 
+                            onChange={(e) => {
+                              const keys = districtStations.map(s => `${s.district}|${s.stationName}`);
+                              if (e.target.checked) setSelectedExportStations(prev => [...new Set([...prev, ...keys])]);
+                              else setSelectedExportStations(prev => prev.filter(k => !keys.includes(k)));
+                            }} 
+                            className="w-5 h-5 rounded-md accent-zinc-900" 
+                          />
+                          <span className="text-zinc-900 dark:text-zinc-100">{d}</span>
+                          <span className="text-[10px] px-2 py-0.5 bg-zinc-200 dark:bg-zinc-700 rounded-full text-zinc-500">
+                            {selectedInDistrict.length}/{districtStations.length}
+                          </span>
+                        </label>
+                        <button 
+                          onClick={() => setExpandedDistricts(prev => isExpanded ? prev.filter(item => item !== d) : [...prev, d])}
+                          className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                        >
+                          <span className={`material-symbols-outlined transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                            expand_more
+                          </span>
+                        </button>
+                      </div>
+                      
+                      {isExpanded && (
+                        <div className="p-4 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {districtStations.map(s => {
+                            const key = `${s.district}|${s.stationName}`;
+                            const isSelected = selectedExportStations.includes(key);
+                            return (
+                              <label key={key} className="flex items-center gap-2 p-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl cursor-pointer transition-colors group">
+                                <input 
+                                  type="checkbox" 
+                                  checked={isSelected} 
+                                  onChange={(e) => {
+                                    if (e.target.checked) setSelectedExportStations(prev => [...prev, key]);
+                                    else setSelectedExportStations(prev => prev.filter(k => k !== key));
+                                  }}
+                                  className="w-4 h-4 rounded-md accent-blue-600"
+                                />
+                                <span className={`text-xs ${isSelected ? 'text-blue-600 font-bold' : 'text-zinc-500'} group-hover:text-zinc-900 dark:group-hover:text-zinc-100`}>
+                                  {s.stationName}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <div className="p-8 border-t border-zinc-100 dark:border-zinc-800 flex gap-4">
