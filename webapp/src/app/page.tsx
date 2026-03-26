@@ -330,66 +330,106 @@ export default function Home() {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Card 1: Overall / Total */}
           <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
             <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
-              <span className="material-symbols-outlined font-icon">cell_tower</span>
+              <span className="material-symbols-outlined font-icon">analytics</span>
             </div>
             <div>
-              <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">ทั้งหมด</p>
-              <h3 className="text-2xl font-black">{data.length}</h3>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
-            <div className="w-12 h-12 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-green-600">
-              <span className="material-symbols-outlined font-icon">check_circle</span>
-            </div>
-            <div>
-              <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">เสร็จสมบูรณ์</p>
-              <h3 className="text-2xl font-black text-green-600">
-                {data.filter(d => {
-                  const p = activeCategory === 'client' 
-                    ? (parseFloat(d.electricProgress) + parseFloat(d.groundProgress) + parseFloat(d.feederProgress)) / 3
-                    : (parseFloat(d.foundationProgress) + parseFloat(d.poleInstallationProgress)) / 2;
-                  return p >= 100;
-                }).length}
-              </h3>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
-            <div className="w-12 h-12 rounded-full bg-yellow-50 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-600">
-              <span className="material-symbols-outlined font-icon">pending</span>
-            </div>
-            <div>
-              <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">กำลังดำเนินการ</p>
-              <h3 className="text-2xl font-black text-yellow-600">
-                {data.filter(d => {
-                  const p = activeCategory === 'client' 
-                    ? (parseFloat(d.electricProgress) + parseFloat(d.groundProgress) + parseFloat(d.feederProgress)) / 3
-                    : (parseFloat(d.foundationProgress) + parseFloat(d.poleInstallationProgress)) / 2;
-                  return p > 0 && p < 100;
-                }).length}
-              </h3>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
-            <div className="w-12 h-12 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600">
-              <span className="material-symbols-outlined font-icon">trending_up</span>
-            </div>
-            <div>
-              <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">ภาพรวมความคืบหน้า</p>
-              <h3 className="text-2xl font-black text-purple-600">
+              <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">ภาพรวม {activeCategory === 'client' ? 'ลูกข่าย' : 'งานโครงสร้าง'}</p>
+              <h3 className="text-2xl font-black text-blue-600">
                 {data.length > 0 ? Math.round(data.reduce((acc, d) => {
                   const p = activeCategory === 'client' 
-                    ? (parseFloat(d.electricProgress) + parseFloat(d.groundProgress) + parseFloat(d.feederProgress)) / 3
-                    : (parseFloat(d.foundationProgress) + parseFloat(d.poleInstallationProgress)) / 2;
+                    ? (parseFloat(d.electricProgress || 0) + parseFloat(d.groundProgress || 0) + parseFloat(d.feederProgress || 0)) / 3
+                    : (parseFloat(d.foundationProgress || 0) + parseFloat(d.poleInstallationProgress || 0)) / 2;
                   return acc + p;
                 }, 0) / data.length) : 0}%
               </h3>
             </div>
           </div>
+
+          {activeCategory === 'client' ? (
+            <>
+              {/* Client Spec Card 2: Electric */}
+              <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
+                  <span className="material-symbols-outlined font-icon">bolt</span>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">ระบบไฟฟ้า</p>
+                  <h3 className="text-2xl font-black text-indigo-600">
+                    {data.length > 0 ? Math.round(data.reduce((acc, d) => acc + parseFloat(d.electricProgress || 0), 0) / data.length) : 0}%
+                  </h3>
+                </div>
+              </div>
+              {/* Client Spec Card 3: Ground */}
+              <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
+                  <span className="material-symbols-outlined font-icon">nest_eco_leaf</span>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">ระบบกราวด์</p>
+                  <h3 className="text-2xl font-black text-emerald-600">
+                    {data.length > 0 ? Math.round(data.reduce((acc, d) => acc + parseFloat(d.groundProgress || 0), 0) / data.length) : 0}%
+                  </h3>
+                </div>
+              </div>
+              {/* Client Spec Card 4: Feeder */}
+              <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600">
+                  <span className="material-symbols-outlined font-icon">settings_input_antenna</span>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">สาย FEEDER</p>
+                  <h3 className="text-2xl font-black text-amber-600">
+                    {data.length > 0 ? Math.round(data.reduce((acc, d) => acc + parseFloat(d.feederProgress || 0), 0) / data.length) : 0}%
+                  </h3>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Station Spec Card 2: Foundation */}
+              <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-full bg-cyan-50 dark:bg-cyan-900/30 flex items-center justify-center text-cyan-600">
+                  <span className="material-symbols-outlined font-icon">foundation</span>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">เฉลี่ยฐานราก</p>
+                  <h3 className="text-2xl font-black text-cyan-600">
+                    {data.length > 0 ? Math.round(data.reduce((acc, d) => acc + parseFloat(d.foundationProgress || 0), 0) / data.length) : 0}%
+                  </h3>
+                </div>
+              </div>
+              {/* Station Spec Card 3: Pole */}
+              <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center text-orange-600">
+                  <span className="material-symbols-outlined font-icon">vertical_align_top</span>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">เฉลี่ยติดตั้งเสา</p>
+                  <h3 className="text-2xl font-black text-orange-600">
+                    {data.length > 0 ? Math.round(data.reduce((acc, d) => acc + parseFloat(d.poleInstallationProgress || 0), 0) / data.length) : 0}%
+                  </h3>
+                </div>
+              </div>
+              {/* Station Spec Card 4: Success Count */}
+              <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div className="w-12 h-12 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-green-600">
+                  <span className="material-symbols-outlined font-icon">verified</span>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">สำเร็จทั้งโครงการ</p>
+                  <h3 className="text-2xl font-black text-green-600">
+                    {data.filter(d => {
+                      const p = (parseFloat(d.foundationProgress || 0) + parseFloat(d.poleInstallationProgress || 0)) / 2;
+                      return p >= 100;
+                    }).length} / {data.length}
+                  </h3>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="rounded-2xl bg-white dark:bg-zinc-900 shadow-sm border border-zinc-100 dark:border-zinc-800 p-4">
