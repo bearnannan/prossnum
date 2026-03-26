@@ -5,6 +5,7 @@ export interface StationData {
     id?: string;            // UUID from Supabase
     district: string;       // อำเภอ
     stationName: string;   // ชื่อสถานีลูกข่าย
+    baseType?: string;     // Foundation Type (ประเภทฐานราก)
     type: string;          // Type
     foundationProgress: number; // ความคืบหน้าฐานราก (%)
     poleInstallationProgress: number; // งานติดตั้งเสา (%)
@@ -104,6 +105,7 @@ export async function GET(req: Request) {
                 id: item.id,
                 district: item.district,
                 stationName: item.station_name,
+                baseType: item.base_type,
                 type: item.type,
                 foundationProgress: item.foundation_progress,
                 poleInstallationProgress: item.pole_progress,
@@ -166,6 +168,7 @@ export async function POST(req: Request) {
             const { error } = await supabase.from('stations').insert([{
                 district: data.district,
                 station_name: data.stationName,
+                base_type: data.baseType,
                 type: data.type,
                 foundation_progress: data.foundationProgress,
                 pole_progress: data.poleInstallationProgress,
@@ -233,6 +236,7 @@ export async function PUT(req: Request) {
             const { error } = await supabase.from('stations').update({
                 district: data.district,
                 station_name: data.stationName,
+                base_type: data.baseType,
                 type: data.type,
                 foundation_progress: data.foundationProgress,
                 pole_progress: data.poleInstallationProgress,

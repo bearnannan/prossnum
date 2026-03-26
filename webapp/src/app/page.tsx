@@ -139,6 +139,7 @@ export default function Home() {
     setIsExportModalOpen(false);
     const filteredExportData = data.filter(d => selectedExportStations.includes(`${d.district}|${d.stationName}`));
     if (filteredExportData.length === 0) return;
+    
     const grouped = filteredExportData.reduce((acc, item) => {
       if (!acc[item.district]) acc[item.district] = [];
       acc[item.district].push(item);
@@ -147,14 +148,33 @@ export default function Home() {
 
     const today = new Date();
     const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
-    let text = `${dateStr}\n\n`;
+    
+    // Header Logic
+    const districtNames = Object.keys(grouped).map(d => `อ.${d}`);
+    let districtsStr = "";
+    if (districtNames.length === 1) districtsStr = `"${districtNames[0]}"`;
+    else if (districtNames.length === 2) districtsStr = `"${districtNames[0]}" และ "${districtNames[1]}"`;
+    else {
+      const last = districtNames.pop();
+      districtsStr = districtNames.map(d => `"${d}"`).join(", ") + ` และ "${last}"`;
+    }
 
-    (Object.entries(grouped) as [string, any[]][]).forEach(([district, items]) => {
-      text += `📍 อำเภอ: ${district}\n`;
-      text += `==================================\n`;
+    // Pole height (assume the first one if present, otherwise default to legacy "9 เมตร")
+    const commonPoleHeight = filteredExportData[0]?.poleHeight || "9 เมตร";
+    
+    let text = `${dateStr}\n`;
+    if (activeCategory === 'station') {
+      text += `รายงานความคืบหน้างานก่อสร้างฐานรากและติดตั้งเสาสัญญาณ ${commonPoleHeight} สถานีลูกข่าย ${districtsStr} จ.กาญจนบุรี เขต11 (เพชรบุรี)\n\n`;
+    } else {
+       text += `รายงานการติดตั้งระบบลูกข่าย (${districtsStr})\n\n`;
+    }
+
+    const groupedEntries = Object.entries(grouped) as [string, any[]][];
+    groupedEntries.forEach(([district, items], gIdx) => {
+      text += `📍 อำเภอ${district}\n\n`;
       items.forEach((item, idx) => {
-        text += `[${idx + 1}]. ${item.stationName}\n`;
         if (activeCategory === 'client') {
+          text += `[${idx + 1}]. ${item.stationName}\n`;
           text += `   - พิกัด: ${item.lat}, ${item.lon}\n`;
           text += `   - ความสูงเสา: ${item.poleHeight}\n`;
           text += `   - ระบบไฟฟ้า: ${item.electricProgress}% (ระยะสาย Main: ${item.electricMain})\n`;
@@ -166,17 +186,29 @@ export default function Home() {
           text += `   - แบตเตอรี่ SN: ${item.batterySN}\n`;
           text += `   - ขาติดตั้ง: ${item.mountType} | องศา: ${item.angle} | Test Feeder: ${item.testFeeder}\n`;
           text += `   - ยื่นขอมิเตอร์: ${item.meterRequest || "ยังไม่ได้ยื่น"}\n`;
+          text += `   - วันที่: ${formatDateDisplay(item.startDate)} - ${formatDateDisplay(item.endDate)}\n`;
+          text += `   - หมายเหตุ: ${item.remark || "-"}\n`;
         } else {
-          text += `   - ประเภท: ${item.type}\n`;
-          text += `   - ความคืบหน้าฐานราก: ${item.foundationProgress}%\n`;
-          text += `   - งานติดตั้งเสา: ${item.poleInstallationProgress}% (สูง: ${item.poleHeight})\n`;
-          text += `   - พิกัด: ${item.lat}, ${item.lon}\n`;
+          // LEGACY STYLE for Stations
+          text += `[${idx + 1}]. ${item.stationName}`;
+          if (item.poleHeight) text += ` (${item.poleHeight})`;
+          if (item.type) text += ` ${item.type}`;
+          text += `\n`;
+          text += `งานก่อสร้างฐานราก: ${item.foundationProgress}%\n`;
+          text += `งานติดตั้งโครงเสา: ${item.poleInstallationProgress}%\n`;
+          text += `** หมายเหตุ: ${item.remark || "-"}\n`;
+          text += `เริ่มงาน: ${formatDateDisplay(item.startDate)}\n`;
+          text += `เสร็จงาน: ${formatDateDisplay(item.endDate)}\n`;
         }
-        text += `   - วันที่: ${formatDateDisplay(item.startDate)} - ${formatDateDisplay(item.endDate)}\n`;
-        text += `   - หมายเหตุ: ${item.remark || "-"}\n`;
-        text += `----------------------------------\n`;
+        
+        if (idx < items.length - 1) {
+          text += `\n---\n\n`;
+        }
       });
-      text += `\n`;
+
+      if (gIdx < groupedEntries.length - 1) {
+        text += `\n=========================================\n\n`;
+      }
     });
 
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
