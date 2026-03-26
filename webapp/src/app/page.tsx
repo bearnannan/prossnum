@@ -149,7 +149,7 @@ export default function Home() {
     const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
     let text = `${dateStr}\n\n`;
 
-    Object.entries(grouped).forEach(([district, items]) => {
+    (Object.entries(grouped) as [string, any[]][]).forEach(([district, items]) => {
       text += `📍 ${district}\n`;
       items.forEach((item, idx) => {
         text += `[${idx+1}]. ${item.stationName}\n`;
