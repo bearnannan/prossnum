@@ -225,7 +225,7 @@ export default function Home() {
         });
 
         const el = container.firstChild as HTMLElement;
-        const dataUrl = await toJpeg(el, { quality: 1.0, width: 1122, height: 794, pixelRatio: 2.5 });
+        const dataUrl = await toJpeg(el, { quality: 1.0, width: 1122, height: 794, pixelRatio: 6.25 });
         
         if (!isFirst) pdf.addPage();
         pdf.addImage(dataUrl, 'JPEG', 0, 0, 297, 210);
@@ -236,7 +236,7 @@ export default function Home() {
       }
 
       pdf.save(`report_${activeCategory}_${new Date().getTime()}.pdf`);
-      showToast('Export PDF สำเร็จ', 'success');
+      showToast('Export PDF สำเร็จ (600 DPI)', 'success');
     } catch (error: any) {
       console.error(error);
       showToast('Export ล้มเหลว: ' + error.message, 'error');
@@ -254,10 +254,18 @@ export default function Home() {
       await document.fonts.ready;
       
       const filtered = data.filter(d => selectedExportStations.includes(`${d.district}|${d.stationName}`));
-      const districtsToExport = Array.from(new Set(filtered.map(d => d.district)));
+      if (filtered.length === 0) return;
+      
+      const groupedToExport = filtered.reduce((acc, item) => {
+        if (!acc[item.district]) acc[item.district] = [];
+        acc[item.district].push(item);
+        return acc;
+      }, {} as Record<string, any[]>);
+
+      const districtsToExport = Object.keys(groupedToExport).sort();
 
       for (const d of districtsToExport) {
-        const stations = filtered.filter(s => s.district === d);
+        const stations = groupedToExport[d];
         const container = document.createElement('div');
         Object.assign(container.style, { position: 'fixed', top: '0', left: '-2000px', width: '1122px', height: '794px', zIndex: '-1000' });
         document.body.appendChild(container);
@@ -269,7 +277,7 @@ export default function Home() {
         });
 
         const el = container.firstChild as HTMLElement;
-        const dataUrl = await toJpeg(el, { quality: 1.0, pixelRatio: 3 });
+        const dataUrl = await toJpeg(el, { quality: 1.0, width: 1122, height: 794, pixelRatio: 6.25 });
         const link = document.createElement('a');
         link.download = `report_${d}_${new Date().getTime()}.jpg`;
         link.href = dataUrl;
@@ -567,6 +575,7 @@ export default function Home() {
             <div className="p-8 overflow-y-auto flex-1 space-y-6">
               <div className="flex gap-4 p-2 bg-zinc-100 dark:bg-zinc-800 rounded-2xl">
                  <button onClick={() => setExportType('pdf')} className={`flex-1 py-3 rounded-xl font-bold transition-all ${exportType === 'pdf' ? 'bg-white shadow-sm' : 'text-zinc-500'}`}>PDF REPORT</button>
+                 <button onClick={() => setExportType('jpeg')} className={`flex-1 py-3 rounded-xl font-bold transition-all ${exportType === 'jpeg' ? 'bg-white shadow-sm' : 'text-zinc-500'}`}>JPEG IMAGE</button>
                  <button onClick={() => setExportType('txt')} className={`flex-1 py-3 rounded-xl font-bold transition-all ${exportType === 'txt' ? 'bg-white shadow-sm' : 'text-zinc-500'}`}>TXT SUMMARY</button>
               </div>
               <div className="space-y-4">
@@ -586,7 +595,7 @@ export default function Home() {
             </div>
             <div className="p-8 border-t border-zinc-100 dark:border-zinc-800 flex gap-4">
                <button onClick={() => setIsExportModalOpen(false)} className="flex-1 py-4 font-bold rounded-2xl hover:bg-zinc-100">Cancel</button>
-               <button onClick={exportType === 'txt' ? handleExportTXT : handleExportPDF} className="flex-1 py-4 bg-zinc-900 text-white font-bold rounded-2xl shadow-xl hover:opacity-90">Confirm Export</button>
+               <button onClick={exportType === 'txt' ? handleExportTXT : (exportType === 'jpeg' ? handleExportJPEG : handleExportPDF)} className="flex-1 py-4 bg-zinc-900 text-white font-bold rounded-2xl shadow-xl hover:opacity-90">Confirm Export</button>
             </div>
           </div>
         </div>
