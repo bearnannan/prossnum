@@ -150,15 +150,31 @@ export default function Home() {
     let text = `${dateStr}\n\n`;
 
     (Object.entries(grouped) as [string, any[]][]).forEach(([district, items]) => {
-      text += `📍 ${district}\n`;
+      text += `📍 อำเภอ: ${district}\n`;
+      text += `==================================\n`;
       items.forEach((item, idx) => {
-        text += `[${idx+1}]. ${item.stationName}\n`;
+        text += `[${idx + 1}]. ${item.stationName}\n`;
         if (activeCategory === 'client') {
-          text += `ไฟฟ้า: ${item.electricProgress}% | กราวด์: ${item.groundProgress}% | Feeder: ${item.feederProgress}%\n`;
+          text += `   - พิกัด: ${item.lat}, ${item.lon}\n`;
+          text += `   - ความสูงเสา: ${item.poleHeight}\n`;
+          text += `   - ระบบไฟฟ้า: ${item.electricProgress}% (ระยะสาย Main: ${item.electricMain})\n`;
+          text += `   - ระบบกราวด์: ${item.groundProgress}% (AC: ${item.groundAC} Ω | Equip: ${item.groundEquip} Ω)\n`;
+          text += `   - สาย Feeder: ${item.feederProgress}% (Yagi No: ${item.yagiNo} | SN: ${item.sn} | ระยะ feed: ${item.feedDistance})\n`;
+          text += `   - การติดตั้งอุปกรณ์บนเสา: ${item.towerProgress}%\n`;
+          text += `   - การติดตั้งเครื่องวิทยุฯ: ${item.radioProgress}% (SN: ${item.radioSN})\n`;
+          text += `   - การทดสอบสัญญาณ (Link): ${item.linkProgress}% (RSSI: ${item.rssi} dBm)\n`;
+          text += `   - แบตเตอรี่ SN: ${item.batterySN}\n`;
+          text += `   - ขาติดตั้ง: ${item.mountType} | องศา: ${item.angle} | Test Feeder: ${item.testFeeder}\n`;
+          text += `   - ยื่นขอมิเตอร์: ${item.meterRequest || "ยังไม่ได้ยื่น"}\n`;
         } else {
-          text += `ฐานราก: ${item.foundationProgress}% | ติดตั้งเสา: ${item.poleInstallationProgress}%\n`;
+          text += `   - ประเภท: ${item.type}\n`;
+          text += `   - ความคืบหน้าฐานราก: ${item.foundationProgress}%\n`;
+          text += `   - งานติดตั้งเสา: ${item.poleInstallationProgress}% (สูง: ${item.poleHeight})\n`;
+          text += `   - พิกัด: ${item.lat}, ${item.lon}\n`;
         }
-        text += `สถานะ: ${item.remark || "-"}\n---\n`;
+        text += `   - วันที่: ${formatDateDisplay(item.startDate)} - ${formatDateDisplay(item.endDate)}\n`;
+        text += `   - หมายเหตุ: ${item.remark || "-"}\n`;
+        text += `----------------------------------\n`;
       });
       text += `\n`;
     });
@@ -178,31 +194,94 @@ export default function Home() {
       const { toJpeg } = await import('html-to-image');
       const jsPDF = (await import('jspdf')).default;
       await document.fonts.ready;
+
       const filtered = data.filter(d => selectedExportStations.includes(`${d.district}|${d.stationName}`));
-      const districtsToExport = Array.from(new Set(filtered.map(d => d.district)));
+      if (filtered.length === 0) {
+        showToast("กรุณาเลือกข้อมูลที่ต้องการ Export", "error");
+        setIsExporting(false);
+        return;
+      }
+
+      const groupedToExport = filtered.reduce((acc, item) => {
+        if (!acc[item.district]) acc[item.district] = [];
+        acc[item.district].push(item);
+        return acc;
+      }, {} as Record<string, any[]>);
+
+      const districtKeys = Object.keys(groupedToExport).sort();
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       let isFirst = true;
+
+      for (const d of districtKeys) {
+        const stations = groupedToExport[d];
+        const container = document.createElement('div');
+        Object.assign(container.style, { position: 'fixed', top: '0', left: '-2000px', width: '1122px', height: '794px', zIndex: '-1000' });
+        document.body.appendChild(container);
+        const root = createRoot(container);
+        
+        await new Promise<void>(resolve => {
+          root.render(<ExportBentoReportRaw district={d} stations={stations} category={activeCategory} />);
+          setTimeout(resolve, 800); 
+        });
+
+        const el = container.firstChild as HTMLElement;
+        const dataUrl = await toJpeg(el, { quality: 1.0, width: 1122, height: 794, pixelRatio: 2.5 });
+        
+        if (!isFirst) pdf.addPage();
+        pdf.addImage(dataUrl, 'JPEG', 0, 0, 297, 210);
+        isFirst = false;
+
+        root.unmount();
+        document.body.removeChild(container);
+      }
+
+      pdf.save(`report_${activeCategory}_${new Date().getTime()}.pdf`);
+      showToast('Export PDF สำเร็จ', 'success');
+    } catch (error: any) {
+      console.error(error);
+      showToast('Export ล้มเหลว: ' + error.message, 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportJPEG = async () => {
+    setIsExportModalOpen(false);
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const { toJpeg } = await import('html-to-image');
+      await document.fonts.ready;
+      
+      const filtered = data.filter(d => selectedExportStations.includes(`${d.district}|${d.stationName}`));
+      const districtsToExport = Array.from(new Set(filtered.map(d => d.district)));
 
       for (const d of districtsToExport) {
         const stations = filtered.filter(s => s.district === d);
         const container = document.createElement('div');
-        Object.assign(container.style, { position: 'fixed', top: '0', left: '0', width: '1122px', height: '794px', zIndex: '-1000', backgroundColor: '#F3F4F6' });
+        Object.assign(container.style, { position: 'fixed', top: '0', left: '-2000px', width: '1122px', height: '794px', zIndex: '-1000' });
         document.body.appendChild(container);
         const root = createRoot(container);
+        
         await new Promise<void>(res => {
           root.render(<ExportBentoReportRaw district={d} stations={stations} category={activeCategory} />);
-          setTimeout(res, 500);
+          setTimeout(res, 800);
         });
-        const imgData = await toJpeg(container, { quality: 0.95, width: 1122, height: 794, pixelRatio: 2 });
+
+        const el = container.firstChild as HTMLElement;
+        const dataUrl = await toJpeg(el, { quality: 1.0, pixelRatio: 3 });
+        const link = document.createElement('a');
+        link.download = `report_${d}_${new Date().getTime()}.jpg`;
+        link.href = dataUrl;
+        link.click();
+        
         root.unmount();
         document.body.removeChild(container);
-        if (!isFirst) pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
-        isFirst = false;
       }
-      pdf.save(`report_${activeCategory}.pdf`);
-    } catch (err: any) {
-      alert("Error: " + err.message);
+      showToast('Export JPEG สำเร็จ', 'success');
+    } catch (error: any) {
+      console.error(error);
+      showToast('Export ล้มเหลว: ' + error.message, 'error');
     } finally {
       setIsExporting(false);
     }
@@ -324,21 +403,44 @@ export default function Home() {
         </div>
 
         <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-sm border border-zinc-100 dark:border-zinc-800 overflow-hidden">
-          <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row justify-between gap-4">
-            <h2 className="text-xl font-black">รายการข้อมูล</h2>
+          <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <h2 className="text-xl font-black">{activeCategory === 'client' ? "รายการระบบลูกข่าย (แบบละเอียด)" : "รายการข้อมูลสถานี (แบบละเอียด)"}</h2>
             <div className="flex flex-wrap gap-2">
-              <input type="text" placeholder="ค้นหา..." className="px-4 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none outline-none text-sm" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-              <button onClick={() => { setExportType('pdf'); setIsExportModalOpen(true); }} className="px-4 py-2 bg-zinc-900 text-white rounded-xl text-sm font-bold flex items-center gap-2">Export</button>
+              <input type="text" placeholder="ค้นหา..." className="px-4 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-none outline-none text-sm w-[200px]" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+              <button onClick={() => { setExportType('pdf'); setIsExportModalOpen(true); }} className="px-4 py-2 bg-zinc-900 text-white rounded-xl text-sm font-bold flex items-center gap-2 hover:opacity-90 transition-opacity">
+                <span className="material-symbols-outlined text-sm">download</span> Export
+              </button>
             </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 uppercase font-bold">
+          <div className="overflow-x-auto overflow-y-auto max-h-[600px] scrollbar-thin">
+            <table className="w-full text-left text-xs sm:text-sm whitespace-nowrap">
+              <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 uppercase font-black sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-4 cursor-pointer" onClick={() => handleSort('district')}>อำเภอ</th>
-                  <th className="px-6 py-4">สถานี</th>
-                  <th className="px-6 py-4 text-center">ความคืบหน้า</th>
-                  <th className="px-6 py-4 text-right">ดำเนินการ</th>
+                  <th className="px-4 py-3 cursor-pointer" onClick={() => handleSort('district')}>อำเภอ {sortConfig?.key === 'district' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th className="px-4 py-3 cursor-pointer" onClick={() => handleSort('stationName')}>สถานี {sortConfig?.key === 'stationName' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                  {activeCategory === 'station' ? (
+                    <>
+                      <th className="px-4 py-3">Type</th>
+                      <th className="px-4 py-3">ฐานราก (%)</th>
+                      <th className="px-4 py-3">ติดตั้งเสา (%)</th>
+                      <th className="px-4 py-3">ความสูงเสา</th>
+                      <th className="px-4 py-3">พิกัด (Lat/Lon)</th>
+                      <th className="px-4 py-3">เริ่มงาน</th>
+                      <th className="px-4 py-3">เสร็จงาน</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-4 py-3">ไฟฟ้า (%)</th>
+                      <th className="px-4 py-3">กราวด์ (%)</th>
+                      <th className="px-4 py-3">AC Ω</th>
+                      <th className="px-4 py-3">Feeder (%)</th>
+                      <th className="px-4 py-3">Radio (%)</th>
+                      <th className="px-4 py-3">Link (%)</th>
+                      <th className="px-4 py-3">RSSI</th>
+                      <th className="px-4 py-3">ขอมิเตอร์</th>
+                    </>
+                  )}
+                  <th className="px-4 py-3 text-right sticky right-0 bg-zinc-50 dark:bg-zinc-800">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -346,25 +448,60 @@ export default function Home() {
                   const progress = activeCategory === 'client' 
                     ? (parseFloat(item.electricProgress) + parseFloat(item.groundProgress) + parseFloat(item.feederProgress)) / 3
                     : (parseFloat(item.foundationProgress) + parseFloat(item.poleInstallationProgress)) / 2;
+                  
                   return (
-                    <tr key={idx} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors">
-                      <td className="px-6 py-4 font-bold">{item.district}</td>
-                      <td className="px-6 py-4">
-                        <div className="font-bold">{item.stationName}</div>
-                        <div className="text-xs text-zinc-400">{item.type}</div>
+                    <tr key={item.id || idx} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors group">
+                      <td className="px-4 py-3 font-bold">{item.district}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-bold text-blue-600 dark:text-blue-400">{item.stationName}</div>
+                        <div className="text-[10px] text-zinc-400 truncate max-w-[150px]">{item.remark || "ไม่มีหมายเหตุ"}</div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-blue-600 rounded-full" style={{ width: `${progress}%` }} />
-                          </div>
-                          <span className="font-bold w-10 text-right">{Math.round(progress)}%</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button onClick={() => handleEditClick(item)} className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 rounded-lg">แก้ไข</button>
-                          <button onClick={() => handleDeleteClick(item)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 rounded-lg">ลบ</button>
+                      {activeCategory === 'station' ? (
+                        <>
+                          <td className="px-4 py-3 text-zinc-500">{item.type}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${parseFloat(item.foundationProgress) >= 100 ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                              {item.foundationProgress}%
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${parseFloat(item.poleInstallationProgress) >= 100 ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                              {item.poleInstallationProgress}%
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 font-mono">{item.poleHeight}</td>
+                          <td className="px-4 py-3 text-[10px] text-zinc-500">
+                             {item.lat.toFixed(4)}, {item.lon.toFixed(4)}
+                          </td>
+                          <td className="px-4 py-3">{formatDateDisplay(item.startDate)}</td>
+                          <td className="px-4 py-3">{formatDateDisplay(item.endDate)}</td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-4 py-3">{item.electricProgress}%</td>
+                          <td className="px-4 py-3">{item.groundProgress}%</td>
+                          <td className="px-4 py-3 font-mono">{item.groundAC || "-"}</td>
+                          <td className="px-4 py-3">{item.feederProgress}%</td>
+                          <td className="px-4 py-3">{item.radioProgress}%</td>
+                          <td className="px-4 py-3 font-bold text-blue-600">{item.linkProgress}%</td>
+                          <td className="px-4 py-3 font-mono">{item.rssi || "-"}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.meterRequest === 'ยื่นแล้ว' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                              {item.meterRequest || "ยังไม่ได้ยื่น"}
+                            </span>
+                          </td>
+                        </>
+                      )}
+                      <td className="px-4 py-3 text-right sticky right-0 bg-white dark:bg-zinc-900 shadow-[-10px_0_15px_-5px_rgba(0,0,0,0.05)] group-hover:bg-zinc-50/50 dark:group-hover:bg-zinc-800/50">
+                        <div className="flex justify-end gap-1">
+                          <button onClick={() => handleEditClick(item)} className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 rounded-lg transition-colors">
+                            <span className="material-symbols-outlined text-sm">edit</span>
+                          </button>
+                          <button onClick={() => handleDeleteClick(item)} className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 rounded-lg transition-colors">
+                            <span className="material-symbols-outlined text-sm">delete</span>
+                          </button>
                         </div>
                       </td>
                     </tr>
