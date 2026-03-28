@@ -5,6 +5,7 @@ import ExportChartStatic from './ExportChartStatic';
 import ExportMapStatic from './ExportMapStatic';
 
 interface StationData {
+    province?: string;
     district: string;
     stationName: string;
     type: string;
@@ -29,7 +30,9 @@ function avg(stations: any[], key: string): number {
 
 export default function ExportBentoReport({ district, stations, category = 'station' }: ExportBentoReportProps) {
     const isClient = category === 'client';
+    const provinceName = stations[0]?.province || 'กาญจนบุรี';
     const displayDistrict = district.startsWith('อำเภอ') ? district : `อำเภอ${district}`;
+    const displayLocation = `${displayDistrict} จ.${provinceName}`;
     
     let avgOverall = 0;
     let stat1 = { label: '', value: 0, color: '' };
@@ -84,7 +87,7 @@ export default function ExportBentoReport({ district, stations, category = 'stat
                         รายงานความคืบหน้า{isClient ? 'ติดตั้งระบบลูกข่าย' : 'ก่อสร้างฐานรากและเสา'}
                     </div>
                     <div style={{ color: '#FFFFFF', fontSize: '28px', fontWeight: 700, lineHeight: 1.2 }}>
-                        {displayDistrict}
+                        {displayLocation}
                     </div>
                     <div style={{ color: '#94A3B8', fontSize: '12px', marginTop: '4px' }}>
                         {stations.length} สถานีลูกข่าย

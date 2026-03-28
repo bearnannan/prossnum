@@ -170,7 +170,7 @@ const MapView = React.memo(function MapView({ data, category = 'station' }: { da
                             ${station.stationName || 'Unknown Station'}
                         </div>
                         <div style="font-size:12px;color:#6B7280;margin-bottom:10px">
-                            อำเภอ ${station.district} &nbsp;·&nbsp; ${category === 'client' ? 'Client System' : `Type ${station.type}`}
+                            จ.${station.province || 'กาญจนบุรี'} อ.${station.district} &nbsp;·&nbsp; ${category === 'client' ? 'Client System' : `Type ${station.type}`}
                         </div>
                         <div style="display:inline-flex;align-items:center;gap:6px;background:${cfg.bg};color:${cfg.color};
                             font-size:11px;font-weight:600;padding:3px 10px;border-radius:9999px;margin-bottom:12px">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { get, set } from "idb-keyval";
+import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import { ClientSystemData } from "@/app/api/sheet-data/route";
 
 interface ClientSystemModalProps {
@@ -12,7 +13,17 @@ interface ClientSystemModalProps {
     districts: string[];
 }
 
+// TS 5.3: typed offline mutation queue item
+interface OfflineMutation {
+    id: string;
+    method: "POST" | "PUT";
+    payload: unknown;
+    timestamp: number;
+    sheet: "station" | "client";
+}
+
 const defaultForm = {
+    province: "กาญจนบุรี",
     district: "",
     stationName: "",
     electricProgress: 0,
@@ -26,16 +37,18 @@ const defaultForm = {
     feederProgress: 0,
     towerProgress: 0,
     radioProgress: 0,
+    radioSN: "",
     batterySN: "",
     rssi: "",
     yagiNo: "",
+    sn: "",
     feedDistance: "",
     mountType: "",
     angle: "",
     testFeeder: "",
     meterRequest: "",
     startDate: "",
-    endDate: "" ,
+    endDate: "",
     remark: "",
 };
 
@@ -55,6 +68,7 @@ export default function ClientSystemModal({
     useEffect(() => {
         if (editingStation) {
             setFormData({
+                province: editingStation.province || "กาญจนบุรี",
                 district: editingStation.district,
                 stationName: editingStation.stationName,
                 electricProgress: editingStation.electricProgress,
@@ -68,9 +82,11 @@ export default function ClientSystemModal({
                 feederProgress: editingStation.feederProgress,
                 towerProgress: editingStation.towerProgress || 0,
                 radioProgress: editingStation.radioProgress || 0,
+                radioSN: editingStation.radioSN || "",
                 batterySN: editingStation.batterySN || "",
                 rssi: editingStation.rssi || "",
                 yagiNo: editingStation.yagiNo || "",
+                sn: editingStation.sn || "",
                 feedDistance: editingStation.feedDistance || "",
                 mountType: editingStation.mountType || "",
                 angle: editingStation.angle || "",
@@ -90,7 +106,6 @@ export default function ClientSystemModal({
         const newErrors: Record<string, string> = {};
         if (!formData.district.trim()) newErrors.district = "กรุณาระบุอำเภอ";
         if (!formData.stationName.trim()) newErrors.stationName = "กรุณาระบุชื่อสถานี";
-        
         const ep = Number(formData.electricProgress);
         const gp = Number(formData.groundProgress);
         const fp = Number(formData.feederProgress);
@@ -101,7 +116,6 @@ export default function ClientSystemModal({
         if (isNaN(fp) || fp < 0 || fp > 100) newErrors.feederProgress = "0–100";
         if (isNaN(tp) || tp < 0 || tp > 100) newErrors.towerProgress = "0–100";
         if (isNaN(rp) || rp < 0 || rp > 100) newErrors.radioProgress = "0–100";
-        
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -123,14 +137,8 @@ export default function ClientSystemModal({
                 : formData;
 
             if (!navigator.onLine) {
-                const queue: any[] = (await get("offline-mutations")) || [];
-                queue.push({
-                    id: Date.now().toString(),
-                    method,
-                    payload,
-                    timestamp: Date.now(),
-                    sheet: "client"
-                });
+                const queue: OfflineMutation[] = (await get("offline-mutations")) || [];
+                queue.push({ id: Date.now().toString(), method, payload, timestamp: Date.now(), sheet: "client" });
                 await set("offline-mutations", queue);
                 alert("Saved as Draft. It will sync automatically when back online.");
                 onSave();
@@ -145,264 +153,294 @@ export default function ClientSystemModal({
             });
 
             if (!res.ok) {
-                const err = await res.json();
+                const err = await res.json() as { error?: string };
                 throw new Error(err.error || "Failed to save");
             }
 
             onSave();
             onClose();
-        } catch (err: any) {
-            setErrors({ form: err.message });
+        } catch (err: unknown) {
+            setErrors({ form: err instanceof Error ? err.message : "เกิดข้อผิดพลาด" });
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    if (!isOpen) return null;
-
+    // ── Headless UI v2.1: Dialog with built-in transition support ──────────
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-        >
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-zinc-100 dark:border-zinc-800 animate-in fade-in slide-in-from-bottom-4 duration-200">
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
-                    <div>
-                        <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-                            {isEditing ? "แก้ไขข้อมูลระบบลูกข่าย" : "เพิ่มระบบลูกข่ายใหม่"}
-                        </h2>
-                        <p className="text-xs text-zinc-500 mt-0.5">
-                            {isEditing ? `กำลังแก้ไข: ${editingStation?.stationName}` : "กรอกข้อมูลความคืบหน้าการติดตั้ง"}
-                        </p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                    </button>
-                </div>
+        <Dialog open={isOpen} onClose={onClose} transition className="relative z-50">
+            {/* Backdrop — fades in/out */}
+            <DialogBackdrop
+                transition
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm transition duration-200 ease-out data-closed:opacity-0"
+            />
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                    {errors.form && (
-                        <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-600 dark:text-red-400">
-                            {errors.form}
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-4">
-                        {/* District */}
+            {/* Centering container with scroll support */}
+            <div className="fixed inset-0 flex items-center justify-center p-4">
+                <DialogPanel
+                    transition
+                    className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 transition duration-200 ease-out data-closed:scale-95 data-closed:opacity-0"
+                >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 dark:border-zinc-800">
                         <div>
-                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">อำเภอ</label>
-                            <input
-                                list="district-list"
-                                name="district"
-                                value={formData.district}
-                                onChange={handleChange}
-                                placeholder="อำเภอ..."
-                                className={`w-full rounded-xl border px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${errors.district ? 'border-red-400' : 'border-zinc-200 dark:border-zinc-700'}`}
-                            />
-                            <datalist id="district-list">
-                                {districts.map(d => <option key={d} value={d} />)}
-                            </datalist>
+                            <DialogTitle className="text-lg font-bold text-zinc-900 dark:text-white">
+                                {isEditing ? "แก้ไขข้อมูลระบบลูกข่าย" : "เพิ่มระบบลูกข่ายใหม่"}
+                            </DialogTitle>
+                            <p className="text-xs text-zinc-500 mt-0.5">
+                                {isEditing ? `กำลังแก้ไข: ${editingStation?.stationName}` : "กรอกข้อมูลความคืบหน้าการติดตั้ง"}
+                            </p>
                         </div>
-
-                        {/* Station Name */}
-                        <div>
-                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">ชื่อสถานี</label>
-                            <input
-                                name="stationName"
-                                value={formData.stationName}
-                                onChange={handleChange}
-                                placeholder="ชื่อสถานี..."
-                                className={`w-full rounded-xl border px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${errors.stationName ? 'border-red-400' : 'border-zinc-200 dark:border-zinc-700'}`}
-                            />
-                        </div>
+                        <button
+                            onClick={onClose}
+                            aria-label="ปิด"
+                            className="p-2 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </button>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
-                        {/* Latitude */}
-                        <div>
-                            <label className="block text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wide">Latitude (lat)</label>
-                            <input
-                                name="lat"
-                                type="number"
-                                step="any"
-                                value={formData.lat}
-                                onChange={handleChange}
-                                placeholder="14.xxxx"
-                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                            />
-                        </div>
-                        {/* Longitude */}
-                        <div>
-                            <label className="block text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wide">Longitude (lon)</label>
-                            <input
-                                name="lon"
-                                type="number"
-                                step="any"
-                                value={formData.lon}
-                                onChange={handleChange}
-                                placeholder="99.xxxx"
-                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                            />
-                        </div>
-                        {/* Pole Height */}
-                        <div>
-                            <label className="block text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wide">ความสูงเสา</label>
-                            <input
-                                name="poleHeight"
-                                value={formData.poleHeight}
-                                onChange={handleChange}
-                                placeholder="เช่น 18 เมตร"
-                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                            />
-                        </div>
-                    </div>
+                    {/* Form — scrollable within the panel */}
+                    <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                        {errors.form && (
+                            <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+                                {errors.form}
+                            </div>
+                        )}
 
-                    <hr className="border-zinc-100 dark:border-zinc-800" />
-
-                    {/* Electrical System */}
-                    <div className="space-y-3">
-                        <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">1. ระบบไฟฟ้า</h3>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-3 gap-4">
+                            {/* Province */}
                             <div>
-                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ความคืบหน้า (%)</label>
+                                <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">จังหวัด</label>
                                 <input
-                                    name="electricProgress"
-                                    type="number"
-                                    min="0" max="100"
-                                    value={formData.electricProgress}
+                                    name="province"
+                                    value={formData.province}
                                     onChange={handleChange}
-                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    list="province-list-client"
+                                    placeholder="จังหวัด..."
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                                 />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ระยะสาย Main (m)</label>
-                                <input
-                                    name="electricMain"
-                                    value={formData.electricMain}
-                                    onChange={handleChange}
-                                    placeholder="ใส่ค่า m"
-                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Grounding System */}
-                    <div className="space-y-3">
-                        <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">2. ระบบกราวด์</h3>
-                        <div className="grid grid-cols-3 gap-3">
-                            <div>
-                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ความคืบหน้า (%)</label>
-                                <input
-                                    name="groundProgress"
-                                    type="number"
-                                    min="0" max="100"
-                                    value={formData.groundProgress}
-                                    onChange={handleChange}
-                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">AC (Ω)</label>
-                                <input
-                                    name="groundAC"
-                                    value={formData.groundAC}
-                                    onChange={handleChange}
-                                    placeholder="AC Ω"
-                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">Equip (Ω)</label>
-                                <input
-                                    name="groundEquip"
-                                    value={formData.groundEquip}
-                                    onChange={handleChange}
-                                    placeholder="Equip Ω"
-                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Feeder System */}
-                    <div className="space-y-3">
-                        <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">3. สาย Feeder</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ความคืบหน้า (%)</label>
-                                <input
-                                    name="feederProgress"
-                                    type="number"
-                                    min="0" max="100"
-                                    value={formData.feederProgress}
-                                    onChange={handleChange}
-                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">Yagi No.</label>
-                                <input
-                                    name="yagiNo"
-                                    value={formData.yagiNo}
-                                    onChange={handleChange}
-                                    placeholder="Yagi No."
-                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ระยะ feed (m)</label>
-                                <input
-                                    name="feedDistance"
-                                    value={formData.feedDistance}
-                                    onChange={handleChange}
-                                    placeholder="ระยะ feed (m)"
-                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ขาติดตั้ง</label>
-                                <input
-                                    name="mountType"
-                                    value={formData.mountType}
-                                    onChange={handleChange}
-                                    list="mountType-list"
-                                    placeholder="เลือกขาติดตั้ง"
-                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
-                                />
-                                <datalist id="mountType-list">
-                                    <option value="A" />
-                                    <option value="B" />
-                                    <option value="C" />
-                                    <option value="D" />
+                                <datalist id="province-list-client">
+                                    <option value="กาญจนบุรี" />
                                 </datalist>
                             </div>
+
+                            {/* District */}
                             <div>
-                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase">องศา (°)</label>
+                                <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">อำเภอ</label>
                                 <input
-                                    name="angle"
-                                    value={formData.angle}
-                                    type="number"
+                                    list="district-list-client"
+                                    name="district"
+                                    value={formData.district}
                                     onChange={handleChange}
-                                    placeholder="เช่น 20"
-                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    placeholder="อำเภอ..."
+                                    className={`w-full rounded-xl border px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${errors.district ? "border-red-400" : "border-zinc-200 dark:border-zinc-700"}`}
+                                />
+                                <datalist id="district-list-client">
+                                    {districts.map(d => <option key={d} value={d} />)}
+                                </datalist>
+                            </div>
+
+                            {/* Station Name */}
+                            <div>
+                                <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">ชื่อสถานี</label>
+                                <input
+                                    name="stationName"
+                                    value={formData.stationName}
+                                    onChange={handleChange}
+                                    placeholder="ชื่อสถานี..."
+                                    className={`w-full rounded-xl border px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${errors.stationName ? "border-red-400" : "border-zinc-200 dark:border-zinc-700"}`}
                                 />
                             </div>
                         </div>
-                    </div>
 
-                    <hr className="border-zinc-100 dark:border-zinc-800" />
+                        <div className="grid grid-cols-3 gap-3">
+                            {/* Latitude */}
+                            <div>
+                                <label className="block text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wide">Latitude (lat)</label>
+                                <input
+                                    name="lat"
+                                    type="number"
+                                    step="any"
+                                    value={formData.lat}
+                                    onChange={handleChange}
+                                    placeholder="14.xxxx"
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                                />
+                            </div>
+                            {/* Longitude */}
+                            <div>
+                                <label className="block text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wide">Longitude (lon)</label>
+                                <input
+                                    name="lon"
+                                    type="number"
+                                    step="any"
+                                    value={formData.lon}
+                                    onChange={handleChange}
+                                    placeholder="99.xxxx"
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                                />
+                            </div>
+                            {/* Pole Height */}
+                            <div>
+                                <label className="block text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wide">ความสูงเสา</label>
+                                <input
+                                    name="poleHeight"
+                                    value={formData.poleHeight}
+                                    onChange={handleChange}
+                                    placeholder="เช่น 18 เมตร"
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                                />
+                            </div>
+                        </div>
 
-                    {/* Tower/Radio/Link Progress */}
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 gap-3">
+                        <hr className="border-zinc-100 dark:border-zinc-800" />
+
+                        {/* Electrical System */}
+                        <div className="space-y-3">
+                            <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">1. ระบบไฟฟ้า</h3>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ความคืบหน้า (%)</label>
+                                    <input
+                                        name="electricProgress"
+                                        type="number"
+                                        min="0" max="100"
+                                        value={formData.electricProgress}
+                                        onChange={handleChange}
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ระยะสาย Main (m)</label>
+                                    <input
+                                        name="electricMain"
+                                        value={formData.electricMain}
+                                        onChange={handleChange}
+                                        placeholder="ใส่ค่า m"
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Grounding System */}
+                        <div className="space-y-3">
+                            <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">2. ระบบกราวด์</h3>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ความคืบหน้า (%)</label>
+                                    <input
+                                        name="groundProgress"
+                                        type="number"
+                                        min="0" max="100"
+                                        value={formData.groundProgress}
+                                        onChange={handleChange}
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase">AC (Ω)</label>
+                                    <input
+                                        name="groundAC"
+                                        value={formData.groundAC}
+                                        onChange={handleChange}
+                                        placeholder="AC Ω"
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase">Equip (Ω)</label>
+                                    <input
+                                        name="groundEquip"
+                                        value={formData.groundEquip}
+                                        onChange={handleChange}
+                                        placeholder="Equip Ω"
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Feeder System */}
+                        <div className="space-y-3">
+                            <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">3. สาย Feeder</h3>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ความคืบหน้า (%)</label>
+                                    <input
+                                        name="feederProgress"
+                                        type="number"
+                                        min="0" max="100"
+                                        value={formData.feederProgress}
+                                        onChange={handleChange}
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase">Yagi No.</label>
+                                    <input
+                                        name="yagiNo"
+                                        value={formData.yagiNo}
+                                        onChange={handleChange}
+                                        placeholder="Yagi No."
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase">SN (Antenna)</label>
+                                    <input
+                                        name="sn"
+                                        value={formData.sn}
+                                        onChange={handleChange}
+                                        placeholder="SN Ant..."
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ระยะ feed (m)</label>
+                                    <input
+                                        name="feedDistance"
+                                        value={formData.feedDistance}
+                                        onChange={handleChange}
+                                        placeholder="ระยะ feed (m)"
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase">ขาติดตั้ง</label>
+                                    <input
+                                        name="mountType"
+                                        value={formData.mountType}
+                                        onChange={handleChange}
+                                        list="mountType-list"
+                                        placeholder="เลือกขาติดตั้ง"
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                    <datalist id="mountType-list">
+                                        <option value="A" /><option value="B" /><option value="C" /><option value="D" />
+                                    </datalist>
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase">องศา (°)</label>
+                                    <input
+                                        name="angle"
+                                        value={formData.angle}
+                                        type="number"
+                                        onChange={handleChange}
+                                        placeholder="เช่น 20"
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr className="border-zinc-100 dark:border-zinc-800" />
+
+                        {/* Tower/Radio Progress */}
+                        <div className="space-y-4">
                             <div>
                                 <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">4. ติดตั้งอุปกรณ์บนเสา (%)</label>
                                 <input
@@ -414,28 +452,34 @@ export default function ClientSystemModal({
                                     className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
                                 />
                             </div>
-                        </div>
 
-                        {/* Section 5: Radio Installation */}
-                        <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 p-3 space-y-3">
-                            <div className="flex items-center gap-3">
-                                <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300 whitespace-nowrap">5. ติดตั้งเครื่องวิทยุ</h3>
-                                <div className="flex-1">
-                                    <input
-                                        name="radioProgress"
-                                        type="number"
-                                        min="0" max="100"
-                                        value={formData.radioProgress}
-                                        onChange={handleChange}
-                                        placeholder="%"
-                                        className={`w-full rounded-xl border px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white ${errors.radioProgress ? 'border-red-400' : 'border-zinc-200 dark:border-zinc-700'}`}
-                                    />
-                                    {errors.radioProgress && <p className="text-[10px] text-red-500 mt-0.5">{errors.radioProgress}</p>}
+                            {/* Section 5: Radio Installation */}
+                            <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 p-3 space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300 whitespace-nowrap">5. ติดตั้งเครื่องวิทยุ</h3>
+                                    <div className="flex-1">
+                                        <input
+                                            name="radioProgress"
+                                            type="number"
+                                            min="0" max="100"
+                                            value={formData.radioProgress}
+                                            onChange={handleChange}
+                                            placeholder="%"
+                                            className={`w-full rounded-xl border px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white ${errors.radioProgress ? "border-red-400" : "border-zinc-200 dark:border-zinc-700"}`}
+                                        />
+                                        {errors.radioProgress && <p className="text-[10px] text-red-500 mt-0.5">{errors.radioProgress}</p>}
+                                    </div>
+                                    <span className="text-sm text-zinc-500 font-medium">%</span>
                                 </div>
-                                <span className="text-sm text-zinc-500 font-medium">%</span>
-                            </div>
-                            <div className="grid grid-cols-1 gap-3">
                                 <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Radio Serial Number (SN)</label>
+                                    <input
+                                        name="radioSN"
+                                        value={formData.radioSN}
+                                        onChange={handleChange}
+                                        placeholder="SN เครื่องวิทยุ..."
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white mb-2"
+                                    />
                                     <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Battery 50AH SN</label>
                                     <input
                                         name="batterySN"
@@ -445,128 +489,125 @@ export default function ClientSystemModal({
                                         className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
                                     />
                                 </div>
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">รับแม่ข่าย BS-261 BS หนองนกแก้ว รับได้ (dBm)</label>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        name="rssi"
-                                        value={formData.rssi}
-                                        onChange={handleChange}
-                                        placeholder="เช่น -85"
-                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
-                                    />
-                                    <span className="text-sm text-zinc-500 font-medium whitespace-nowrap">dBm</span>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">รับแม่ข่าย BS-261 BS หนองนกแก้ว รับได้ (dBm)</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            name="rssi"
+                                            value={formData.rssi}
+                                            onChange={handleChange}
+                                            placeholder="เช่น -85"
+                                            className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                        />
+                                        <span className="text-sm text-zinc-500 font-medium whitespace-nowrap">dBm</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <hr className="border-zinc-100 dark:border-zinc-800" />
+                        <hr className="border-zinc-100 dark:border-zinc-800" />
 
-                    {/* Additional Tracking */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">ค่า Test Feeder</label>
-                            <input
-                                name="testFeeder"
-                                value={formData.testFeeder}
-                                onChange={handleChange}
-                                list="testFeeder-list"
-                                placeholder="เลือกสถานะ"
-                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                            />
-                            <datalist id="testFeeder-list">
-                                <option value="ยังไม่ได้เก็บ" />
-                                <option value="เก็บแล้ว" />
-                            </datalist>
+                        {/* Additional Tracking */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">ค่า Test Feeder</label>
+                                <input
+                                    name="testFeeder"
+                                    value={formData.testFeeder}
+                                    onChange={handleChange}
+                                    list="testFeeder-list"
+                                    placeholder="เลือกสถานะ"
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                                />
+                                <datalist id="testFeeder-list">
+                                    <option value="ยังไม่ได้เก็บ" /><option value="เก็บแล้ว" />
+                                </datalist>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">ยื่นขอมิเตอร์</label>
+                                <input
+                                    name="meterRequest"
+                                    value={formData.meterRequest}
+                                    onChange={handleChange}
+                                    list="meterRequest-list"
+                                    placeholder="เลือกสถานะ"
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                                />
+                                <datalist id="meterRequest-list">
+                                    <option value="ยังไม่ได้ยื่น" /><option value="รออนุมัติ" /><option value="ติดตั้งแล้ว" />
+                                </datalist>
+                            </div>
                         </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">ยื่นขอมิเตอร์</label>
-                            <input
-                                name="meterRequest"
-                                value={formData.meterRequest}
-                                onChange={handleChange}
-                                list="meterRequest-list"
-                                placeholder="เลือกสถานะ"
-                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                            />
-                            <datalist id="meterRequest-list">
-                                <option value="ยังไม่ได้ยื่น" />
-                                <option value="รออนุมัติ" />
-                                <option value="ติดตั้งแล้ว" />
-                            </datalist>
-                        </div>
-                    </div>
 
-                    <hr className="border-zinc-100 dark:border-zinc-800" />
+                        <hr className="border-zinc-100 dark:border-zinc-800" />
 
-                    {/* Dates */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">วันที่เริ่มงาน</label>
-                            <input
-                                name="startDate"
-                                type="date"
-                                value={formData.startDate}
-                                onChange={handleChange}
-                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                            />
+                        {/* Dates */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">วันที่เริ่มงาน</label>
+                                <input
+                                    name="startDate"
+                                    type="date"
+                                    value={formData.startDate}
+                                    onChange={handleChange}
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">วันที่เสร็จงาน</label>
+                                <input
+                                    name="endDate"
+                                    type="date"
+                                    value={formData.endDate}
+                                    onChange={handleChange}
+                                    className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                                />
+                            </div>
                         </div>
+
+                        {/* Remark */}
                         <div>
-                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">วันที่เสร็จงาน</label>
-                            <input
-                                name="endDate"
-                                type="date"
-                                value={formData.endDate}
+                            <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">งานเพิ่มเติม / ปัญหาอุปสรรค</label>
+                            <textarea
+                                name="remark"
+                                value={formData.remark}
                                 onChange={handleChange}
-                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                                rows={3}
+                                placeholder="ระบุข้อมูลเพิ่มเติม..."
+                                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 resize-none"
                             />
                         </div>
-                    </div>
 
-                    {/* Remark */}
-                    <div>
-                        <label className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wide">งานเพิ่มเติม / ปัญหาอุปสรรค</label>
-                        <textarea
-                            name="remark"
-                            value={formData.remark}
-                            onChange={handleChange}
-                            rows={3}
-                            placeholder="ระบุข้อมูลเพิ่มเติม..."
-                            className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 resize-none"
-                        />
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-3 pt-2">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex-1 rounded-xl border border-zinc-200 dark:border-zinc-700 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                        >
-                            ยกเลิก
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="flex-1 rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                            {isSubmitting ? (
-                                <>
-                                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                    </svg>
-                                    กำลังบันทึก...
-                                </>
-                            ) : (
-                                isEditing ? "บันทึกการแก้ไข" : "เพิ่มข้อมูล"
-                            )}
-                        </button>
-                    </div>
-                </form>
+                        {/* Actions */}
+                        <div className="flex gap-3 pt-2">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="flex-1 rounded-xl border border-zinc-200 dark:border-zinc-700 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="flex-1 rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                        </svg>
+                                        กำลังบันทึก...
+                                    </>
+                                ) : (
+                                    isEditing ? "บันทึกการแก้ไข" : "เพิ่มข้อมูล"
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                </DialogPanel>
             </div>
-        </div>
+        </Dialog>
     );
 }

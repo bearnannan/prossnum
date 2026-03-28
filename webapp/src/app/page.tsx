@@ -62,6 +62,7 @@ export default function Home() {
   });
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [selectedProvince, setSelectedProvince] = useState("All");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: any[] = responseData?.data || [];
   const isLoading = swrIsLoading && !responseData;
@@ -91,6 +92,10 @@ export default function Home() {
     await mutate();
     showToast(msg, 'success');
   };
+
+  useEffect(() => {
+    setSelectedProvince("All");
+  }, [activeCategory]);
 
   useEffect(() => {
     const channelName = `realtime-${activeCategory}`;
@@ -163,10 +168,11 @@ export default function Home() {
     const commonPoleHeight = filteredExportData[0]?.poleHeight || "9 เมตร";
     
     let text = `${dateStr}\n`;
+    const commonProvince = filteredExportData[0]?.province || 'กาญจนบุรี';
     if (activeCategory === 'station') {
-      text += `รายงานความคืบหน้างานก่อสร้างฐานรากและติดตั้งเสาสัญญาณ ${commonPoleHeight} สถานีลูกข่าย ${districtsStr} จ.กาญจนบุรี เขต11 (เพชรบุรี)\n\n`;
+      text += `รายงานความคืบหน้างานก่อสร้างฐานรากและติดตั้งเสาสัญญาณ ${commonPoleHeight} สถานีลูกข่าย ${districtsStr} จ.${commonProvince} เขต11 (เพชรบุรี)\n\n`;
     } else {
-       text += `รายงานการติดตั้งระบบลูกข่าย (${districtsStr})\n\n`;
+       text += `รายงานการติดตั้งระบบลูกข่าย (${districtsStr}) จ.${commonProvince}\n\n`;
     }
 
     const groupedEntries = Object.entries(grouped) as [string, any[]][];
@@ -179,9 +185,9 @@ export default function Home() {
           text += `   - ความสูงเสา: ${item.poleHeight}\n`;
           text += `   - ระบบไฟฟ้า: ${item.electricProgress}% (ระยะสาย Main: ${item.electricMain})\n`;
           text += `   - ระบบกราวด์: ${item.groundProgress}% (AC: ${item.groundAC} Ω | Equip: ${item.groundEquip} Ω)\n`;
-          text += `   - สาย Feeder: ${item.feederProgress}% (Yagi No: ${item.yagiNo} | ระยะ feed: ${item.feedDistance})\n`;
+          text += `   - สาย Feeder: ${item.feederProgress}% (Yagi No: ${item.yagiNo} | SN: ${item.sn} | ระยะ feed: ${item.feedDistance})\n`;
           text += `   - การติดตั้งอุปกรณ์บนเสา: ${item.towerProgress}%\n`;
-          text += `   - การติดตั้งเครื่องวิทยุฯ: ${item.radioProgress}%\n`;
+          text += `   - การติดตั้งเครื่องวิทยุฯ: ${item.radioProgress}% (SN: ${item.radioSN})\n`;
           text += `   - แบตเตอรี่ SN: ${item.batterySN}\n`;
           text += `   - ขาติดตั้ง: ${item.mountType} | องศา: ${item.angle} | Test Feeder: ${item.testFeeder}\n`;
           text += `   - ยื่นขอมิเตอร์: ${item.meterRequest || "ยังไม่ได้ยื่น"}\n`;
@@ -327,13 +333,19 @@ export default function Home() {
     }
   };
 
+  const provinces = useMemo(() => Array.from(new Set(data.map(d => d.province).filter(Boolean))) as string[], [data]);
   const districts = useMemo(() => Array.from(new Set(data.map(d => d.district).filter(Boolean))), [data]);
   const filteredData = useMemo(() => data.filter(item => {
-    const matchesSearch = item.stationName.toLowerCase().includes(searchTerm.toLowerCase()) || item.district.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = item.stationName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (item.district || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (item.province || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDistrict = filterDistrict === "All" || item.district === filterDistrict;
-    const matchesStatus = filterStatus === "All" || (filterStatus === "Completed" && (item.endDate && item.endDate !== "-")) || (filterStatus === "In Progress" && (item.startDate && item.startDate !== "-" && !item.endDate));
-    return matchesSearch && matchesDistrict && matchesStatus;
-  }), [data, searchTerm, filterDistrict, filterStatus]);
+    const matchesProvince = selectedProvince === "All" || item.province === selectedProvince;
+    const matchesStatus = filterStatus === "All" || 
+                          (filterStatus === "Completed" && (item.endDate && item.endDate !== "-")) || 
+                          (filterStatus === "In Progress" && (item.startDate && item.startDate !== "-" && !item.endDate));
+    return matchesSearch && matchesDistrict && matchesProvince && matchesStatus;
+  }), [data, searchTerm, filterDistrict, selectedProvince, filterStatus]);
 
   const sortedData = useMemo(() => [...filteredData].sort((a, b) => {
     if (!sortConfig) return 0;
@@ -349,7 +361,15 @@ export default function Home() {
   return (
     <div className="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-screen font-sans">
       <TopNavBar onLogout={handleLogout} onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
-      <SideNavBar activeCategory={activeCategory} onCategoryChange={setActiveCategory} isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      <SideNavBar 
+        activeCategory={activeCategory} 
+        onCategoryChange={setActiveCategory} 
+        provinces={provinces}
+        selectedProvince={selectedProvince}
+        onProvinceChange={setSelectedProvince}
+        isOpen={isMobileMenuOpen} 
+        onClose={() => setIsMobileMenuOpen(false)} 
+      />
       
       <main className="lg:ml-[280px] pt-16 lg:pt-20 p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
         <StationModal isOpen={isStationModalOpen} onClose={() => setIsStationModalOpen(false)} onSave={fetchSheetData} editingStation={editingStation} districts={districts} />
@@ -378,12 +398,12 @@ export default function Home() {
             <div>
               <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">ภาพรวม {activeCategory === 'client' ? 'ลูกข่าย' : 'งานโครงสร้าง'}</p>
               <h3 className="text-2xl font-black text-blue-600">
-                {data.length > 0 ? Math.round(data.reduce((acc, d) => {
+                {filteredData.length > 0 ? Math.round(filteredData.reduce((acc, d) => {
                   const p = activeCategory === 'client' 
                     ? (parseFloat(d.electricProgress || 0) + parseFloat(d.groundProgress || 0) + parseFloat(d.feederProgress || 0)) / 3
                     : (parseFloat(d.foundationProgress || 0) + parseFloat(d.poleInstallationProgress || 0)) / 2;
                   return acc + p;
-                }, 0) / data.length) : 0}%
+                }, 0) / filteredData.length) : 0}%
               </h3>
             </div>
           </div>
@@ -398,7 +418,7 @@ export default function Home() {
                 <div>
                   <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">ระบบไฟฟ้า</p>
                   <h3 className="text-2xl font-black text-indigo-600">
-                    {data.length > 0 ? Math.round(data.reduce((acc, d) => acc + parseFloat(d.electricProgress || 0), 0) / data.length) : 0}%
+                    {filteredData.length > 0 ? Math.round(filteredData.reduce((acc, d) => acc + parseFloat(d.electricProgress || 0), 0) / filteredData.length) : 0}%
                   </h3>
                 </div>
               </div>
@@ -410,7 +430,7 @@ export default function Home() {
                 <div>
                   <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">ระบบกราวด์</p>
                   <h3 className="text-2xl font-black text-emerald-600">
-                    {data.length > 0 ? Math.round(data.reduce((acc, d) => acc + parseFloat(d.groundProgress || 0), 0) / data.length) : 0}%
+                    {filteredData.length > 0 ? Math.round(filteredData.reduce((acc, d) => acc + parseFloat(d.groundProgress || 0), 0) / filteredData.length) : 0}%
                   </h3>
                 </div>
               </div>
@@ -422,7 +442,7 @@ export default function Home() {
                 <div>
                   <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">สาย FEEDER</p>
                   <h3 className="text-2xl font-black text-amber-600">
-                    {data.length > 0 ? Math.round(data.reduce((acc, d) => acc + parseFloat(d.feederProgress || 0), 0) / data.length) : 0}%
+                    {filteredData.length > 0 ? Math.round(filteredData.reduce((acc, d) => acc + parseFloat(d.feederProgress || 0), 0) / filteredData.length) : 0}%
                   </h3>
                 </div>
               </div>
@@ -437,7 +457,7 @@ export default function Home() {
                 <div>
                   <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">เฉลี่ยฐานราก</p>
                   <h3 className="text-2xl font-black text-cyan-600">
-                    {data.length > 0 ? Math.round(data.reduce((acc, d) => acc + parseFloat(d.foundationProgress || 0), 0) / data.length) : 0}%
+                    {filteredData.length > 0 ? Math.round(filteredData.reduce((acc, d) => acc + parseFloat(d.foundationProgress || 0), 0) / filteredData.length) : 0}%
                   </h3>
                 </div>
               </div>
@@ -449,7 +469,7 @@ export default function Home() {
                 <div>
                   <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">เฉลี่ยติดตั้งเสา</p>
                   <h3 className="text-2xl font-black text-orange-600">
-                    {data.length > 0 ? Math.round(data.reduce((acc, d) => acc + parseFloat(d.poleInstallationProgress || 0), 0) / data.length) : 0}%
+                    {filteredData.length > 0 ? Math.round(filteredData.reduce((acc, d) => acc + parseFloat(d.poleInstallationProgress || 0), 0) / filteredData.length) : 0}%
                   </h3>
                 </div>
               </div>
@@ -461,15 +481,16 @@ export default function Home() {
                 <div>
                   <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">สำเร็จทั้งโครงการ</p>
                   <h3 className="text-2xl font-black text-green-600">
-                    {data.filter(d => {
+                    {filteredData.filter(d => {
                       const p = (parseFloat(d.foundationProgress || 0) + parseFloat(d.poleInstallationProgress || 0)) / 2;
                       return p >= 100;
-                    }).length} / {data.length}
+                    }).length} / {filteredData.length}
                   </h3>
                 </div>
               </div>
             </>
           )}
+
         </div>
 
         <div className="rounded-2xl bg-white dark:bg-zinc-900 shadow-sm border border-zinc-100 dark:border-zinc-800 p-4">
@@ -478,7 +499,7 @@ export default function Home() {
              <button onClick={() => setChartTab('comparison')} className={`px-4 py-2 rounded-xl text-sm font-bold ${chartTab === 'comparison' ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-600'}`}>เปรียบเทียบ</button>
           </div>
           <div className="h-[400px]">
-            {chartTab === 'average' ? <DistrictProgressChart data={data} category={activeCategory} /> : <ComparisonChart data={data} category={activeCategory} />}
+            {chartTab === 'average' ? <DistrictProgressChart data={filteredData} category={activeCategory} /> : <ComparisonChart data={filteredData} category={activeCategory} />}
           </div>
         </div>
 
@@ -496,7 +517,7 @@ export default function Home() {
             <table className="w-full text-left text-xs sm:text-sm whitespace-nowrap">
               <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 uppercase font-black sticky top-0 z-10">
                 <tr>
-                  <th className="px-4 py-3 cursor-pointer" onClick={() => handleSort('district')}>อำเภอ {sortConfig?.key === 'district' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                  <th className="px-4 py-3 cursor-pointer" onClick={() => handleSort('district')}>จังหวัด/อำเภอ {sortConfig?.key === 'district' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
                   <th className="px-4 py-3 cursor-pointer" onClick={() => handleSort('stationName')}>สถานี {sortConfig?.key === 'stationName' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
                   {activeCategory === 'station' ? (
                     <>
@@ -515,6 +536,7 @@ export default function Home() {
                       <th className="px-4 py-3">AC Ω</th>
                       <th className="px-4 py-3">Feeder (%)</th>
                       <th className="px-4 py-3">Radio (%)</th>
+                      <th className="px-4 py-3">Radio SN</th>
                       <th className="px-4 py-3">RSSI</th>
                       <th className="px-4 py-3">ขอมิเตอร์</th>
                     </>
@@ -530,7 +552,10 @@ export default function Home() {
                   
                   return (
                     <tr key={item.id || idx} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors group">
-                      <td className="px-4 py-3 font-bold">{item.district}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-bold">{item.district}</div>
+                        <div className="text-[10px] text-zinc-400">จ.{item.province || 'กาญจนบุรี'}</div>
+                      </td>
                       <td className="px-4 py-3">
                         <div className="font-bold text-blue-600 dark:text-blue-400">{item.stationName}</div>
                         <div className="text-[10px] text-zinc-400 truncate max-w-[150px]">{item.remark || "ไม่มีหมายเหตุ"}</div>
@@ -564,6 +589,7 @@ export default function Home() {
                           <td className="px-4 py-3 font-mono">{item.groundAC || "-"}</td>
                           <td className="px-4 py-3">{item.feederProgress}%</td>
                           <td className="px-4 py-3">{item.radioProgress}%</td>
+                          <td className="px-4 py-3 font-mono text-[10px]">{item.radioSN || "-"}</td>
                           <td className="px-4 py-3 font-mono">{item.rssi || "-"}</td>
                           <td className="px-4 py-3">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.meterRequest === 'ยื่นแล้ว' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
@@ -591,7 +617,7 @@ export default function Home() {
         </div>
 
         <div className="h-[400px] rounded-3xl overflow-hidden shadow-sm border border-zinc-100 dark:border-zinc-800">
-           <MapView data={data} category={activeCategory} />
+           <MapView data={filteredData} category={activeCategory} />
         </div>
       </main>
 
