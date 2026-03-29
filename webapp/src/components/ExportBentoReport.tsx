@@ -32,7 +32,8 @@ export default function ExportBentoReport({ district, stations, category = 'stat
     const isClient = category === 'client';
     const provinceName = stations[0]?.province || 'กาญจนบุรี';
     const displayDistrict = district.startsWith('อำเภอ') ? district : `อำเภอ${district}`;
-    const displayLocation = `${displayDistrict} จ.${provinceName}`;
+    const provinceLabel = `จ.${provinceName}`;
+    const stationCount = stations.length;
     
     let avgOverall = 0;
     let stat1 = { label: '', value: 0, color: '' };
@@ -82,35 +83,78 @@ export default function ExportBentoReport({ district, stations, category = 'stat
                 justifyContent: 'space-between',
                 flexShrink: 0,
             }}>
-                <div>
-                    <div style={{ color: '#94A3B8', fontSize: '11px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '4px' }}>
-                        รายงานความคืบหน้า{isClient ? 'ติดตั้งระบบลูกข่าย' : 'ก่อสร้างฐานรากและเสา'}
+                <div style={{ flex: 1 }}>
+                    <div style={{ 
+                        color: 'rgba(255, 255, 255, 0.5)', 
+                        fontSize: '10px', 
+                        fontWeight: 600, 
+                        letterSpacing: '2px', 
+                        textTransform: 'uppercase', 
+                        marginBottom: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                    }}>
+                        <div style={{ width: '12px', height: '2px', backgroundColor: '#3B82F6' }} />
+                        รายงาน{isClient ? 'ติดตั้งระบบลูกข่าย' : 'ก่อสร้างฐานรากและเสา'}
                     </div>
-                    <div style={{ color: '#FFFFFF', fontSize: '28px', fontWeight: 700, lineHeight: 1.2 }}>
-                        {displayLocation}
+                    <div style={{ color: '#FFFFFF', fontSize: '38px', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.5px' }}>
+                        {displayDistrict}
                     </div>
-                    <div style={{ color: '#94A3B8', fontSize: '12px', marginTop: '4px' }}>
-                        {stations.length} สถานีลูกข่าย
+                    <div style={{ 
+                        color: '#94A3B8', 
+                        fontSize: '20px', 
+                        fontWeight: 500, 
+                        marginTop: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}>
+                        {provinceLabel}
+                        <span style={{ width: '1px', height: '14px', backgroundColor: '#334155' }} />
+                        <span style={{ fontSize: '13px', color: '#64748B' }}>{stationCount} สถานีลูกข่าย</span>
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                     {/* Stat 1 */}
-                    <div style={{ textAlign: 'center', backgroundColor: 'rgba(59,130,246,0.15)', borderRadius: '12px', padding: '12px 20px' }}>
-                        <div style={{ color: stat1.color, fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>{stat1.label}</div>
-                        <div style={{ color: '#FFFFFF', fontSize: '32px', fontWeight: 700, lineHeight: 1 }}>{stat1.value}<span style={{ fontSize: '14px' }}>%</span></div>
-                        <div style={{ color: '#94A3B8', fontSize: '10px', marginTop: '2px' }}>เฉลี่ย</div>
+                    <div style={{ 
+                        textAlign: 'center', 
+                        backgroundColor: 'rgba(59,130,246,0.12)', 
+                        borderRadius: '16px', 
+                        padding: '14px 24px',
+                        border: '1px solid rgba(59,130,246,0.2)',
+                        minWidth: '110px'
+                    }}>
+                        <div style={{ color: '#60A5FA', fontSize: '10px', fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '6px' }}>{stat1.label}</div>
+                        <div style={{ color: '#FFFFFF', fontSize: '34px', fontWeight: 800, lineHeight: 1 }}>{stat1.value}<span style={{ fontSize: '16px', fontWeight: 500, opacity: 0.7 }}>%</span></div>
+                        <div style={{ color: '#64748B', fontSize: '9px', marginTop: '4px', fontWeight: 600 }}>เฉลี่ยทั้งหมด</div>
                     </div>
                     {/* Stat 2 */}
-                    <div style={{ textAlign: 'center', backgroundColor: 'rgba(16,185,129,0.15)', borderRadius: '12px', padding: '12px 20px' }}>
-                        <div style={{ color: stat2.color, fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>{stat2.label}</div>
-                        <div style={{ color: '#FFFFFF', fontSize: '32px', fontWeight: 700, lineHeight: 1 }}>{stat2.value}<span style={{ fontSize: '14px' }}>%</span></div>
-                        <div style={{ color: '#94A3B8', fontSize: '10px', marginTop: '2px' }}>เฉลี่ย</div>
+                    <div style={{ 
+                        textAlign: 'center', 
+                        backgroundColor: 'rgba(16,185,129,0.12)', 
+                        borderRadius: '16px', 
+                        padding: '14px 24px',
+                        border: '1px solid rgba(16,185,129,0.2)',
+                        minWidth: '110px'
+                    }}>
+                        <div style={{ color: '#34D399', fontSize: '10px', fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '6px' }}>{stat2.label}</div>
+                        <div style={{ color: '#FFFFFF', fontSize: '34px', fontWeight: 800, lineHeight: 1 }}>{stat2.value}<span style={{ fontSize: '16px', fontWeight: 500, opacity: 0.7 }}>%</span></div>
+                        <div style={{ color: '#64748B', fontSize: '9px', marginTop: '4px', fontWeight: 600 }}>เฉลี่ยทั้งหมด</div>
                     </div>
                     {/* Overall progress */}
-                    <div style={{ textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px 20px' }}>
-                        <div style={{ color: '#CBD5E1', fontSize: '10px', fontWeight: 600, letterSpacing: '0.5px', marginBottom: '4px' }}>ภาพรวม</div>
-                        <div style={{ color: ringColor, fontSize: '36px', fontWeight: 800, lineHeight: 1 }}>{avgOverall}<span style={{ fontSize: '14px', color: '#CBD5E1' }}>%</span></div>
-                        <div style={{ color: '#94A3B8', fontSize: '10px', marginTop: '2px' }}>ความคืบหน้าเฉลี่ย</div>
+                    <div style={{ 
+                        textAlign: 'center', 
+                        backgroundColor: 'rgba(255,255,255,0.06)', 
+                        borderRadius: '16px', 
+                        padding: '14px 24px',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        minWidth: '120px',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+                    }}>
+                        <div style={{ color: '#CBD5E1', fontSize: '10px', fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '6px' }}>ความคืบหน้า</div>
+                        <div style={{ color: ringColor, fontSize: '42px', fontWeight: 900, lineHeight: 1, textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{avgOverall}<span style={{ fontSize: '18px', fontWeight: 500, color: '#94A3B8' }}>%</span></div>
+                        <div style={{ color: '#64748B', fontSize: '9px', marginTop: '4px', fontWeight: 600 }}>ภาพรวมเขต</div>
                     </div>
                 </div>
             </div>

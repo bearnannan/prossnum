@@ -1,5 +1,9 @@
 {
   "dependencies": {
-    "@supabase/supabase-js": "^2.100.0"
+    "@headlessui/react": "^2.2.9",
+    "@supabase/supabase-js": "^2.100.0",
+    "clsx": "^2.1.1",
+    "motion": "^12.38.0",
+    "tailwindcss": "^4.2.2"
   }
 }

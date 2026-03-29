@@ -55,12 +55,12 @@ export default function StationModal({
         if (editingStation) {
             setFormData({
                 province: editingStation.province || "กาญจนบุรี",
-                district: editingStation.district,
-                stationName: editingStation.stationName,
+                district: editingStation.district || "",
+                stationName: editingStation.stationName || "",
                 baseType: editingStation.baseType || "แผ่",
                 type: editingStation.type || "C",
-                foundationProgress: editingStation.foundationProgress,
-                poleInstallationProgress: editingStation.poleInstallationProgress,
+                foundationProgress: editingStation.foundationProgress ?? 0,
+                poleInstallationProgress: editingStation.poleInstallationProgress ?? 0,
                 lat: editingStation.lat || 14.0,
                 lon: editingStation.lon || 99.0,
                 poleHeight: editingStation.poleHeight || "",
