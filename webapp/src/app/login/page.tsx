@@ -40,144 +40,352 @@ export default function LoginPage() {
         }
     };
 
+    // PIN strength visual (0-4 steps)
+    const pinStrength = Math.min(4, pin.length);
+
     return (
-        <div className="bg-surface text-on-surface min-h-screen flex flex-col architectural-bg">
-            <main className="flex-grow flex items-center justify-center px-4 py-12">
-                {/* Auth Card Container */}
-                <div className="w-full max-w-[440px] bg-surface-container-lowest rounded-xl shadow-[0px_12px_24px_rgba(25,28,29,0.06)] overflow-hidden">
-                    {/* Branding Header */}
-                    <div className="p-8 pb-4 text-center">
-                        <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-container text-on-primary-fixed-variant rounded-xl mb-6">
-                            <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>architecture</span>
-                        </div>
-                        <h1 className="font-headline text-2xl font-extrabold tracking-tight text-primary">Progress Dashboard</h1>
-                        <p className="font-body text-on-surface-variant mt-2 text-sm">Enter your credentials to access the project hub.</p>
-                    </div>
+        <div className="min-h-screen flex flex-col relative overflow-hidden">
+            {/* ═══ Animated Gradient Background ═══ */}
+            <div 
+                className="fixed inset-0 z-0"
+                style={{
+                    background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #1e3a5f 50%, #0f172a 75%, #1a1033 100%)',
+                    backgroundSize: '400% 400%',
+                    animation: 'gradientShift 15s ease infinite',
+                }}
+            />
 
-                    {/* Login Form */}
-                    <div className="px-8 py-6">
-                        <form onSubmit={handleLogin} className="space-y-5">
-                            {error && (
-                                <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/30 dark:text-red-400">
-                                    {error}
-                                </div>
-                            )}
+            {/* ═══ Subtle Grid Overlay ═══ */}
+            <div 
+                className="fixed inset-0 z-[1] opacity-[0.03]"
+                style={{
+                    backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.5) 1px, transparent 0)',
+                    backgroundSize: '32px 32px',
+                }}
+            />
 
-                            {/* District Input */}
-                            <div className="space-y-2">
-                                <label htmlFor="district" className="font-label text-xs font-semibold text-on-surface-variant uppercase tracking-wider ml-1">
-                                    District / อำเภอ
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        id="district"
-                                        name="district"
-                                        type="text"
-                                        required
-                                        placeholder="Select your district"
-                                        value={district}
-                                        onChange={(e) => setDistrict(e.target.value)}
-                                        autoComplete="username"
-                                        className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-lg px-4 py-3 text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
-                                    />
-                                </div>
-                            </div>
+            {/* ═══ Floating Particles ═══ */}
+            <div className="fixed inset-0 z-[2] pointer-events-none overflow-hidden">
+                {/* Blob 1 — top-right */}
+                <div 
+                    className="absolute -top-20 -right-20 w-[400px] h-[400px] rounded-full opacity-[0.07]"
+                    style={{
+                        background: 'radial-gradient(circle, #3b82f6, transparent 70%)',
+                        animation: 'float 8s ease-in-out infinite',
+                    }}
+                />
+                {/* Blob 2 — bottom-left */}
+                <div 
+                    className="absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full opacity-[0.06]"
+                    style={{
+                        background: 'radial-gradient(circle, #8b5cf6, transparent 70%)',
+                        animation: 'float 10s ease-in-out infinite 2s',
+                    }}
+                />
+                {/* Blob 3 — center */}
+                <div 
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-[0.04]"
+                    style={{
+                        background: 'radial-gradient(circle, #06b6d4, transparent 70%)',
+                        animation: 'float 12s ease-in-out infinite 4s',
+                    }}
+                />
+            </div>
 
-                            {/* PIN Code Input */}
-                            <div className="space-y-2">
-                                <label htmlFor="pin" className="font-label text-xs font-semibold text-on-surface-variant uppercase tracking-wider ml-1">
-                                    PIN Code
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        id="pin"
-                                        name="pin"
-                                        type={showPassword ? "text" : "password"}
-                                        required
-                                        placeholder="••••••"
-                                        value={pin}
-                                        onChange={(e) => setPin(e.target.value)}
-                                        autoComplete="current-password"
-                                        className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-lg px-4 py-3 text-on-surface focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
-                                    />
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors"
-                                    >
-                                        <span className="material-symbols-outlined text-xl">
-                                            {showPassword ? "visibility_off" : "visibility"}
-                                        </span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-1">
-                                <div className="flex items-center">
-                                    <input id="remember" name="remember" type="checkbox" className="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary" />
-                                    <label htmlFor="remember" className="ml-2 block text-sm text-on-surface-variant">Remember me</label>
-                                </div>
-                                <a href="#" className="text-sm font-semibold text-primary hover:underline">Forgot PIN?</a>
-                            </div>
-
-                            {/* Primary Sign In */}
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="w-full bg-primary text-on-primary font-headline font-bold py-3.5 rounded-lg shadow-sm hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            {/* ═══ Main Content ═══ */}
+            <main className="flex-grow flex items-center justify-center px-4 py-12 relative z-10">
+                <div 
+                    className="w-full max-w-[420px] animate-fade-in-up"
+                    style={{ animationDuration: '0.6s' }}
+                >
+                    {/* ═══ Auth Card ═══ */}
+                    <div 
+                        className="rounded-[28px] overflow-hidden"
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            backdropFilter: 'blur(40px) saturate(1.5)',
+                            WebkitBackdropFilter: 'blur(40px) saturate(1.5)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 32px 64px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                        }}
+                    >
+                        {/* ── Branding Header ── */}
+                        <div className="p-8 pb-2 text-center">
+                            <div 
+                                className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 shadow-premium-md gradient-primary animate-float"
+                                style={{ animationDuration: '4s' }}
                             >
-                                {isLoading ? "Signing in..." : "Sign In"}
-                                <span className="material-symbols-outlined text-lg">login</span>
-                            </button>
-                        </form>
-
-                        {/* Divider */}
-                        <div className="relative my-8">
-                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                                <div className="w-full border-t border-outline-variant/30"></div>
+                                <span className="material-symbols-outlined text-white text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                    architecture
+                                </span>
                             </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-surface-container-lowest px-4 text-on-surface-variant font-bold tracking-[0.2em]">OR CONTINUE WITH</span>
-                            </div>
+                            <h1 
+                                className="text-2xl font-extrabold tracking-tight text-white mb-1"
+                                style={{ 
+                                    fontFamily: 'var(--font-headline)',
+                                    animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both',
+                                }}
+                            >
+                                ProssNum
+                            </h1>
+                            <p 
+                                className="text-sm text-white/40 font-medium"
+                                style={{ animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.15s both' }}
+                            >
+                                Infrastructure Progress Dashboard
+                            </p>
                         </div>
 
-                        {/* Social Sign In */}
-                        <button
-                            type="button"
-                            onClick={() => signIn("line", { callbackUrl: "/" })}
-                            className="w-full bg-[#06C755] text-white font-headline font-bold py-3.5 rounded-lg shadow-sm hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                        {/* ── Login Form ── */}
+                        <div className="px-8 py-6">
+                            <form onSubmit={handleLogin} className="space-y-5">
+                                {/* Error Message */}
+                                {error && (
+                                    <div 
+                                        className="rounded-xl p-3.5 text-sm font-medium flex items-center gap-2.5"
+                                        style={{
+                                            background: 'rgba(239, 68, 68, 0.12)',
+                                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                                            color: '#fca5a5',
+                                            animation: 'fadeInUp 0.3s ease',
+                                        }}
+                                    >
+                                        <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+                                        {error}
+                                    </div>
+                                )}
+
+                                {/* District Input */}
+                                <div 
+                                    className="space-y-2"
+                                    style={{ animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.2s both' }}
+                                >
+                                    <label htmlFor="district" className="text-[11px] font-bold text-white/40 uppercase tracking-[0.15em] ml-1">
+                                        District / อำเภอ
+                                    </label>
+                                    <div className="relative group">
+                                        <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 text-lg group-focus-within:text-blue-400 transition-colors duration-200">
+                                            location_on
+                                        </span>
+                                        <input
+                                            id="district"
+                                            name="district"
+                                            type="text"
+                                            required
+                                            placeholder="เลือกอำเภอของคุณ"
+                                            value={district}
+                                            onChange={(e) => setDistrict(e.target.value)}
+                                            autoComplete="username"
+                                            className="w-full rounded-xl pl-11 pr-4 py-3.5 text-sm font-medium text-white placeholder:text-white/20 outline-none transition-all duration-300"
+                                            style={{
+                                                background: 'rgba(255, 255, 255, 0.06)',
+                                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                            }}
+                                            onFocus={(e) => {
+                                                e.target.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+                                                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                                                e.target.style.background = 'rgba(255, 255, 255, 0.08)';
+                                            }}
+                                            onBlur={(e) => {
+                                                e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                                                e.target.style.boxShadow = 'none';
+                                                e.target.style.background = 'rgba(255, 255, 255, 0.06)';
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* PIN Input */}
+                                <div 
+                                    className="space-y-2"
+                                    style={{ animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.25s both' }}
+                                >
+                                    <label htmlFor="pin" className="text-[11px] font-bold text-white/40 uppercase tracking-[0.15em] ml-1">
+                                        PIN Code
+                                    </label>
+                                    <div className="relative group">
+                                        <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 text-lg group-focus-within:text-blue-400 transition-colors duration-200">
+                                            lock
+                                        </span>
+                                        <input
+                                            id="pin"
+                                            name="pin"
+                                            type={showPassword ? "text" : "password"}
+                                            required
+                                            placeholder="••••••"
+                                            value={pin}
+                                            onChange={(e) => setPin(e.target.value)}
+                                            autoComplete="current-password"
+                                            className="w-full rounded-xl pl-11 pr-12 py-3.5 text-sm font-medium text-white placeholder:text-white/20 outline-none transition-all duration-300"
+                                            style={{
+                                                background: 'rgba(255, 255, 255, 0.06)',
+                                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                            }}
+                                            onFocus={(e) => {
+                                                e.target.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+                                                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                                                e.target.style.background = 'rgba(255, 255, 255, 0.08)';
+                                            }}
+                                            onBlur={(e) => {
+                                                e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                                                e.target.style.boxShadow = 'none';
+                                                e.target.style.background = 'rgba(255, 255, 255, 0.06)';
+                                            }}
+                                        />
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors duration-200 p-1"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">
+                                                {showPassword ? "visibility_off" : "visibility"}
+                                            </span>
+                                        </button>
+                                    </div>
+                                    {/* PIN Strength Indicator */}
+                                    {pin.length > 0 && (
+                                        <div className="flex gap-1 px-1 mt-1">
+                                            {[0, 1, 2, 3].map(i => (
+                                                <div
+                                                    key={i}
+                                                    className="h-[3px] flex-1 rounded-full transition-all duration-300"
+                                                    style={{
+                                                        background: i < pinStrength 
+                                                            ? pinStrength <= 2 
+                                                                ? 'rgba(245, 158, 11, 0.6)' 
+                                                                : 'rgba(16, 185, 129, 0.6)'
+                                                            : 'rgba(255, 255, 255, 0.06)',
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Remember + Forgot */}
+                                <div 
+                                    className="flex items-center justify-between pt-1"
+                                    style={{ animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.3s both' }}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <input id="remember" name="remember" type="checkbox" className="h-3.5 w-3.5 rounded border-white/20 bg-white/5 accent-blue-500" />
+                                        <label htmlFor="remember" className="text-xs text-white/35 font-medium">Remember me</label>
+                                    </div>
+                                    <a href="#" className="text-xs font-semibold text-blue-400/70 hover:text-blue-400 transition-colors duration-200">Forgot PIN?</a>
+                                </div>
+
+                                {/* Submit Button */}
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full py-3.5 rounded-xl font-bold shadow-premium-md transition-all duration-300 flex items-center justify-center gap-2.5 disabled:opacity-50 hover:scale-[1.01] active:scale-[0.98] hover:shadow-premium-lg text-white text-sm gradient-primary relative overflow-hidden group"
+                                    style={{ animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.35s both' }}
+                                >
+                                    {/* Shine effect on hover */}
+                                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" 
+                                        style={{
+                                            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)',
+                                            backgroundSize: '200% 100%',
+                                            animation: 'shimmer 2s ease-in-out infinite',
+                                        }}
+                                    />
+                                    <span className="relative z-10 flex items-center gap-2">
+                                        {isLoading ? (
+                                            <>
+                                                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                                </svg>
+                                                Signing in...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Sign In
+                                                <span className="material-symbols-outlined text-base">arrow_forward</span>
+                                            </>
+                                        )}
+                                    </span>
+                                </button>
+                            </form>
+
+                            {/* ── Divider ── */}
+                            <div 
+                                className="relative my-7"
+                                style={{ animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.4s both' }}
+                            >
+                                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                    <div className="w-full" style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
+                                </div>
+                                <div className="relative flex justify-center text-[10px] uppercase">
+                                    <span className="px-4 text-white/25 font-bold tracking-[0.2em]" style={{ background: 'transparent' }}>
+                                        or continue with
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* ── LINE Sign In ── */}
+                            <button
+                                type="button"
+                                onClick={() => signIn("line", { callbackUrl: "/" })}
+                                className="w-full py-3.5 rounded-xl font-bold text-sm shadow-premium-sm transition-all duration-300 flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-[0.98] hover:shadow-premium-md text-white relative overflow-hidden group"
+                                style={{
+                                    background: 'linear-gradient(135deg, #06C755, #04A847)',
+                                    animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.45s both',
+                                }}
+                            >
+                                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" 
+                                    style={{
+                                        background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)',
+                                        backgroundSize: '200% 100%',
+                                        animation: 'shimmer 2s ease-in-out infinite',
+                                    }}
+                                />
+                                <img
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOsb_L3Wjo1XwY4nbYDNg7t-9jqfeYPKn3G9RypRixEYvObdb-zMF9MXSU8-cKsUYP_G5rd-ZmwezdnIvTN3PDz8mXdSTCsUycYyXfVPmRVyUtcNeM0q0P3MTjykpYLzlq_U-ZdA9bxP0iwy4dNW-60cStijjoQsdJIJkVQ0zwrVIc2n9NBdGusjdeDMgKDUJL_k_kbMKtcc8T5MsXHzfRQBEGgLHhgk3iuXztixoGgARL0ZHNwkz-fIDpJxjR5noWkUW5TVevXeM"
+                                    alt="LINE"
+                                    className="w-5 h-5 filter brightness-0 invert relative z-10"
+                                />
+                                <span className="relative z-10">Sign in with LINE</span>
+                            </button>
+                        </div>
+
+                        {/* ── Card Footer ── */}
+                        <div 
+                            className="px-8 py-5 text-center"
+                            style={{
+                                borderTop: '1px solid rgba(255,255,255,0.05)',
+                                animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.5s both',
+                            }}
                         >
-                            <img
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOsb_L3Wjo1XwY4nbYDNg7t-9jqfeYPKn3G9RypRixEYvObdb-zMF9MXSU8-cKsUYP_G5rd-ZmwezdnIvTN3PDz8mXdSTCsUycYyXfVPmRVyUtcNeM0q0P3MTjykpYLzlq_U-ZdA9bxP0iwy4dNW-60cStijjoQsdJIJkVQ0zwrVIc2n9NBdGusjdeDMgKDUJL_k_kbMKtcc8T5MsXHzfRQBEGgLHhgk3iuXztixoGgARL0ZHNwkz-fIDpJxjR5noWkUW5TVevXeM"
-                                alt="LINE"
-                                className="w-5 h-5 filter brightness-0 invert"
-                            />
-                            Sign in with LINE
-                        </button>
+                            <p className="text-xs text-white/25 font-medium">
+                                Authorized personnel only.{" "}
+                                <a href="#" className="text-blue-400/50 hover:text-blue-400 font-semibold transition-colors duration-200">Contact Support</a>
+                            </p>
+                        </div>
                     </div>
 
-                    {/* Card Footer */}
-                    <div className="bg-surface-container-low p-6 text-center">
-                        <p className="text-sm text-on-surface-variant">
-                            Authorized personnel only. Need help?{" "}
-                            <a href="#" className="text-primary font-semibold hover:underline">Contact Support</a>
-                        </p>
+                    {/* ═══ Version Badge ═══ */}
+                    <div 
+                        className="text-center mt-6"
+                        style={{ animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.55s both' }}
+                    >
+                        <span className="text-[10px] font-bold text-white/15 tracking-widest uppercase">ProssNum v5.0</span>
                     </div>
                 </div>
             </main>
 
-            {/* Global Footer */}
-            <footer className="py-8 px-6">
+            {/* ═══ Footer ═══ */}
+            <footer className="relative z-10 py-6 px-6">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 text-on-surface-variant opacity-60">
+                    <div className="flex items-center gap-2 text-white/15">
                         <span className="material-symbols-outlined text-sm">copyright</span>
-                        <span className="text-xs font-medium uppercase tracking-widest">2024 Infrastructure Progress</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">2026 Infrastructure Progress</span>
                     </div>
                     <div className="flex gap-8">
-                        <Link href="/privacy-policy" className="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors uppercase tracking-widest">
+                        <Link href="/privacy-policy" className="text-[10px] font-semibold text-white/20 hover:text-white/50 transition-colors duration-200 uppercase tracking-widest">
                             Privacy Policy
                         </Link>
-                        <Link href="/terms-of-use" className="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors uppercase tracking-widest">
+                        <Link href="/terms-of-use" className="text-[10px] font-semibold text-white/20 hover:text-white/50 transition-colors duration-200 uppercase tracking-widest">
                             Terms of Use
                         </Link>
                     </div>

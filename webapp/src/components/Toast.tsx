@@ -29,27 +29,60 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }, 3000);
   }, []);
 
+  const typeStyles = {
+    success: {
+      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+      text: 'text-emerald-700 dark:text-emerald-400',
+      border: 'border-emerald-200/60 dark:border-emerald-800',
+      icon: 'check_circle',
+      glow: '0 4px 16px rgba(16, 185, 129, 0.12)',
+    },
+    error: {
+      bg: 'bg-red-50 dark:bg-red-900/20',
+      text: 'text-red-700 dark:text-red-400',
+      border: 'border-red-200/60 dark:border-red-800',
+      icon: 'error',
+      glow: '0 4px 16px rgba(239, 68, 68, 0.12)',
+    },
+    info: {
+      bg: 'bg-blue-50 dark:bg-blue-900/20',
+      text: 'text-blue-700 dark:text-blue-400',
+      border: 'border-blue-200/60 dark:border-blue-800',
+      icon: 'info',
+      glow: '0 4px 16px rgba(59, 130, 246, 0.12)',
+    },
+  };
+
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`px-4 py-3 rounded-xl shadow-lg border text-sm font-medium animate-in fade-in slide-in-from-right-4 duration-300 ${
-              toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800' :
-              toast.type === 'error' ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' :
-              'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-                {toast.type === 'success' && <span className="material-symbols-outlined text-lg">check_circle</span>}
-                {toast.type === 'error' && <span className="material-symbols-outlined text-lg">error</span>}
-                {toast.type === 'info' && <span className="material-symbols-outlined text-lg">info</span>}
+      <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2.5">
+        {toasts.map((toast) => {
+          const style = typeStyles[toast.type];
+          return (
+            <div
+              key={toast.id}
+              className={`px-4 py-3 rounded-2xl border backdrop-blur-lg text-sm font-semibold ${style.bg} ${style.text} ${style.border}`}
+              style={{
+                animation: 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                boxShadow: style.glow,
+              }}
+            >
+              <div className="flex items-center gap-2.5">
+                <span 
+                  className="material-symbols-outlined text-lg" 
+                  style={{ 
+                    fontVariationSettings: "'FILL' 1",
+                    animation: 'scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  }}
+                >
+                  {style.icon}
+                </span>
                 {toast.message}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </ToastContext.Provider>
   );
