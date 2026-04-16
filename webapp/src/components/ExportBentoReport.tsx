@@ -75,86 +75,90 @@ export default function ExportBentoReport({ district, stations, category = 'stat
         >
             {/* === HEADER BOX === */}
             <div style={{
-                backgroundColor: '#1E293B',
-                borderRadius: '16px',
-                padding: '20px 28px',
+                background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                borderRadius: '20px',
+                padding: '24px 32px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexShrink: 0,
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.05)'
             }}>
                 <div style={{ flex: 1 }}>
                     <div style={{ 
-                        color: 'rgba(255, 255, 255, 0.5)', 
-                        fontSize: '10px', 
-                        fontWeight: 600, 
-                        letterSpacing: '2px', 
+                        color: '#60A5FA', 
+                        fontSize: '11px', 
+                        fontWeight: 800, 
+                        letterSpacing: '2.5px', 
                         textTransform: 'uppercase', 
-                        marginBottom: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                    }}>
-                        <div style={{ width: '12px', height: '2px', backgroundColor: '#3B82F6' }} />
-                        รายงาน{isClient ? 'ติดตั้งระบบลูกข่าย' : 'ก่อสร้างฐานรากและเสา'}
-                    </div>
-                    <div style={{ color: '#FFFFFF', fontSize: '38px', fontWeight: 800, lineHeight: 1.1, letterSpacing: '-0.5px' }}>
-                        {displayDistrict}
-                    </div>
-                    <div style={{ 
-                        color: '#94A3B8', 
-                        fontSize: '20px', 
-                        fontWeight: 500, 
-                        marginTop: '2px',
+                        marginBottom: '10px',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px'
                     }}>
-                        {provinceLabel}
-                        <span style={{ width: '1px', height: '14px', backgroundColor: '#334155' }} />
-                        <span style={{ fontSize: '13px', color: '#64748B' }}>{stationCount} สถานีลูกข่าย</span>
+                        <div style={{ width: '16px', height: '3px', backgroundColor: '#3B82F6', borderRadius: '2px' }} />
+                        รายงาน{isClient ? 'ติดตั้งระบบลูกข่าย' : 'ก่อสร้างฐานรากและเสา'}
+                    </div>
+                    <div style={{ color: '#F8FAFC', fontSize: '42px', fontWeight: 900, lineHeight: 1.1, letterSpacing: '-0.5px', textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>
+                        {displayDistrict}
+                    </div>
+                    <div style={{ 
+                        color: '#94A3B8', 
+                        fontSize: '22px', 
+                        fontWeight: 600, 
+                        marginTop: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                    }}>
+                        <span style={{ color: '#E2E8F0' }}>{provinceLabel}</span>
+                        <span style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#475569' }} />
+                        <span style={{ fontSize: '15px', color: '#64748B', fontWeight: 500, letterSpacing: '0.5px' }}>{stationCount} สถานีลูกข่าย</span>
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                     {/* Stat 1 */}
                     <div style={{ 
                         textAlign: 'center', 
-                        backgroundColor: 'rgba(59,130,246,0.12)', 
-                        borderRadius: '16px', 
-                        padding: '14px 24px',
-                        border: '1px solid rgba(59,130,246,0.2)',
-                        minWidth: '110px'
+                        background: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.05) 100%)', 
+                        borderRadius: '20px', 
+                        padding: '16px 28px',
+                        border: '1px solid rgba(59,130,246,0.3)',
+                        minWidth: '120px',
+                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)'
                     }}>
-                        <div style={{ color: '#60A5FA', fontSize: '10px', fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '6px' }}>{stat1.label}</div>
-                        <div style={{ color: '#FFFFFF', fontSize: '34px', fontWeight: 800, lineHeight: 1 }}>{stat1.value}<span style={{ fontSize: '16px', fontWeight: 500, opacity: 0.7 }}>%</span></div>
-                        <div style={{ color: '#64748B', fontSize: '9px', marginTop: '4px', fontWeight: 600 }}>เฉลี่ยทั้งหมด</div>
+                        <div style={{ color: '#93C5FD', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>{stat1.label}</div>
+                        <div style={{ color: '#FFFFFF', fontSize: '38px', fontWeight: 900, lineHeight: 1 }}>{stat1.value}<span style={{ fontSize: '18px', fontWeight: 600, opacity: 0.7, marginLeft: '2px' }}>%</span></div>
+                        <div style={{ color: '#64748B', fontSize: '10px', marginTop: '6px', fontWeight: 600, letterSpacing: '0.5px' }}>เฉลี่ยทั้งหมด</div>
                     </div>
                     {/* Stat 2 */}
                     <div style={{ 
                         textAlign: 'center', 
-                        backgroundColor: 'rgba(16,185,129,0.12)', 
-                        borderRadius: '16px', 
-                        padding: '14px 24px',
-                        border: '1px solid rgba(16,185,129,0.2)',
-                        minWidth: '110px'
+                        background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.05) 100%)', 
+                        borderRadius: '20px', 
+                        padding: '16px 28px',
+                        border: '1px solid rgba(16,185,129,0.3)',
+                        minWidth: '120px',
+                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)'
                     }}>
-                        <div style={{ color: '#34D399', fontSize: '10px', fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '6px' }}>{stat2.label}</div>
-                        <div style={{ color: '#FFFFFF', fontSize: '34px', fontWeight: 800, lineHeight: 1 }}>{stat2.value}<span style={{ fontSize: '16px', fontWeight: 500, opacity: 0.7 }}>%</span></div>
-                        <div style={{ color: '#64748B', fontSize: '9px', marginTop: '4px', fontWeight: 600 }}>เฉลี่ยทั้งหมด</div>
+                        <div style={{ color: '#6EE7B7', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>{stat2.label}</div>
+                        <div style={{ color: '#FFFFFF', fontSize: '38px', fontWeight: 900, lineHeight: 1 }}>{stat2.value}<span style={{ fontSize: '18px', fontWeight: 600, opacity: 0.7, marginLeft: '2px' }}>%</span></div>
+                        <div style={{ color: '#64748B', fontSize: '10px', marginTop: '6px', fontWeight: 600, letterSpacing: '0.5px' }}>เฉลี่ยทั้งหมด</div>
                     </div>
                     {/* Overall progress */}
                     <div style={{ 
                         textAlign: 'center', 
-                        backgroundColor: 'rgba(255,255,255,0.06)', 
-                        borderRadius: '16px', 
-                        padding: '14px 24px',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        minWidth: '120px',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+                        background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)', 
+                        borderRadius: '20px', 
+                        padding: '18px 32px',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        minWidth: '140px',
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
                     }}>
-                        <div style={{ color: '#CBD5E1', fontSize: '10px', fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '6px' }}>ความคืบหน้า</div>
-                        <div style={{ color: ringColor, fontSize: '42px', fontWeight: 900, lineHeight: 1, textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{avgOverall}<span style={{ fontSize: '18px', fontWeight: 500, color: '#94A3B8' }}>%</span></div>
-                        <div style={{ color: '#64748B', fontSize: '9px', marginTop: '4px', fontWeight: 600 }}>ภาพรวมเขต</div>
+                        <div style={{ color: '#E2E8F0', fontSize: '12px', fontWeight: 800, letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '8px' }}>ความคืบหน้า</div>
+                        <div style={{ color: ringColor, fontSize: '48px', fontWeight: 900, lineHeight: 1, textShadow: `0 4px 15px ${ringColor}40` }}>{avgOverall}<span style={{ fontSize: '20px', fontWeight: 600, color: '#94A3B8', marginLeft: '4px' }}>%</span></div>
+                        <div style={{ color: '#94A3B8', fontSize: '10px', marginTop: '6px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>ภาพรวมเขต</div>
                     </div>
                 </div>
             </div>
@@ -168,13 +172,16 @@ export default function ExportBentoReport({ district, stations, category = 'stat
                     <div style={{
                         flex: 1,
                         backgroundColor: '#FFFFFF',
-                        borderRadius: '16px',
-                        padding: '20px',
+                        borderRadius: '20px',
+                        padding: '24px',
                         display: 'flex',
                         flexDirection: 'column',
                         minHeight: 0,
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        border: '1px solid #F1F5F9'
                     }}>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3B82F6' }}></span>
                             ความคืบหน้าแยกตามสถานี
                         </div>
                         <div style={{ flex: 1, minHeight: 0 }}>
@@ -186,16 +193,19 @@ export default function ExportBentoReport({ district, stations, category = 'stat
                     <div style={{
                         flex: '0 0 32%',
                         backgroundColor: '#FFFFFF',
-                        borderRadius: '16px',
-                        padding: '16px',
+                        borderRadius: '20px',
+                        padding: '20px',
                         display: 'flex',
                         flexDirection: 'column',
                         minHeight: 0,
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        border: '1px solid #F1F5F9'
                     }}>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981' }}></span>
                             แผนที่พิกัดสถานี
                         </div>
-                        <div style={{ flex: 1, overflow: 'hidden', borderRadius: '12px' }}>
+                        <div style={{ flex: 1, overflow: 'hidden', borderRadius: '14px', backgroundColor: '#F8FAFC' }}>
                             <ExportMapStatic stations={stations} />
                         </div>
                     </div>
@@ -207,14 +217,17 @@ export default function ExportBentoReport({ district, stations, category = 'stat
                     <div style={{
                         flex: 1,
                         backgroundColor: '#FFFFFF',
-                        borderRadius: '16px',
-                        padding: '20px',
+                        borderRadius: '20px',
+                        padding: '24px',
                         display: 'flex',
                         flexDirection: 'column',
                         minHeight: 0,
                         overflow: 'hidden',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        border: '1px solid #F1F5F9'
                     }}>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '10px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#6366F1' }}></span>
                             รายชื่อสถานี
                         </div>
                         <div style={{ overflow: 'hidden', flex: 1 }}>
