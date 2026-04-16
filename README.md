@@ -1,135 +1,126 @@
-# Prossnum Progress Dashboard
+# Prossnum Dashboard
 
-ระบบติดตามความคืบหน้างานก่อสร้างฐานรากและเสาสัญญาณ รวมถึงงานติดตั้งระบบลูกข่าย อ.ห้วยกระเจา และ อ.เลาขวัญ จ.กาญจนบุรี เขต11 (เพชรบุรี)
+[![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Database-emerald?logo=supabase)](https://supabase.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.0-38b2ac?logo=tailwind-css)](https://tailwindcss.com/)
 
-## 📌 คุณสมบัติของระบบ (Features)
+A professional, high-performance infrastructure monitoring platform designed to track large-scale deployment progress for networking nodes and client systems. Prossnum provides strategic real-time visualization, 600 DPI reporting, and a robust modular architecture utilizing the latest web technologies.
 
-1. **ดึงข้อมูลเชื่อมต่อกับ Google Sheets แบบ Real-time**: 
-   - ระบบจะอ่านข้อมูลล่าสุดจาก Google Sheets (ผ่าน Published CSV Data) ทุกครั้งที่มีการโหลดหน้าจอ ทำให้ไม่ต้องแก้โค้ดเมื่อมีการเปลี่ยนแปลงข้อมูลตาราง
+---
 
-2. **แดชบอร์ดแสดงผล (Progress Dashboard)**:
-   - แสดงตัวเลขสรุปภาพรวมจำนวนสถานีทั้งหมดที่กำลังดำเนินการ และที่เสร็จสมบูรณ์แล้ว
-   - แสดงแผนภูมิแท่ง (Bar Chart) เปรียบเทียบความคืบหน้าของแต่ละสถานี
-   - แสดงพิกัดตำแหน่งสถานีต่างๆ ลงบนแผนที่ (Interactive Map by OpenStreetMap + Leaflet)
+## 🌟 Key Features
 
-3. **แบ่งหมวดหมู่การทำงาน 2 ส่วน**:
-   - **ข้อมูลสถานีเดิม (Station Data)**: สำหรับติดตามงานก่อสร้างฐานราก และงานติดตั้งโครงเสา
-   - **ระบบลูกข่าย (Client System)**: สำหรับติดตามงานระบบไฟฟ้า, กราวด์, สาย Feeder ฯลฯ
+### 📊 Strategic Visualization
+- **Bento-style Analytics**: High-density dashboard tiles displaying key performance indicators (KPIs) for foundation construction and system installation.
+- **Interactive Geospatial Tracking**: Real-time map visualization (MapLibre/Leaflet) for monitoring geographic distribution and status of infrastructure nodes.
+- **Dynamic Charting**: Multi-mode visualization (Recharts) for comparing progress across districts and station types.
 
-4. **ระบบค้นหาและตัวกรอง (Search & Filters)**:
-   - ค้นหาสถานีจากชื่อ หรืออำเภอ
-   - กรองตาม Type ของสถานีความสูงเสา หรือสถานะการทำงาน (กำลังดำเนินการ/เสร็จสมบูรณ์)
+### 📝 Precision Reporting
+- **High-Fidelity Exports**: Generate professional 600 DPI PDF and JPEG reports tailored for formal documentation and stakeholder updates.
+- **Daily Summaries**: Automated text-based summaries optimized for quick communication via messaging platforms.
 
-5. **ระบบจัดการข้อมูล (Edit & Delete)**:
-   - มีปุ่ม แก้ไข/ลบ ข้อมูลสำหรับพนักงาน เพื่อจัดการข้อมูลบนหน้าเว็บ
+### 🏗️ Advanced Architecture
+- **Supabase Integration**: Real-time data synchronization utilizing Supabase as the core database engine.
+- **Modular Component Library**: Clean, decoupled UI components (StatCards, Table grids, Modals) for maximum maintainability.
+- **Resilient UI**: Integrated React ErrorBoundaries, offline-ready mapping, and a comprehensive A11y (Accessibility) layer.
 
-6. **ระบบออกรายงาน (Export Reports)**:
-   - Export สรุปงานเป็นไฟล์ Text (`.txt`) สำหรับส่งรายงานประจำวัน
-   - Export หน้าจอแดชบอร์ดเป็นไฟล์รูปภาพ (JPEG) หรือ PDF
+---
 
-## 🚀 การติดตั้งและรันโปรเจกต์ (Local Development)
+## 🛠️ Tech Stack
 
-### 1. ไฟล์ที่ต้องมี (Environment Variables)
-โปรเจกต์นี้ใช้ `Next.js` และต้องการไฟล์ `.env.local` เพื่อระบุแหล่งข้อมูล (Google Sheets GID)
-ให้สร้างไฟล์ชื่อ `.env.local` ไว้ในโฟลเดอร์ `webapp` โดยมีข้อมูลดังนี้:
+| Layer | Technologies |
+| :--- | :--- |
+| **Framework** | Next.js 16.1.6 (App Router), React 19 |
+| **Styling** | Tailwind CSS v4.0, Glassmorphism, Premium Shadows |
+| **Database** | Supabase (PostgreSQL), SWR (Data Fetching) |
+| **Auth** | Next-Auth (v5 Beta), LINE Login Integration |
+| **Mapping** | MapLibre GL, Leaflet, Geoapify |
+| **Visuals** | Recharts, Lucide Icons, Material Symbols |
+| **Export** | jsPDF, html-to-image |
 
-```env
-PUBLISHED_SHEET_URL=https://docs.google.com/spreadsheets/d/e/2PACX-1vS-x6wrhvu6tQUCeY4AHFlDPeHE2Jjkrrry5paIxNC4_McE8YYEFAOfAZowFurEsf-lyyVrkozKp4OE/pub?output=csv
-GID_STATION_DATA=425872468
-GID_CLIENT_SYSTEM=2070776408
+---
 
-# Service Account Credentials (Required for Edit/Delete functions)
-GOOGLE_SERVICE_ACCOUNT_EMAIL=progress-webapp-bot@prossnum.iam.gserviceaccount.com
-GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYourKeyContentHere\n-----END PRIVATE KEY-----\n"
-```
+## 🚀 Getting Started
 
-> [!IMPORTANT]
-> **การตั้งค่า GOOGLE_PRIVATE_KEY**:
-> - ต้องคัดลอกค่า `private_key` จากไฟล์ JSON ของ Service Account มาทั้งหมด
-> - ต้องรวมเครื่องหมาย `\n` (newline) ไว้ในสตริงด้วย
-> - ต้องครอบด้วยเครื่องหมายอัญประกาศคู่ (`"..."`) ในไฟล์ `.env.local` หรือใน Vercel Environment Variables
+### Prerequisites
 
-> **ข้อกำหนด GID**:
-> - `GID_STATION_DATA` (425872468) คือ รหัสชีตแผ่น "ข้อมูลสถานีเดิม" 
-> - `GID_CLIENT_SYSTEM` (2070776408) คือ รหัสชีตแผ่น "ระบบลูกข่าย"
+- **Node.js**: `v18.x` or higher
+- **Package Manager**: `npm` (v9+) or `yarn`
 
-### 2. วิธีรันโปรเจกต์ในเครื่อง
-เปิด Terminal แล้วทำตามขั้นตอนต่อไปนี้:
+### Installation
 
+1. Clone the repository and navigate to the `webapp` directory:
+   ```bash
+   git clone https://github.com/your-repo/prossnum.git
+   cd prossnum/webapp
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+### Configuration
+
+Create a `.env.local` file in the `webapp` directory. Use the table below as a reference for required variables:
+
+| Variable | Description |
+| :--- | :--- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anonymous Public API Key |
+| `NEXT_PUBLIC_MAP_PROVIDER` | Map engine provider (e.g., `geoapify`) |
+| `NEXT_PUBLIC_MAP_API_KEY` | API key for the map tile provider |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Required for strategic address lookups |
+| `AUTH_LINE_ID` | LINE Channel ID for authentication |
+| `AUTH_LINE_SECRET` | LINE Channel Secret |
+| `AUTH_SECRET` | Secret key for Next-Auth encryption |
+
+### Run / Usage
+
+**Development Server:**
 ```bash
-# 1. เข้าไปในโฟลเดอร์ webapp
-cd webapp
-
-# 2. ติดตั้ง Dependencies ทั้งหมด
-npm install
-
-# 3. รัน Development Server
 npm run dev
 ```
 
-จากนั้นเปิดเบราว์เซอร์ไปที่: `http://localhost:3000`
-
-## 🌐 การนำเข้าระบบขึ้น Vercel (Deployment)
-
-การนำโปรเจกต์ขึ้นไปยัง Vercel (เว็บเซิร์ฟเวอร์ฟรี) สามารถทำได้ดังนี้:
-
-1. นำโค้ดทั้งหมด (Commit & Push) ขึ้น GitHub ของคุณ
-2. เข้าเว็บไซต์ [Vercel](https://vercel.com/) แล้วล็อกอินด้วย GitHub
-3. กดปุ่ม `Add New > Project` แล้วเลือก Repository ชื่อ **prossnum** ของคุณ
-4. ในขั้นตอน **Configure Project**:
-   - Framework Preset: เลือก **Next.js**
-   - Root Directory: เลือกโฟลเดอร์ **webapp**
-5. ในหมวด **Environment Variables** ให้เพิ่มค่าทั้ง 3 ตัวเหมือนใน `.env.local`:
-   - `PUBLISHED_SHEET_URL` = `https://docs.google.com/spreadsheets/d/e/2PACX-1vS-x6wrhvu6tQUCeY4AHFlDPeHE2Jjkrrry5paIxNC4_McE8YYEFAOfAZowFurEsf-lyyVrkozKp4OE/pub?output=csv`
-   - `GID_STATION_DATA` = `425872468`
-   - `GID_CLIENT_SYSTEM` = `2070776408`
-6. กดปุ่ม **Deploy**
-
-**ข้อควรระวังเมื่อมีการเปลี่ยน GID:**
-หากในอนาคตคุณนำชีตใหม่มาใส่ และ GID เปลี่ยนไป คุณต้องเข้าไปแก้ `GID_STATION_DATA` / `GID_CLIENT_SYSTEM` ในเมนู **Settings > Environment Variables** บนโปรเจกต์ Vercel แล้วกลับไปที่หน้า **Deployments** เลือก **Redeploy** เพื่อให้ Vercel อ่านค่า Environment ใหม่
-
-## 📊 โครงสร้างข้อมูลตารางใน Google Sheets
-
-เพื่อให้ระบบแสดงผลได้ไม่ผิดเพี้ยน, ตาราง Google Sheets ควรมีคอลัมน์ดังนี้ (นับจากซ้ายไปขวา A,B,C...):
-
-### 1. Sheet: ข้อมูลสถานีเดิม (station_data)
-- **อำเภอ**
-- **ชื่อสถานี**
-- **Type**
-- **ฐานราก (%)**
-- **งานติดตั้งเสา (%)**
-- **Latitude** 
-- **Longitude**
-- **ความสูงเสา**
-- **วันที่เริ่มงาน**
-- **วันที่เสร็จงาน**
-- **หมายเหตุ**
-
-### 2. Sheet: ระบบลูกข่าย (ClientSystem)
-- **อำเภอ**
-- **ชื่อสถานี**
-- **Latitude**
-- **Longitude**
-- **ความสูงเสา**
-- **ระบบไฟฟ้า (%)**
-- **ระยะสาย Main**
-- **ระบบกราวด์ (%)**
-- **AC Ω**
-- **Equip Ω**
-- **สาย Feeder (%)**
-- **Yagi No**
-- **SN**
-- **ระยะ feed**
-- **อุปกรณ์บนเสา (%)**
-- **เครื่องวิทยุ (%)**
-- **SN เครื่องวิทยุ MT680 Plus**
-- **SN แบตเตอรี่ 50AH**
-- **ค่า RSSI dBm**
-- **งานเพิ่มเติม / ปัญหาอุปสรรค**
-- **วันที่เริ่มงาน**
-- **วันที่เสร็จงาน**
-
-*หากมีการเพิ่ม/ลด หรือสลับคอลัมน์ใน Google Sheets จะต้องมาแก้ไข Mapping File ในโค้ดด้วยที่ไฟล์ `webapp/src/app/api/sheet-data/route.ts`*
+**Production Build:**
+```bash
+npm run build
+npm start
+```
 
 ---
-©2026 Developed by Prossnum Team.
+
+## 📂 Project Structure
+
+```text
+webapp/
+├── src/
+│   ├── app/           # Next.js Routes & API Endpoints
+│   ├── components/    # Reusable UI Blocks (StatGrid, Charts, Table)
+│   ├── hooks/         # Custom Shared Logic (useDashboard, useExport)
+│   ├── lib/           # Core Utilities (Supabase Client, Auth config)
+│   └── design-system/ # Master tokens, colors, and global CSS
+├── public/            # Static assets and PWA manifests
+└── scripts/           # Maintenance and refactoring utilities
+```
+
+---
+
+## 🔌 Core Functionalities & APIs
+
+### Data Engine (`/api/sheet-data`)
+The project utilizes a unified internal API to manage all infrastructure records.
+
+- `GET ?sheet=<type>`: Retrieves prioritized records for `station` or `client` systems.
+- `POST ?sheet=<type>`: Direct insertion of new deployment records into Supabase.
+- `PUT ?sheet=<type>`: Update existing record progress (Foundation %, Radio SN, etc.).
+- `DELETE ?sheet=<type>`: Secure removal of records with confirmation triggers.
+
+### Testing & Deployment
+- **Static Analysis**: The project uses ESLint and TypeScript for strict type checking during the build phase.
+- **CI/CD Build**: All refactors must pass `npm run build` to verify Next.js server/client boundaries.
+- **Deployment**: Optimized for Vercel. Ensure all Environment Variables are mirrored in the Vercel Dashboard project settings.
+
+---
+© 2026 Developed by Prossnum Team. Technical Documentation v1.3.0.
