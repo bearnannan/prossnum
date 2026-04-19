@@ -12,13 +12,20 @@ The application is a modern web-based monitoring dashboard for station managemen
 - **Maps & GIS**: Leaflet + MapLibre GL
 - **Offline Support**: PWA + IndexDB
 
-## 2. Main Skills to be Used (from .agent/skills)
-- `googlesheets-automation`
-- `nextjs-app-router-patterns`
-- `tailwind-design-system`
-- `ui-ux-pro-max`
-- `react-best-practices`
+## 2. Main Skills to be Used
+- `googlesheets-automation`: Core backend integration.
+- `nextjs-app-router-patterns`: Architecture maintenance.
+- `ui-ux-pro-max`: Premium design reasoning and generation (`ui-ux-pro-max-skill`).
+- `memento-loop`: Automated reflection and error recovery (`Memento-Skills`).
+- `caveman-prose`: token-efficient and fast agent communication (`caveman`).
+- `diagram-mcp`: Architecture visualization (`drawio-mcp`).
 
 ## 3. Current Issues Fixed
 - **Sheet Case Sensitivity**: Fixed mismatched sheet name (`station_data` -> `Stationdata`).
-- **Column Mapping Error**: Resolved "Client System" update failure by aligning API payloads with the actual 26-column structure of the Google Sheet (removed non-existent `linkProgress` column).
+- **Column Mapping Error**: Resolved "Client System" update failure by aligning API payloads.
+
+## 4. Agent Integration Context
+To ensure high performance and premium design, the agent now operates with:
+- **Design Intelligence**: Utilizing `ui-ux-pro-max-skill` to enforce glassmorphism aesthetics and responsive layouts.
+- **Reflective Learning**: Applying `Memento-Skills` logic to monitor `build_error.log` and prevent regression.
+- **Efficiency Mode**: Using `caveman` style for internal processing to reduce latency.

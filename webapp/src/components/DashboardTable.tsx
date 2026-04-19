@@ -46,7 +46,7 @@ export function DashboardTable({
               type="text" 
               aria-label="ค้นหาสถานี"
               placeholder="ค้นหาสถานี..." 
-              className="pl-9 pr-4 py-2.5 rounded-xl bg-zinc-100/70 dark:bg-zinc-800 border-none outline-none text-sm w-[200px] placeholder:text-zinc-400 focus:ring-2 focus:ring-blue-500/20 focus:bg-white dark:focus:bg-zinc-700 transition-all duration-200" 
+              className="pl-9 pr-4 py-2.5 rounded-xl bg-zinc-100/40 dark:bg-zinc-800/40 glass-panel-subtle border-none outline-none text-sm w-[200px] placeholder:text-zinc-400 focus:ring-2 focus:ring-blue-500/20 focus:bg-white dark:focus:bg-zinc-700 transition-all duration-200" 
               value={searchTerm} 
               onChange={e => setSearchTerm(e.target.value)} 
             />
@@ -65,7 +65,7 @@ export function DashboardTable({
       {/* Table Content */}
       <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
         <table className="w-full text-left text-xs sm:text-sm whitespace-nowrap table-premium">
-          <thead className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase font-bold tracking-wider sticky top-0 z-10" style={{ background: 'rgba(248,250,252,0.95)', backdropFilter: 'blur(8px)' }}>
+          <thead className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase font-bold tracking-wider sticky top-0 z-20 glass-panel-elevated !rounded-none border-b-none shadow-none">
             <tr>
               <th className="px-5 py-3.5 cursor-pointer hover:text-zinc-600 transition-colors" onClick={() => handleSort('district')}>
                 จังหวัด/อำเภอ {sortConfig?.key === 'district' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
@@ -95,7 +95,7 @@ export function DashboardTable({
                   <th className="px-5 py-3.5">ขอมิเตอร์</th>
                 </>
               )}
-              <th className="px-5 py-3.5 text-right sticky right-0 z-10" style={{ background: 'rgba(248,250,252,0.95)' }}>Action</th>
+              <th className="px-5 py-3.5 text-right sticky right-0 z-20 glass-panel-elevated !rounded-none border-l-none shadow-none border-b-none">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100/60 dark:divide-zinc-800/60">
@@ -107,8 +107,8 @@ export function DashboardTable({
                   style={{ animation: `fadeInUp 0.3s cubic-bezier(0.16,1,0.3,1) ${Math.min(idx * 0.03, 0.5)}s both` }}
                 >
                   <td className="px-5 py-3.5">
-                    <div className="font-bold text-zinc-800 dark:text-zinc-200 text-xs">{item.district}</div>
-                    <div className="text-[10px] text-zinc-400 font-medium">จ.{item.province || 'กาญจนบุรี'}</div>
+                    <div className="font-bold text-zinc-800 dark:text-zinc-200 text-xs tracking-tight">{item.district}</div>
+                    <div className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">จ.{item.province || 'กาญจนบุรี'}</div>
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="font-bold text-blue-600 dark:text-blue-400 text-xs">{item.stationName}</div>
@@ -160,7 +160,7 @@ export function DashboardTable({
                       </td>
                     </>
                   )}
-                  <td className="px-5 py-3.5 text-right sticky right-0 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/10 transition-colors duration-200">
+                  <td className="px-5 py-3.5 text-right sticky right-0 z-10 glass-panel-elevated !rounded-none border-none shadow-none bg-white/5 dark:bg-zinc-900/5 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/10 transition-colors duration-200">
                     <div className="flex justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity duration-200">
                       <button aria-label="Edit item" onClick={() => handleEditClick(item)} className="p-1.5 hover:bg-blue-100/80 dark:hover:bg-blue-900/30 text-blue-600 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95">
                         <span className="material-symbols-outlined text-sm" aria-hidden="true">edit</span>

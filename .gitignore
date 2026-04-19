@@ -21,4 +21,15 @@ __pycache__/
 !*.py
 !*.ttf
 !*.csv
-!*.png
+
+# Integrated Tools & Skills (Exclusion)
+.serena/
+FossFLOW/
+Memento-Skills/
+YourPOS-With-Stripe/
+caveman/
+cliTokenKill/
+drawio-mcp/
+ebook-for-education/
+oh-my-codex/
+public-apis/
