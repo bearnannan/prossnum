@@ -4,8 +4,9 @@ require('dotenv').config({ path: '.env.local' });
 async function testSheets() {
   try {
     console.log('Testing Google Sheets connection from webapp directory...');
-    console.log('Email:', process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL);
-    console.log('Sheet ID:', process.env.GOOGLE_SHEET_ID);
+    // [SECURITY] Do not log env variable values
+    if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) throw new Error('Missing GOOGLE_SERVICE_ACCOUNT_EMAIL');
+    if (!process.env.GOOGLE_SHEET_ID) throw new Error('Missing GOOGLE_SHEET_ID');
 
     const auth = new google.auth.GoogleAuth({
       credentials: {

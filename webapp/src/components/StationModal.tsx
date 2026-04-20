@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { get, set } from "idb-keyval";
+import { addMutation } from "@/lib/offline-sync";
+import { useToast } from "@/components/Toast";
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import { StationData } from "@/app/api/sheet-data/route";
 
@@ -11,15 +12,6 @@ interface StationModalProps {
     onSave: () => void;
     editingStation?: StationData | null;
     districts: string[];
-}
-
-// TS 5.3: typed offline mutation queue item
-interface OfflineMutation {
-    id: string;
-    method: "POST" | "PUT";
-    payload: unknown;
-    timestamp: number;
-    sheet: "station" | "client";
 }
 
 const defaultForm = {
@@ -48,6 +40,7 @@ export default function StationModal({
     const [formData, setFormData] = useState(defaultForm);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const { showToast } = useToast();
 
     const isEditing = !!editingStation;
 
@@ -102,11 +95,15 @@ export default function StationModal({
                 ? { ...formData, id: editingStation!.id }
                 : formData;
 
+            // Offline Check: Use centralized sync engine
             if (!navigator.onLine) {
-                const queue: OfflineMutation[] = (await get("offline-mutations")) || [];
-                queue.push({ id: Date.now().toString(), method, payload, timestamp: Date.now(), sheet: "station" });
-                await set("offline-mutations", queue);
-                alert("Saved as Draft. It will sync automatically when back online.");
+                await addMutation({ 
+                    method, 
+                    payload, 
+                    sheet: "station" 
+                });
+                
+                showToast("บันทึกข้อมูลแบบออฟไลน์สำเร็จ ระบบจะซิงค์เมื่อเชื่อมต่อเน็ตได้", "info");
                 onSave();
                 onClose();
                 return;
@@ -123,15 +120,16 @@ export default function StationModal({
                 throw new Error(err.error || "Failed to save");
             }
 
+            showToast(isEditing ? "แก้ไขข้อมูลสำเร็จ" : "เพิ่มสถานีสำเร็จ", "success");
             onSave();
             onClose();
         } catch (err: unknown) {
-            // TS 5.3: error: unknown — must narrow before accessing message
             setErrors({ form: err instanceof Error ? err.message : "เกิดข้อผิดพลาด" });
         } finally {
             setIsSubmitting(false);
         }
     };
+
 
     // ── Headless UI v2.1: Dialog with built-in transition support ──────────
     // No more manual `if (!isOpen) return null` — HUI manages mount/unmount.

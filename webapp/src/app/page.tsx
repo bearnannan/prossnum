@@ -6,7 +6,10 @@ import dynamic from "next/dynamic";
 import useSWR from "swr";
 import { StationData, ClientSystemData } from "./api/sheet-data/route";
 import { supabase } from "@/lib/supabase";
+import { addMutation, getQueueForSheet, OfflineMutation } from "@/lib/offline-sync";
 import { useToast } from "@/components/Toast";
+import { get, set, del } from "idb-keyval";
+import { SWRConfig } from "swr";
 import { Skeleton, SkeletonLayout } from "@/components/Skeleton";
 import TopNavBar from '@/components/TopNavBar';
 import SideNavBar from '@/components/SideNavBar';
@@ -60,9 +63,53 @@ function DashboardContent() {
     keepPreviousData: true,
   });
 
+  const [pendingMutations, setPendingMutations] = useState<OfflineMutation[]>([]);
+
+  // Fetch pending mutations to merge them into the UI
+  useEffect(() => {
+    const fetchQueue = async () => {
+      const queue = await getQueueForSheet(activeCategory);
+      setPendingMutations(queue);
+    };
+    fetchQueue();
+    // Refresh queue status periodically
+    const interval = setInterval(fetchQueue, 3000);
+    return () => clearInterval(interval);
+  }, [activeCategory]);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data: any[] = responseData?.data || [];
+  
+  // Merge SWR data with pending mutations for Optimistic UI
+  const data = useMemo(() => {
+    let baseData = [...(responseData?.data || [])];
+    
+    // Apply sync status to base data
+    baseData = baseData.map(item => ({ ...item, _syncStatus: 'synced' }));
+
+    // Apply pending mutations
+    pendingMutations.forEach(mut => {
+      if (mut.method === 'DELETE') {
+        baseData = baseData.filter(item => item.id !== mut.payload.id);
+        // Note: For deletions, we might want to keep the item but mark it as 'deleting'
+        // For now, let's just mark existing items that are being deleted
+        const index = (responseData?.data || []).findIndex((item: any) => item.id === mut.payload.id);
+        if (index !== -1) {
+            // Re-insert with deleting status if we want to show it in the table
+            // But usually filtering out is cleaner. Let's keep it filtered.
+        }
+      } else if (mut.method === 'PUT') {
+        const index = baseData.findIndex(item => item.id === mut.payload.id);
+        if (index !== -1) {
+          baseData[index] = { ...mut.payload, _syncStatus: 'pending' };
+        }
+      } else if (mut.method === 'POST') {
+        baseData.unshift({ ...mut.payload, id: `temp-${mut.id}`, _syncStatus: 'pending' });
+      }
+    });
+
+    return baseData;
+  }, [responseData, pendingMutations]);
+
   const isLoading = swrIsLoading && !responseData;
   const error = swrError?.message || null;
   const {
@@ -127,17 +174,28 @@ function DashboardContent() {
   };
 
   const handleDeleteClick = async (item: any) => {
-    if (!item.id || !window.confirm(`Are you sure you want to delete ${item.stationName}?`)) return;
+    if (!item.id || !window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ ${item.stationName}?`)) return;
     try {
+      if (!navigator.onLine) {
+        await addMutation({
+          method: "DELETE",
+          payload: { id: item.id },
+          sheet: activeCategory as "station" | "client"
+        });
+        showToast("ลบข้อมูลแบบออฟไลน์สำเร็จ จะซิงค์เมื่อออนไลน์", "info");
+        await mutate(); // Refresh UI to remove the item optimistically
+        return;
+      }
+
       const res = await fetch(`/api/sheet-data?sheet=${activeCategory}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: item.id }),
       });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) throw new Error("ล้มเหลวในการลบข้อมูล");
       await fetchSheetData("ลบข้อมูลสำเร็จ");
     } catch (err: any) {
-      alert(`Error: ${err.message}`);
+      showToast(err.message, "error");
     }
   };
 
@@ -233,10 +291,45 @@ function DashboardContent() {
   );
 }
 
+// Simplified persistent cache provider for SWR using idb-keyval
+const idbCacheProvider = () => {
+    // We only use this on the client
+    if (typeof window === "undefined") return new Map();
+
+    const cache = new Map();
+    
+    // Attempt to load entire cache from IDB on startup
+    get("swr-cache").then((stored: any) => {
+        if (stored) {
+            for (const [key, value] of Object.entries(stored)) {
+                cache.set(key, value);
+            }
+        }
+    });
+
+    return {
+        get: (key: string) => cache.get(key),
+        set: (key: string, value: any) => {
+            cache.set(key, value);
+            // Persist the entire cache to IDB
+            const obj = Object.fromEntries(cache.entries());
+            set("swr-cache", obj);
+        },
+        delete: (key: string) => {
+            cache.delete(key);
+            const obj = Object.fromEntries(cache.entries());
+            set("swr-cache", obj);
+        },
+        keys: () => cache.keys()
+    };
+};
+
 export default function Home() {
   return (
-    <ErrorBoundary>
-      <DashboardContent />
-    </ErrorBoundary>
+    <SWRConfig value={{ provider: idbCacheProvider }}>
+      <ErrorBoundary>
+        <DashboardContent />
+      </ErrorBoundary>
+    </SWRConfig>
   );
 }

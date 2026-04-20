@@ -104,7 +104,7 @@ export function DashboardTable({
               return (
                 <tr 
                   key={item.id || idx} 
-                  className="group hover:bg-blue-50/30 dark:hover:bg-blue-900/5 transition-colors duration-200 relative"
+                  className={`group hover:bg-blue-50/30 dark:hover:bg-blue-900/5 transition-colors duration-200 relative ${item._syncStatus === 'pending' ? 'opacity-75' : ''}`}
                   style={{ animation: `fadeInUp 0.3s cubic-bezier(0.16,1,0.3,1) ${Math.min(idx * 0.03, 0.5)}s both` }}
                 >
                   <td className="px-5 py-3.5">
@@ -112,7 +112,15 @@ export function DashboardTable({
                     <div className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">จ.{item.province || 'กาญจนบุรี'}</div>
                   </td>
                   <td className="px-5 py-3.5">
-                    <div className="font-bold text-blue-600 dark:text-blue-400 text-xs">{item.stationName}</div>
+                    <div className="flex items-center gap-2">
+                        <div className="font-bold text-blue-600 dark:text-blue-400 text-xs">{item.stationName}</div>
+                        {item._syncStatus === 'pending' && (
+                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded shadow-sm bg-amber-50 dark:bg-amber-900/30 border border-amber-200/50 dark:border-amber-700/30 animate-pulse" title="Saved locally, waiting to sync">
+                                <span className="w-1 h-1 rounded-full bg-amber-500"></span>
+                                <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-tighter">Local</span>
+                            </div>
+                        )}
+                    </div>
                     <div className="text-[10px] text-zinc-400 truncate max-w-[150px]">{item.remark || "ไม่มีหมายเหตุ"}</div>
                   </td>
                   {activeCategory === 'station' ? (

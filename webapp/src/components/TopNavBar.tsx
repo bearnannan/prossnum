@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import SyncIndicator from "./SyncIndicator";
 
 interface TopNavBarProps {
   onLogout?: () => void;
@@ -70,6 +71,10 @@ export default function TopNavBar({ onLogout, onMenuToggle }: TopNavBarProps) {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="mr-1 sm:mr-2">
+          <SyncIndicator />
+        </div>
+        
         <button className="hidden sm:flex p-2 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all duration-200 relative">
           <span className="material-symbols-outlined text-[20px]">notifications</span>
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-zinc-900"></span>
@@ -88,5 +93,6 @@ export default function TopNavBar({ onLogout, onMenuToggle }: TopNavBarProps) {
         </button>
       </div>
     </nav>
+
   );
 }

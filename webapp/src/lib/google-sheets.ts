@@ -1,14 +1,21 @@
 import { google } from "googleapis";
 
-// Initialize the Google Sheets client
+// Initialize the Google Sheets client with runtime secret validation
 const getAuthClient = () => {
+    const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+
+    // [SECURITY] Fail fast if critical secrets are missing — never expose values in logs
+    if (!email) throw new Error("[google-sheets] GOOGLE_SERVICE_ACCOUNT_EMAIL is not configured.");
+    if (!privateKey) throw new Error("[google-sheets] GOOGLE_PRIVATE_KEY is not configured.");
+
     return new google.auth.GoogleAuth({
         credentials: {
-            client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-            private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"), // Handle newlines in env variables
+            client_email: email,
+            private_key: privateKey,
         },
         scopes: [
-            "https://www.googleapis.com/auth/spreadsheets", // Full read/write access
+            "https://www.googleapis.com/auth/spreadsheets",
         ],
     });
 };
