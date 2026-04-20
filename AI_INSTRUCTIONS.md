@@ -52,6 +52,7 @@ The project includes several cloned repositories (not submodules). To keep them 
 
 ### 2. Living Documentation
 - **Sync Routine**: At the start of each significant phase, verify `llm-wiki.md` and `AI_INSTRUCTIONS.md` are up to date with the latest architectural changes (e.g., Supabase migration details).
+- **Knowledge Synchronization**: **CRITICAL**: Every time a build error, architectural conflict, or significant post-mortem occurs, the agent MUST update the `knowledge/` directory (e.g., `vercel_stability.md`) *before* final closure.
 - **Update Frequency**: Documentation must be updated *before* a walkthrough is generated for any major feature.
 
 ## 5. Development Workflow

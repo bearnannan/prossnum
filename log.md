@@ -18,8 +18,9 @@ A chronological record of Prossnum evolution.
 - **Context Refresh**: Updated `index.md` to confirm **Supabase** as the primary backend source of truth.
 - **Refinement**: Registered 950+ skills and established the core skill priority matrix.
 
-## [2026-04-21] UI Work & Maintenance Script
-- Updated `StatGrid.tsx` and `DashboardTable.tsx` with Meter installation status and count.
-- Created `update_modules.ps1` for automated repository synchronization.
-- Verified and synced all 9+ external modules via the new update script.
-- Updated `AI_INSTRUCTIONS.md` with maintenance procedures.
+## [2026-04-21] Auth Integration & Build Stability
+- **LINE Login**: Integrated NextAuth with LINE Provider. Added personalized Navbar with user profile images and name display.
+- **UX Polish**: Added loading states to the LINE login flow to prevent multiple submissions.
+- **Build Stabilization**: Resolved Vercel build failure caused by `middleware.ts` vs `proxy.ts` naming conflict.
+- **Persistent Knowledge**: Established `knowledge/vercel_stability.md` to prevent future build failures, adhering to the `llm-wiki` pattern.
+- **Wiki Update**: Registered the new stability guide in `index.md`.

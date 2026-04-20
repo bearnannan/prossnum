@@ -30,11 +30,11 @@ export function DashboardCharts({
   return (
     <Suspense fallback={
       <>
-        <div className="col-span-1 md:col-span-2 lg:col-span-7 glass-panel p-6 h-[460px] animate-pulse bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl" />
-        <div className="col-span-1 md:col-span-2 lg:col-span-5 glass-panel p-2 h-[460px] animate-pulse bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl" />
+        <div className="col-span-1 md:col-span-2 lg:col-span-7 glass-panel p-6 h-[480px] animate-pulse bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl" />
+        <div className="col-span-1 md:col-span-2 lg:col-span-5 glass-panel p-2 h-[480px] animate-pulse bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl" />
       </>
     }>
-      <div className="col-span-1 md:col-span-2 lg:col-span-7 glass-panel p-6 flex flex-col z-10 animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
+      <div className="col-span-1 md:col-span-2 lg:col-span-7 h-[480px] glass-panel p-6 flex flex-col z-10 animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
         <div className="flex items-center gap-2 mb-5">
           <div className="flex items-center gap-1 p-1 bg-zinc-100/70 dark:bg-zinc-800/40 rounded-xl">
             <button onClick={() => setChartTab('average')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${chartTab === 'average' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>
@@ -45,12 +45,12 @@ export function DashboardCharts({
             </button>
           </div>
         </div>
-        <div className="h-[400px]">
+        <div className="h-[420px]">
           {chartTab === 'average' ? <DistrictProgressChart data={filteredData} category={activeCategory} /> : <ComparisonChart data={filteredData} category={activeCategory} />}
         </div>
       </div>
 
-      <div className="col-span-1 md:col-span-2 lg:col-span-5 h-[400px] sm:h-full min-h-[400px] glass-panel p-2 flex flex-col relative animate-fade-in-up z-10" style={{ animationDelay: '0.2s' }}>
+      <div className="col-span-1 md:col-span-2 lg:col-span-5 h-[480px] glass-panel p-2 flex flex-col relative animate-fade-in-up z-10" style={{ animationDelay: '0.2s' }}>
         <div className="w-full h-full rounded-2xl overflow-hidden relative z-10">
           <MapView data={filteredData} category={activeCategory} />
         </div>

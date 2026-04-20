@@ -257,7 +257,7 @@ function DashboardContent() {
         </div>
 
         {/* ════════════ CHART + MAP ROW ════════════ */}
-        <div className="col-span-1 md:col-span-2 lg:col-span-8">
+        <div className="col-span-1 md:col-span-2 lg:col-span-8 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
            <DashboardCharts activeCategory={activeCategory} filteredData={filteredData} chartTab={chartTab} setChartTab={setChartTab} />
         </div>
 

@@ -22,15 +22,26 @@ These directories provide the "brain" and efficiency layers for the coding assis
 - **`llm-wiki.md`**: Architectural pattern for persistent, compounding knowledge management.
 - **`AI_INSTRUCTIONS.md`**: The definitive operating handbook synthesized from local patterns.
 
-## 4. Reference Projects & Resources
+## 4. Technical Knowledge Base (LLM-Wiki)
+- **Directory**: `knowledge/`
+- **Role**: Persistent technical memory storage for the Prossnum project.
+- **Key Assets**:
+  - `vercel_stability.md`: Critical post-mortem guide for middleware and Vercel build stability.
+  - `index.md`: Centralized wiki index for all knowledge assets.
+  - `log.md`: Chronological history of technical decisions and changes.
+
+## 5. Reference Projects & Resources
 These are clones of external repositories used for inspiration, education, and feature reference.
 - **`FossFLOW/`**: Reference for flow-based development.
 - **`YourPOS-With-Stripe/`**: Reference for Point-of-Sale and Stripe payment integration.
 - **`ebook-for-education/`**: educational resource reference.
 - **`public-apis/`**: Extensive list of public APIs for integration research.
 
-## 5. Core Skill Matrix
-| **High** | `ui-ux-pro-max` | `ui-ux-pro-max-skill` | Styling & Design System |
-| **High** | `memento-loop` | `Memento-Skills` | Build Fixes & Optimization |
-| **Medium** | `caveman-prose` | `caveman` | Token Efficiency |
-| **Medium** | `diagram-mcp` | `drawio-mcp` | Architecture Visualization |
+## 6. Core Skill Matrix
+| **Priority** | **Skill Name** | **Integration Tool** | **Primary Utility** |
+| :--- | :--- | :--- | :--- |
+| **High** | `ui-ux-pro-max` | `ui-ux-pro-max-skill` | Styling & Design System Enforcement |
+| **High** | `memento-loop` | `Memento-Skills` | Build Stability & Self-Healing |
+| **High** | `llm-wiki-sync` | `llm-wiki.md` | Compounding Knowledge Management |
+| **Medium** | `caveman-prose` | `caveman` | Token Efficiency & Concise Communication |
+| **Medium** | `diagram-mcp` | `drawio-mcp` | Architecture & Workflow Visualization |

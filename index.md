@@ -18,6 +18,10 @@ A compiled record of Prossnum knowledge, following the `llm-wiki.md` pattern.
 - **Prose Compression**: The `caveman` efficiency pattern.
 
 ## Workspace Ecosystem
-- [workspace_audit.md](file:///d:/APP/prossnum/workspace_audit.md): High-level map of all integrated frameworks.
+- [workspace_audit.md](file:///d:/APP\prossnum/workspace_audit.md): High-level map of all integrated frameworks.
+
+## Operations & Maintenance
+- [knowledge/vercel_stability.md](file:///d:/APP\prossnum/knowledge/vercel_stability.md): Critical guide for build stability and deployment.
+- [log.md](file:///d:/APP\prossnum/log.md): Append-only chronological history of changes.
 
 
