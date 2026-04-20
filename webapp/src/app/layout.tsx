@@ -23,6 +23,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 };
 
+import { SessionProvider } from "next-auth/react";
 import { ToastProvider } from "@/components/Toast";
 
 export default function RootLayout({
@@ -39,10 +40,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ToastProvider>
-          <OfflineSyncManager />
-          {children}
-        </ToastProvider>
+        <SessionProvider>
+          <ToastProvider>
+            <OfflineSyncManager />
+            {children}
+          </ToastProvider>
+        </SessionProvider>
       </body>
     </html>
   );

@@ -11,6 +11,7 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [isLineLoading, setIsLineLoading] = useState(false);
     const router = useRouter();
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -326,8 +327,12 @@ export default function LoginPage() {
                             {/* ── LINE Sign In ── */}
                             <button
                                 type="button"
-                                onClick={() => signIn("line", { callbackUrl: "/" })}
-                                className="w-full py-3.5 rounded-xl font-bold text-sm shadow-premium-sm transition-all duration-300 flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-[0.98] hover:shadow-premium-md text-white relative overflow-hidden group"
+                                disabled={isLineLoading || isLoading}
+                                onClick={() => {
+                                    setIsLineLoading(true);
+                                    signIn("line", { callbackUrl: "/" });
+                                }}
+                                className="w-full py-3.5 rounded-xl font-bold text-sm shadow-premium-sm transition-all duration-300 flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-[0.98] hover:shadow-premium-md text-white relative overflow-hidden group disabled:opacity-50"
                                 style={{
                                     background: 'linear-gradient(135deg, #06C755, #04A847)',
                                     animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.45s both',
@@ -340,12 +345,19 @@ export default function LoginPage() {
                                         animation: 'shimmer 2s ease-in-out infinite',
                                     }}
                                 />
-                                <img
-                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOsb_L3Wjo1XwY4nbYDNg7t-9jqfeYPKn3G9RypRixEYvObdb-zMF9MXSU8-cKsUYP_G5rd-ZmwezdnIvTN3PDz8mXdSTCsUycYyXfVPmRVyUtcNeM0q0P3MTjykpYLzlq_U-ZdA9bxP0iwy4dNW-60cStijjoQsdJIJkVQ0zwrVIc2n9NBdGusjdeDMgKDUJL_k_kbMKtcc8T5MsXHzfRQBEGgLHhgk3iuXztixoGgARL0ZHNwkz-fIDpJxjR5noWkUW5TVevXeM"
-                                    alt="LINE"
-                                    className="w-5 h-5 filter brightness-0 invert relative z-10"
-                                />
-                                <span className="relative z-10">Sign in with LINE</span>
+                                {isLineLoading ? (
+                                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                    </svg>
+                                ) : (
+                                    <img
+                                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOsb_L3Wjo1XwY4nbYDNg7t-9jqfeYPKn3G9RypRixEYvObdb-zMF9MXSU8-cKsUYP_G5rd-ZmwezdnIvTN3PDz8mXdSTCsUycYyXfVPmRVyUtcNeM0q0P3MTjykpYLzlq_U-ZdA9bxP0iwy4dNW-60cStijjoQsdJIJkVQ0zwrVIc2n9NBdGusjdeDMgKDUJL_k_kbMKtcc8T5MsXHzfRQBEGgLHhgk3iuXztixoGgARL0ZHNwkz-fIDpJxjR5noWkUW5TVevXeM"
+                                        alt="LINE"
+                                        className="w-5 h-5 filter brightness-0 invert relative z-10"
+                                    />
+                                )}
+                                <span className="relative z-10">{isLineLoading ? "Connecting..." : "Sign in with LINE"}</span>
                             </button>
                         </div>
 

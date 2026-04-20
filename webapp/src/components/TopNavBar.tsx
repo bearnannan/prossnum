@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import SyncIndicator from "./SyncIndicator";
 
 interface TopNavBarProps {
@@ -11,7 +12,9 @@ interface TopNavBarProps {
 
 export default function TopNavBar({ onLogout, onMenuToggle }: TopNavBarProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   
+  const user = session?.user;
   const handleLogout = async () => {
     if (onLogout) {
       onLogout();
@@ -83,16 +86,46 @@ export default function TopNavBar({ onLogout, onMenuToggle }: TopNavBarProps) {
           <span className="material-symbols-outlined text-[20px]">settings</span>
         </button>
         
-        {/* Logout Avatar */}
-        <button 
-          onClick={handleLogout}
-          className="group relative w-9 h-9 rounded-xl overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-500 flex items-center justify-center shadow-premium-sm hover:shadow-premium-md transition-all duration-300 hover:scale-105 active:scale-95"
-          title="Click to Logout"
-        >
-          <span className="material-symbols-outlined text-white text-sm group-hover:rotate-12 transition-transform duration-300">logout</span>
-        </button>
+        {/* Logout Avatar / User Profile */}
+        <div className="flex items-center gap-3 ml-2 pl-3 border-l border-zinc-200 dark:border-zinc-800">
+          <div className="hidden sm:flex flex-col items-end">
+            <span className="text-[11px] font-bold text-zinc-900 dark:text-white leading-none">
+              {user?.name || "Member User"}
+            </span>
+            <span className="text-[9px] font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mt-0.5">
+              {user?.email ? "Developer" : "Infrastructure"}
+            </span>
+          </div>
+
+          <button 
+            onClick={handleLogout}
+            className="group relative w-9 h-9 rounded-xl overflow-hidden shadow-premium-sm hover:shadow-premium-md transition-all duration-300 hover:scale-105 active:scale-95"
+            style={{
+               background: user?.image 
+                 ? 'transparent' 
+                 : 'linear-gradient(to bottom right, #3b82f6, #6366f1, #8b5cf6)'
+            }}
+            title={`Logged in as ${user?.name || 'User'}. Click to Logout.`}
+          >
+            {user?.image ? (
+              <img 
+                src={user.image} 
+                alt={user.name || "User"} 
+                className="w-full h-full object-cover group-hover:opacity-40 transition-opacity duration-300"
+              />
+            ) : (
+              <span className="material-symbols-outlined text-white text-sm group-hover:rotate-12 transition-transform duration-300">
+                person
+              </span>
+            )}
+            
+            {/* Overlay Logout Icon on Hover */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/20 backdrop-blur-[2px]">
+              <span className="material-symbols-outlined text-white text-base">logout</span>
+            </div>
+          </button>
+        </div>
       </div>
     </nav>
-
   );
 }
