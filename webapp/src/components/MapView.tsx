@@ -217,7 +217,17 @@ function TacticalStyles() {
 
 // ─── Main Tactical MapView ────────────────────────────────────────────────────
 const MapView = React.memo(function MapView({ data, category = 'station' }: { data: any[], category?: 'station' | 'client' }) {
+    const [mounted, setMounted] = React.useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const defaultCenter: [number, number] = [14.5, 100.5]; // Thailand center
+
+    if (!mounted) {
+        return <div className="h-full w-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-900/50 rounded-xl text-zinc-400 text-sm italic">กำลังโหลดแผนที่...</div>;
+    }
 
     return (
         // @ts-ignore

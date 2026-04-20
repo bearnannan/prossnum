@@ -15,6 +15,12 @@ import {
 import React from 'react';
 
 export default React.memo(function ComparisonChart({ data, category = 'station' }: { data: any[], category?: string }) {
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
     // Group by district
     const districtStats: Record<string, { val1Sum: number; val2Sum: number; val3Sum?: number; count: number }> = {};
 
@@ -66,10 +72,10 @@ export default React.memo(function ComparisonChart({ data, category = 'station' 
             return valB - valA;
         });
 
-    if (chartData.length === 0) {
+    if (!mounted || chartData.length === 0) {
         return (
-            <div className="flex items-center justify-center h-full text-zinc-400 text-sm">
-                ไม่มีข้อมูล
+            <div className="flex items-center justify-center h-full text-zinc-400/50 text-xs italic">
+                {!mounted ? "กำลังเตรียมข้อมูล..." : "ไม่มีข้อมูลสำหรับแสดงแผนภูมิ"}
             </div>
         );
     }

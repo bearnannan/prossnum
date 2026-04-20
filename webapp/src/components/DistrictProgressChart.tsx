@@ -14,7 +14,12 @@ import {
 import React from 'react';
 
 export default React.memo(function DistrictProgressChart({ data, category = 'station' }: { data: any[], category?: string }) {
-    // 1. Group by district and calculate averages
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const isClient = category === 'client';
     
     const districtStats: Record<string, any> = {};
@@ -73,8 +78,10 @@ export default React.memo(function DistrictProgressChart({ data, category = 'sta
         return (b.foundation || 0) - (a.foundation || 0);
     });
 
-    if (chartData.length === 0) {
-        return <div className="flex items-center justify-center h-full text-gray-500">No data available for chart</div>;
+    if (!mounted || chartData.length === 0) {
+        return <div className="flex items-center justify-center h-full text-gray-400/50 text-xs italic">
+            {!mounted ? "กำลังเตรียมข้อมูล..." : "ไม่มีข้อมูลสำหรับแสดงแผนภูมิ"}
+        </div>;
     }
 
     // Custom Tooltip
@@ -82,15 +89,20 @@ export default React.memo(function DistrictProgressChart({ data, category = 'sta
         if (active && payload && payload.length) {
             const rowData = payload[0].payload;
             return (
-                <div className="bg-white p-3 rounded-lg shadow-lg border border-zinc-100 text-sm">
-                    <p className="font-semibold text-zinc-800 mb-1">อำเภอ: {label}</p>
-                    <p className="text-zinc-500 mb-2 text-xs">จาก {rowData.count} สถานี</p>
-                    {payload.map((entry: any, index: number) => (
-                        <div key={`item-${index}`} className="flex items-center gap-2 text-xs">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                            <span className="text-zinc-700">{entry.name}: <span className="font-semibold">{entry.value}%</span></span>
-                        </div>
-                    ))}
+                <div className="bg-zinc-50 dark:bg-zinc-900/90 backdrop-blur-md p-3 rounded-xl shadow-2xl border border-zinc-200 dark:border-zinc-800 text-sm animate-in fade-in zoom-in duration-200">
+                    <p className="font-bold text-zinc-900 dark:text-zinc-100 mb-1">อำเภอ: {label}</p>
+                    <p className="text-zinc-500 dark:text-zinc-400 mb-2 text-[10px] uppercase tracking-wider font-semibold">จาก {rowData.count} สถานี</p>
+                    <div className="space-y-1.5">
+                        {payload.map((entry: any, index: number) => (
+                            <div key={`item-${index}`} className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full shadow-[0_0_8px_var(--color)]" style={{ backgroundColor: entry.color, '--color': entry.color } as any} />
+                                    <span className="text-zinc-600 dark:text-zinc-400 text-xs">{entry.name}</span>
+                                </div>
+                                <span className="font-bold text-zinc-900 dark:text-zinc-100 text-xs">{entry.value}%</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             );
         }
