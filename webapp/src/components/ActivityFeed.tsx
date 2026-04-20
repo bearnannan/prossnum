@@ -1,5 +1,4 @@
-"use client";
-
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import useSWR from "swr";
 import { formatDistanceToNow } from "date-fns";
@@ -17,9 +16,14 @@ interface AuditLog {
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function ActivityFeed() {
+  const [mounted, setMounted] = useState(false);
   const { data: response, error, isLoading } = useSWR("/api/audit", fetcher, {
     refreshInterval: 30000, // Refresh every 30 seconds
   });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const logs: AuditLog[] = response?.data || [];
 
@@ -62,6 +66,33 @@ export function ActivityFeed() {
       ไม่สามารถโหลดข้อมูลความเคลื่อนไหวได้
     </div>
   );
+
+  // Avoid hydration mismatch by waiting for mount
+  if (!mounted) {
+    return (
+      <div className="glass-panel-elevated overflow-hidden flex flex-col h-full animate-fade-in-up">
+        <div className="p-5 border-b border-zinc-200/50 dark:border-zinc-800/50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-zinc-400">history</span>
+            <h3 className="font-bold text-sm tracking-tight">ความเคลื่อนไหวล่าสุด</h3>
+          </div>
+        </div>
+        <div className="flex-1 p-2 max-h-[400px]">
+           <div className="space-y-4 p-3 animate-pulse">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex gap-3">
+                <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800" />
+                <div className="flex-1 py-1 space-y-2">
+                  <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded w-3/4" />
+                  <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="glass-panel-elevated overflow-hidden flex flex-col h-full animate-fade-in-up">
@@ -116,7 +147,7 @@ export function ActivityFeed() {
                     <div className="flex items-center gap-1.5 mt-0.5">
                        <span className="text-[11px] font-medium text-zinc-500 truncate">
                         โดย {log.user_name || "ผู้ไม่ระบุชื่อ"}
-                      </span>
+                       </span>
                       <span className="text-[10px] text-zinc-300 dark:text-zinc-600">•</span>
                       <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter shrink-0">
                         {formatDistanceToNow(new Date(log.created_at), { addSuffix: true, locale: th })}
@@ -138,3 +169,4 @@ export function ActivityFeed() {
     </div>
   );
 }
+

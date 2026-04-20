@@ -43,3 +43,8 @@ yarn-error.log*
 /auth-out.txt
 /auth_debug.log
 /auth_out.txt
+# pwa
+/webapp/public/sw.js
+/webapp/public/workbox-*.js
+/webapp/public/sw.js.map
+/webapp/public/workbox-*.js.map

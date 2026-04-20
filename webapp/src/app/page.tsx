@@ -199,8 +199,13 @@ function DashboardContent() {
     }
   };
 
-  const today = new Date();
-  const thaiDate = today.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const [thaiDate, setThaiDate] = useState("");
+
+  useEffect(() => {
+    const today = new Date();
+    setThaiDate(today.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+  }, []);
+
 
   return (
     <div className="bg-zinc-50/50 dark:bg-zinc-950/80 architectural-bg text-zinc-900 dark:text-zinc-100 min-h-screen font-sans">
@@ -223,7 +228,10 @@ function DashboardContent() {
         <header className="col-span-1 md:col-span-2 lg:col-span-12 glass-panel-elevated p-6 sm:p-8 animate-fade-in-up">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
             <div>
-              <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 mb-1.5 tracking-wide">{thaiDate}</p>
+              <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 mb-1.5 tracking-wide">
+                {thaiDate || "กำลังโหลด..."}
+              </p>
+
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight" style={{ fontFamily: 'var(--font-headline)' }}>
                 {activeCategory === 'client' ? "ระบบลูกข่าย" : "ข้อมูลสถานี"}
               </h1>
