@@ -24,3 +24,4 @@ A chronological record of Prossnum evolution.
 - **Build Stabilization**: Resolved Vercel build failure caused by `middleware.ts` vs `proxy.ts` naming conflict.
 - **Persistent Knowledge**: Established `knowledge/vercel_stability.md` to prevent future build failures, adhering to the `llm-wiki` pattern.
 - **Wiki Update**: Registered the new stability guide in `index.md`.
+- **Standardization**: Formalized `knowledge/github_release_process.md` following SemVer principles as requested.

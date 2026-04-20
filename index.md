@@ -21,6 +21,7 @@ A compiled record of Prossnum knowledge, following the `llm-wiki.md` pattern.
 - [workspace_audit.md](file:///d:/APP\prossnum/workspace_audit.md): High-level map of all integrated frameworks.
 
 ## Operations & Maintenance
+- [knowledge/github_release_process.md](file:///d:/APP\prossnum/knowledge/github_release_process.md): Standardized SemVer release workflow.
 - [knowledge/vercel_stability.md](file:///d:/APP\prossnum/knowledge/vercel_stability.md): Critical guide for build stability and deployment.
 - [log.md](file:///d:/APP\prossnum/log.md): Append-only chronological history of changes.
 
