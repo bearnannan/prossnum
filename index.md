@@ -8,7 +8,8 @@ A compiled record of Prossnum knowledge, following the `llm-wiki.md` pattern.
 
 ## Core Entities
 - **Prossnum Dashboard**: The primary monitoring system.
-- **StationData**: The primary Google Sheet backend.
+- **Supabase**: Primary database and real-time backend (migrated from Google Sheets).
+- [AI_INSTRUCTIONS.md](file:///d:/APP/prossnum/AI_INSTRUCTIONS.md): The definitive operating manual for the agent.
 
 ## Concepts & Patterns
 - [MASTER.md](file:///d:/APP/prossnum/MASTER.md): The core Design System Architecture (Premium Glassmorphism).

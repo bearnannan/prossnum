@@ -17,6 +17,8 @@ import { DashboardCharts } from '@/components/DashboardCharts';
 import { DashboardTable } from '@/components/DashboardTable';
 import { ExportModal } from '@/components/ExportModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ActivityFeed } from '@/components/ActivityFeed';
+import { signOut } from "next-auth/react";
 
 // ─── Lazy-loaded modals (deferred ~63KB until user clicks "เพิ่มสถานี") ───
 const StationModal = dynamic(() => import('@/components/StationModal'), { ssr: false });
@@ -115,12 +117,7 @@ function DashboardContent() {
   }, [activeCategory, mutate]);
 
   const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
-    } catch (err) {
-      console.error('Failed to log out', err);
-    }
+    await signOut({ callbackUrl: "/login" });
   };
 
   const handleEditClick = (item: any) => {
@@ -188,8 +185,15 @@ function DashboardContent() {
 
         <StatGrid activeCategory={activeCategory} overallProgress={overallProgress} filteredData={filteredData} />
 
+        {/* ════════════ ACTIVITY FEED ════════════ */}
+        <div className="col-span-1 md:col-span-2 lg:col-span-4 h-full">
+          <ActivityFeed />
+        </div>
+
         {/* ════════════ CHART + MAP ROW ════════════ */}
-        <DashboardCharts activeCategory={activeCategory} filteredData={filteredData} chartTab={chartTab} setChartTab={setChartTab} />
+        <div className="col-span-1 md:col-span-2 lg:col-span-8">
+           <DashboardCharts activeCategory={activeCategory} filteredData={filteredData} chartTab={chartTab} setChartTab={setChartTab} />
+        </div>
 
         {/* ════════════ DATA TABLE ════════════ */}
         <DashboardTable

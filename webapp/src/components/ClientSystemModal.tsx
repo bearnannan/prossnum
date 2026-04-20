@@ -51,6 +51,9 @@ const defaultForm = {
     startDate: "",
     endDate: "",
     remark: "",
+    meterInstalled: false,
+    peaUserNo: "",
+    meterNo: "",
 };
 
 export default function ClientSystemModal({
@@ -97,6 +100,9 @@ export default function ClientSystemModal({
                 startDate: editingStation.startDate || "",
                 endDate: editingStation.endDate || "",
                 remark: editingStation.remark || "",
+                meterInstalled: editingStation.meterInstalled ?? false,
+                peaUserNo: editingStation.peaUserNo || "",
+                meterNo: editingStation.meterNo || "",
             });
         } else {
             setFormData(defaultForm);
@@ -560,6 +566,55 @@ export default function ClientSystemModal({
                                 <datalist id="meterRequest-list">
                                     <option value="ยังไม่ได้ยื่น" /><option value="รออนุมัติ" /><option value="ติดตั้งแล้ว" />
                                 </datalist>
+                            </div>
+                        </div>
+
+                        <hr className="border-zinc-100 dark:border-zinc-800" />
+                        
+                        {/* Meter Information */}
+                        <div className="space-y-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                            <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">หัวข้อมิเตอร์</h3>
+                            
+                            <div className="flex items-center gap-4 py-1">
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        name="meterInstalled"
+                                        checked={formData.meterInstalled}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, meterInstalled: e.target.checked }))}
+                                        className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-blue-600 transition-colors">
+                                        ติดตั้งแล้ว
+                                    </span>
+                                </label>
+                                <span className="text-zinc-300 dark:text-zinc-700">|</span>
+                                <span className="text-sm text-zinc-500">
+                                    {!formData.meterInstalled ? "ยังไม่ได้ติดตั้ง" : "ดำเนินการติดตั้งเรียบร้อย"}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">หมายเลขผู้ใช้ไฟฟ้า</label>
+                                    <input
+                                        name="peaUserNo"
+                                        value={formData.peaUserNo}
+                                        onChange={handleChange}
+                                        placeholder="ระบุหมายเลข..."
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">หมายเลขมิเตอร์ไฟฟ้า</label>
+                                    <input
+                                        name="meterNo"
+                                        value={formData.meterNo}
+                                        onChange={handleChange}
+                                        placeholder="ระบุหมายเลข..."
+                                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white"
+                                    />
+                                </div>
                             </div>
                         </div>
 

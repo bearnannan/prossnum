@@ -23,7 +23,7 @@ export function useExport() {
     setIsExportModalOpen(false);
     const filteredExportData = data.filter(d => selectedExportStations.includes(`${d.district}|${d.stationName}`));
     if (filteredExportData.length === 0) return;
-    
+
     const grouped = filteredExportData.reduce((acc, item) => {
       if (!acc[item.district]) acc[item.district] = [];
       acc[item.district].push(item);
@@ -32,7 +32,7 @@ export function useExport() {
 
     const today = new Date();
     const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
-    
+
     // Header Logic
     const districtNames = Object.keys(grouped).map(d => `อ.${d}`);
     let districtsStr = "";
@@ -45,22 +45,25 @@ export function useExport() {
 
     // Pole height (assume the first one if present, otherwise default to legacy "9 เมตร")
     const commonPoleHeight = filteredExportData[0]?.poleHeight || "9 เมตร";
-    
+
     let text = `${dateStr}\n`;
     const commonProvince = filteredExportData[0]?.province || 'กาญจนบุรี';
     if (activeCategory === 'station') {
       text += `รายงานความคืบหน้างานก่อสร้างฐานรากและติดตั้งเสาสัญญาณ ${commonPoleHeight} สถานีลูกข่าย ${districtsStr} จ.${commonProvince} เขต11 (เพชรบุรี)\n\n`;
     } else {
-       text += `รายงานการติดตั้งระบบลูกข่าย (${districtsStr}) จ.${commonProvince}\n\n`;
+      text += `รายงานการติดตั้งระบบลูกข่าย (${districtsStr}) จ.${commonProvince}\n\n`;
     }
 
-    // ─── Summary: total / completed / in-progress / not-started ───
-    const totalStations = filteredExportData.length;
+    // ─── Summary: counts from ALL stations in the SAME province (regardless of selection) ───
+    const provinceData = data.filter(d => d.province === commonProvince);
+    const totalStations = provinceData.length;
     let completedCount = 0;
     let inProgressCount = 0;
     let notStartedCount = 0;
+    let meterRequestCount = 0;
+    let meterInstalledCount = 0;
 
-    filteredExportData.forEach(item => {
+    provinceData.forEach(item => {
       let progress: number;
       if (activeCategory === 'client') {
         progress = (parseFloat(item.electricProgress || 0) + parseFloat(item.groundProgress || 0) + parseFloat(item.feederProgress || 0)) / 3;
@@ -70,12 +73,22 @@ export function useExport() {
       if (progress >= 100) completedCount++;
       else if (progress > 0) inProgressCount++;
       else notStartedCount++;
+
+      if (item.meterRequest && item.meterRequest !== "ยังไม่ได้ยื่น") {
+        meterRequestCount++;
+      }
+
+      if (item.meterInstalled) {
+        meterInstalledCount++;
+      }
     });
 
     text += `จำนวนทั้งหมด ${totalStations} สถานี\n`;
     text += `  - ติดตั้งแล้วเสร็จ ${completedCount} สถานี\n`;
     text += `  - อยู่ระหว่างติดตั้ง ${inProgressCount} สถานี\n`;
-    text += `  - ยังไม่ได้ติดตั้ง ${notStartedCount} สถานี\n\n`;
+    text += `  - ยังไม่ได้ติดตั้ง ${notStartedCount} สถานี\n`;
+    text += `  - ยื่นขอมิเตอร์ ${meterRequestCount} สถานี\n`;
+    text += `  - ติดตั้งมิเตอร์แล้ว ${meterInstalledCount} สถานี\n\n`;
 
     const groupedEntries = Object.entries(grouped) as [string, any[]][];
     groupedEntries.forEach(([district, items], gIdx) => {
@@ -93,6 +106,9 @@ export function useExport() {
           text += `   - แบตเตอรี่ SN: ${item.batterySN}\n`;
           text += `   - ขาติดตั้ง: ${item.mountType} | องศา: ${item.angle} | Test Feeder: ${item.testFeeder}\n`;
           text += `   - ยื่นขอมิเตอร์: ${item.meterRequest || "ยังไม่ได้ยื่น"}\n`;
+          text += `   - มิเตอร์: ${item.meterInstalled ? "ติดตั้งแล้ว" : "ยังไม่ได้ติดตั้ง"}\n`;
+          if (item.peaUserNo) text += `   - หมายเลขผู้ใช้ไฟฟ้า: ${item.peaUserNo}\n`;
+          if (item.meterNo) text += `   - หมายเลขมิเตอร์ไฟฟ้า: ${item.meterNo}\n`;
           text += `   - วันที่: ${formatDateDisplay(item.startDate)} - ${formatDateDisplay(item.endDate)}\n`;
           text += `   - หมายเหตุ: ${item.remark || "-"}\n`;
         } else {
@@ -107,7 +123,7 @@ export function useExport() {
           text += `เริ่มงาน: ${formatDateDisplay(item.startDate)}\n`;
           text += `เสร็จงาน: ${formatDateDisplay(item.endDate)}\n`;
         }
-        
+
         if (idx < items.length - 1) {
           text += `\n---\n\n`;
         }
@@ -163,15 +179,15 @@ export function useExport() {
         Object.assign(container.style, { position: 'fixed', top: '0', left: '-2000px', width: '1122px', height: '794px', zIndex: '-1000' });
         document.body.appendChild(container);
         const root = createRoot(container);
-        
+
         await new Promise<void>(resolve => {
           root.render(<ExportBentoReportRaw district={d} stations={stations} category={activeCategory} />);
-          setTimeout(resolve, 800); 
+          setTimeout(resolve, 800);
         });
 
         const el = container.firstChild as HTMLElement;
         const dataUrl = await toJpeg(el, { quality: 1.0, width: 1122, height: 794, pixelRatio: 6.25 });
-        
+
         if (!isFirst) pdf.addPage();
         pdf.addImage(dataUrl, 'JPEG', 0, 0, 297, 210);
         isFirst = false;
@@ -202,14 +218,14 @@ export function useExport() {
       ]);
       const ExportBentoReportRaw = ExportBentoReportModule.default;
       await document.fonts.ready;
-      
+
       const filtered = data.filter(d => selectedExportStations.includes(`${d.district}|${d.stationName}`));
       if (filtered.length === 0) {
         showToast("กรุณาเลือกข้อมูลที่ต้องการ Export", "error");
         setIsExporting(false);
         return;
       }
-      
+
       const groupedToExport = filtered.reduce((acc, item) => {
         if (!acc[item.district]) acc[item.district] = [];
         acc[item.district].push(item);
@@ -224,7 +240,7 @@ export function useExport() {
         Object.assign(container.style, { position: 'fixed', top: '0', left: '-2000px', width: '1122px', height: '794px', zIndex: '-1000' });
         document.body.appendChild(container);
         const root = createRoot(container);
-        
+
         await new Promise<void>(res => {
           root.render(<ExportBentoReportRaw district={d} stations={stations} category={activeCategory} />);
           setTimeout(res, 800);
@@ -236,7 +252,7 @@ export function useExport() {
         link.download = `report_${d}_${new Date().getTime()}.jpg`;
         link.href = dataUrl;
         link.click();
-        
+
         root.unmount();
         document.body.removeChild(container);
       }

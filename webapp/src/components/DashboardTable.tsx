@@ -93,6 +93,7 @@ export function DashboardTable({
                   <th className="px-5 py-3.5">Radio SN</th>
                   <th className="px-5 py-3.5">RSSI</th>
                   <th className="px-5 py-3.5">ขอมิเตอร์</th>
+                  <th className="px-5 py-3.5 text-center">ติดตั้งมิเตอร์</th>
                 </>
               )}
               <th className="px-5 py-3.5 text-right sticky right-0 z-20 glass-panel-elevated !rounded-none border-l-none shadow-none border-b-none">Action</th>
@@ -158,6 +159,18 @@ export function DashboardTable({
                           {item.meterRequest || "ยังไม่ได้ยื่น"}
                         </span>
                       </td>
+                      <td className="px-5 py-3.5 text-center">
+                        <div className="flex flex-col items-center">
+                          {item.meterInstalled ? (
+                            <span className="material-symbols-outlined text-emerald-500 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                          ) : (
+                            <span className="material-symbols-outlined text-zinc-300 dark:text-zinc-700 text-lg">cancel</span>
+                          )}
+                          {item.meterNo && (
+                            <span className="text-[9px] text-zinc-400 font-mono mt-0.5">{item.meterNo}</span>
+                          )}
+                        </div>
+                      </td>
                     </>
                   )}
                   <td className="px-5 py-3.5 text-right sticky right-0 z-10 glass-panel-elevated !rounded-none border-none shadow-none bg-white/5 dark:bg-zinc-900/5 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/10 transition-colors duration-200">
@@ -175,7 +188,7 @@ export function DashboardTable({
             })}
             {sortedData.length === 0 && (
               <tr>
-                <td colSpan={activeCategory === 'station' ? 8 : 9} className="px-5 py-12 text-center text-zinc-500 dark:text-zinc-400">
+                <td colSpan={activeCategory === 'station' ? 8 : 10} className="px-5 py-12 text-center text-zinc-500 dark:text-zinc-400">
                   <div className="flex flex-col items-center justify-center opacity-60">
                     <span className="material-symbols-outlined text-4xl mb-3" aria-hidden="true">inbox_customize</span>
                     <p className="text-sm font-medium tracking-wide">ไม่พบข้อมูลที่ค้นหา</p>

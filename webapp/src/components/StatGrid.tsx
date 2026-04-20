@@ -7,7 +7,7 @@ export function StatGrid({ activeCategory, overallProgress, filteredData }: {
   filteredData: any[];
 }) {
   return (
-    <div className="col-span-1 md:col-span-2 lg:col-span-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="col-span-1 md:col-span-2 lg:col-span-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
       <StatCard
         icon="analytics" iconFill
         label={`ภาพรวม ${activeCategory === 'client' ? 'ลูกข่าย' : 'งานโครงสร้าง'}`}
@@ -30,6 +30,10 @@ export function StatGrid({ activeCategory, overallProgress, filteredData }: {
           <StatCard icon="settings_input_antenna" iconFill label="สาย FEEDER"
             value={`${filteredData.length > 0 ? Math.round(filteredData.reduce((acc, d) => acc + parseFloat(d.feederProgress || 0), 0) / filteredData.length) : 0}%`}
             color="from-amber-500 to-orange-600" glowClass="glow-amber" className="stagger-4"
+          />
+          <StatCard icon="electric_meter" iconFill label="มิเตอร์ติดตั้งแล้ว"
+            value={`${filteredData.filter(d => d.meterInstalled).length} / ${filteredData.length}`}
+            color="from-cyan-500 to-blue-600" glowClass="glow-cyan" className="stagger-5"
           />
         </>
       ) : (

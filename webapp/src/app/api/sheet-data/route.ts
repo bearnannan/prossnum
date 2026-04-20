@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { auth } from "@/auth";
+import { logAction } from "@/lib/audit";
 
 // ── TS 5.3: Discriminated union for sheet routing ──────────────────────────
 type SheetType = "station" | "client";
@@ -59,6 +61,9 @@ interface SupabaseClientRow {
     angle: string | null;
     test_feeder: string | null;
     meter_request: string | null;
+    meter_installed: boolean;
+    pea_user_no: string | null;
+    meter_no: string | null;
 }
 
 // ── Exported data interfaces (TS 5.3: strict literal unions) ──────────────
@@ -109,6 +114,9 @@ export interface ClientSystemData {
     angle?: string;
     testFeeder?: "ยังไม่ได้เก็บ" | "เก็บแล้ว" | string; // loose for flexibility
     meterRequest?: "ยังไม่ได้ยื่น" | "รออนุมัติ" | "ติดตั้งแล้ว" | string;
+    meterInstalled?: boolean;
+    peaUserNo?: string;
+    meterNo?: string;
 }
 
 // ── Mappers ────────────────────────────────────────────────────────────────
@@ -162,11 +170,17 @@ function mapClient(item: SupabaseClientRow): ClientSystemData {
         angle: item.angle ?? undefined,
         testFeeder: item.test_feeder ?? undefined,
         meterRequest: item.meter_request ?? undefined,
+        meterInstalled: item.meter_installed,
+        peaUserNo: item.pea_user_no ?? "",
+        meterNo: item.meter_no ?? "",
     };
 }
 
 // ── Route Handlers ─────────────────────────────────────────────────────────
 export async function GET(req: Request) {
+    const session = await auth();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     try {
         const { searchParams } = new URL(req.url);
         const sheetType = parseSheetType(searchParams.get("sheet"));
@@ -201,6 +215,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+    const session = await auth();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     try {
         const { searchParams } = new URL(req.url);
         const sheetType = parseSheetType(searchParams.get("sheet"));
@@ -209,7 +226,7 @@ export async function POST(req: Request) {
         switch (sheetType) {
             case "client": {
                 const data = body as unknown as ClientSystemData;
-                const { error } = await supabase.from("client_systems").insert([{
+                const { data: dataInsert, error } = await supabase.from("client_systems").insert([{
                     province: data.province,
                     district: data.district,
                     station_name: data.stationName,
@@ -238,13 +255,26 @@ export async function POST(req: Request) {
                     angle: data.angle,
                     test_feeder: data.testFeeder,
                     meter_request: data.meterRequest,
-                }]);
+                    meter_installed: data.meterInstalled ?? false,
+                    pea_user_no: data.peaUserNo || "",
+                    meter_no: data.meterNo || "",
+                }]).select().single();
                 if (error) throw error;
+                if (dataInsert) {
+                    await logAction({
+                        userId: session.user?.id || "unknown",
+                        userName: session.user?.name || undefined,
+                        action: "CREATE",
+                        tableName: "client_systems",
+                        recordId: dataInsert.id,
+                        payload: body,
+                    });
+                }
                 break;
             }
             case "station": {
                 const data = body as unknown as StationData;
-                const { error } = await supabase.from("stations").insert([{
+                const { data: dataInsert, error } = await supabase.from("stations").insert([{
                     province: data.province,
                     district: data.district,
                     station_name: data.stationName,
@@ -258,8 +288,18 @@ export async function POST(req: Request) {
                     start_date: data.startDate || null,
                     end_date: data.endDate || null,
                     remark: data.remark,
-                }]);
+                }]).select().single();
                 if (error) throw error;
+                if (dataInsert) {
+                    await logAction({
+                        userId: session.user?.id || "unknown",
+                        userName: session.user?.name || undefined,
+                        action: "CREATE",
+                        tableName: "stations",
+                        recordId: dataInsert.id,
+                        payload: body,
+                    });
+                }
                 break;
             }
         }
@@ -273,6 +313,9 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
+    const session = await auth();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     try {
         const { searchParams } = new URL(req.url);
         const sheetType = parseSheetType(searchParams.get("sheet"));
@@ -314,8 +357,19 @@ export async function PUT(req: Request) {
                     angle: data.angle,
                     test_feeder: data.testFeeder,
                     meter_request: data.meterRequest,
+                    meter_installed: data.meterInstalled ?? false,
+                    pea_user_no: data.peaUserNo || "",
+                    meter_no: data.meterNo || "",
                 }).eq("id", body.id as string);
                 if (error) throw error;
+                await logAction({
+                    userId: session.user?.id || "unknown",
+                    userName: session.user?.name || undefined,
+                    action: "UPDATE",
+                    tableName: "client_systems",
+                    recordId: body.id as string,
+                    payload: body,
+                });
                 break;
             }
             case "station": {
@@ -336,6 +390,14 @@ export async function PUT(req: Request) {
                     remark: data.remark,
                 }).eq("id", body.id as string);
                 if (error) throw error;
+                await logAction({
+                    userId: session.user?.id || "unknown",
+                    userName: session.user?.name || undefined,
+                    action: "UPDATE",
+                    tableName: "stations",
+                    recordId: body.id as string,
+                    payload: body,
+                });
                 break;
             }
         }
@@ -349,6 +411,9 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+    const session = await auth();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     try {
         const { searchParams } = new URL(req.url);
         const sheetType = parseSheetType(searchParams.get("sheet"));
@@ -361,6 +426,14 @@ export async function DELETE(req: Request) {
         const tableName = sheetType === "client" ? "client_systems" : "stations";
         const { error } = await supabase.from(tableName).delete().eq("id", body.id);
         if (error) throw error;
+
+        await logAction({
+            userId: session.user?.id || "unknown",
+            userName: session.user?.name || undefined,
+            action: "DELETE",
+            tableName: tableName,
+            recordId: body.id,
+        });
 
         return NextResponse.json({ success: true, message: "Record deleted successfully" });
     } catch (error: unknown) {

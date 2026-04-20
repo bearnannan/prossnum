@@ -5,8 +5,8 @@ This document provides a comprehensive map of the Prossnum ecosystem, detailing 
 ## 1. Core Application
 - **Directory**: `webapp/`
 - **Role**: The primary user-facing application.
-- **Stack**: Next.js 16 (App Router), React 19, Tailwind CSS v4, Google Sheets Backend.
-- **Operational Files**: `progress_summary.txt`, `build_error.log`, `system_audit.md`.
+- **Stack**: Next.js 16.2.4 (App Router), React 19, Tailwind CSS v4, Proxy-based Auth protection, Supabase Backend.
+- **Operational Files**: `progress_summary.txt`, `update_modules.ps1`, `AI_INSTRUCTIONS.md`, `workspace_audit.md`.
 
 ## 2. Agent Intelligence & Frameworks
 These directories provide the "brain" and efficiency layers for the coding assistant.
@@ -20,6 +20,7 @@ These directories provide the "brain" and efficiency layers for the coding assis
 - **`drawio-mcp/`**: Integration for Draw.io diagrams, allowing for visual architecture documentation.
 - **`cliTokenKill/`**: Security utility for managing and clearing CLI session tokens.
 - **`llm-wiki.md`**: Architectural pattern for persistent, compounding knowledge management.
+- **`AI_INSTRUCTIONS.md`**: The definitive operating handbook synthesized from local patterns.
 
 ## 4. Reference Projects & Resources
 These are clones of external repositories used for inspiration, education, and feature reference.
