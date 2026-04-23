@@ -36,8 +36,9 @@ export default function ExportBentoReport({ district, stations, allStations = []
     const provinceLabel = `จ.${provinceName}`;
     const stationCount = stations.length;
 
-    // We use allStations for the summary header if provided, otherwise fallback to current page stations
-    const summarySource = allStations.length > 0 ? allStations : stations;
+    // Filter summary data by the specific province of the stations being exported
+    const summarySource = (allStations.length > 0 ? allStations : stations)
+        .filter(s => s.province === provinceName);
     const totalInProvince = summarySource.length;
 
     let avgOverall = 0;
