@@ -1,7 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
 
-export function useDashboard(data: any[], activeCategory: 'station' | 'client') {
-  const [searchTerm, setSearchTerm] = useState("");
+export function useDashboard(
+  data: any[], 
+  activeCategory: 'station' | 'client', 
+  searchTerm: string,
+  setSearchTerm: React.Dispatch<React.SetStateAction<string>>,
+  deferredSearchTerm: string
+) {
+  const currentSearchTerm = deferredSearchTerm;
   const [filterDistrict, setFilterDistrict] = useState("All");
   const [filterType, setFilterType] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
@@ -16,16 +22,18 @@ export function useDashboard(data: any[], activeCategory: 'station' | 'client') 
   const districts = useMemo(() => Array.from(new Set(data.map(d => d.district).filter(Boolean))) as string[], [data]);
 
   const filteredData = useMemo(() => data.filter(item => {
-    const matchesSearch = item.stationName?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (item.district || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (item.province || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const term = currentSearchTerm.toLowerCase();
+    const matchesSearch = !term || 
+                          (item.stationName || "").toLowerCase().includes(term) || 
+                          (item.district || "").toLowerCase().includes(term) ||
+                          (item.province || "").toLowerCase().includes(term);
     const matchesDistrict = filterDistrict === "All" || item.district === filterDistrict;
     const matchesProvince = selectedProvince === "All" || item.province === selectedProvince;
     const matchesStatus = filterStatus === "All" || 
                           (filterStatus === "Completed" && (item.endDate && item.endDate !== "-")) || 
                           (filterStatus === "In Progress" && (item.startDate && item.startDate !== "-" && !item.endDate));
     return matchesSearch && matchesDistrict && matchesProvince && matchesStatus;
-  }), [data, searchTerm, filterDistrict, selectedProvince, filterStatus]);
+  }), [data, currentSearchTerm, filterDistrict, selectedProvince, filterStatus]);
 
   const sortedData = useMemo(() => [...filteredData].sort((a, b) => {
     if (!sortConfig) return 0;

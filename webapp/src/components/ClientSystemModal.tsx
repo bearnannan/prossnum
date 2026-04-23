@@ -29,7 +29,6 @@ const defaultForm = {
     feederProgress: 0,
     towerProgress: 0,
     radioProgress: 0,
-    linkProgress: 0,
     radioSN: "",
     batterySN: "",
     rssi: "",
@@ -79,7 +78,6 @@ export default function ClientSystemModal({
                 feederProgress: editingStation.feederProgress ?? 0,
                 towerProgress: editingStation.towerProgress ?? 0,
                 radioProgress: editingStation.radioProgress ?? 0,
-                linkProgress: editingStation.linkProgress ?? 0,
                 radioSN: editingStation.radioSN || "",
                 batterySN: editingStation.batterySN || "",
                 rssi: editingStation.rssi || "",
@@ -112,14 +110,12 @@ export default function ClientSystemModal({
         const fp = Number(formData.feederProgress);
         const tp = Number(formData.towerProgress);
         const rp = Number(formData.radioProgress);
-        const lp = Number(formData.linkProgress);
 
         if (isNaN(ep) || ep < 0 || ep > 100) newErrors.electricProgress = "0–100";
         if (isNaN(gp) || gp < 0 || gp > 100) newErrors.groundProgress = "0–100";
         if (isNaN(fp) || fp < 0 || fp > 100) newErrors.feederProgress = "0–100";
         if (isNaN(tp) || tp < 0 || tp > 100) newErrors.towerProgress = "0–100";
         if (isNaN(rp) || rp < 0 || rp > 100) newErrors.radioProgress = "0–100";
-        if (isNaN(lp) || lp < 0 || lp > 100) newErrors.linkProgress = "0–100";
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -464,22 +460,26 @@ export default function ClientSystemModal({
                             </div>
 
                             {/* Section 5: Radio Installation */}
-                            <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 p-3 space-y-3">
-                                <div className="flex items-center gap-3">
-                                    <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300 whitespace-nowrap">5. ติดตั้งเครื่องวิทยุ</h3>
-                                    <div className="flex-1">
+                            <div className="space-y-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                                <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">5. ติดตั้งเครื่องวิทยุ</h3>
+                                
+                                <div className="flex items-center gap-4 py-1">
+                                    <label className="flex items-center gap-2 cursor-pointer group">
                                         <input
+                                            type="checkbox"
                                             name="radioProgress"
-                                            type="number"
-                                            min="0" max="100"
-                                            value={formData.radioProgress}
-                                            onChange={handleChange}
-                                            placeholder="%"
-                                            className={`w-full rounded-xl border px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white ${errors.radioProgress ? "border-red-400" : "border-zinc-200 dark:border-zinc-700"}`}
+                                            checked={Number(formData.radioProgress) === 100}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, radioProgress: e.target.checked ? 100 : 0 }))}
+                                            className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
                                         />
-                                        {errors.radioProgress && <p className="text-[10px] text-red-500 mt-0.5">{errors.radioProgress}</p>}
-                                    </div>
-                                    <span className="text-sm text-zinc-500 font-medium">%</span>
+                                        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-blue-600 transition-colors">
+                                            ติดตั้งแล้ว
+                                        </span>
+                                    </label>
+                                    <span className="text-zinc-300 dark:text-zinc-700">|</span>
+                                    <span className="text-sm text-zinc-500">
+                                        {Number(formData.radioProgress) !== 100 ? "ยังไม่ได้ติดตั้ง" : "ดำเนินการติดตั้งเรียบร้อย"}
+                                    </span>
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-semibold text-zinc-500 uppercase mb-1">Radio Serial Number (SN)</label>
@@ -513,25 +513,7 @@ export default function ClientSystemModal({
                                     </div>
                                 </div>
                             </div>
-                            {/* Section 6: Link Progress */}
-                            <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 p-3 space-y-3">
-                                <div className="flex items-center gap-3">
-                                    <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300 whitespace-nowrap">6. การเชื่อมต่อ (Link)</h3>
-                                    <div className="flex-1">
-                                        <input
-                                            name="linkProgress"
-                                            type="number"
-                                            min="0" max="100"
-                                            value={formData.linkProgress}
-                                            onChange={handleChange}
-                                            placeholder="%"
-                                            className={`w-full rounded-xl border px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white ${errors.linkProgress ? "border-red-400" : "border-zinc-200 dark:border-zinc-700"}`}
-                                        />
-                                        {errors.linkProgress && <p className="text-[10px] text-red-500 mt-0.5">{errors.linkProgress}</p>}
-                                    </div>
-                                    <span className="text-sm text-zinc-500 font-medium">%</span>
-                                </div>
-                            </div>
+
                         </div>
 
                         <hr className="border-zinc-100 dark:border-zinc-800" />

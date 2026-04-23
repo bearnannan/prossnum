@@ -52,7 +52,7 @@ export default function ExportChartStatic({ data, category = 'station', width = 
 
     // Compute dynamic bar size: shrink bars when many stations
     const barSize = isClient 
-        ? Math.max(2, Math.min(10, Math.floor(width / chartData.length / 6)))
+        ? Math.max(2, Math.min(10, Math.floor(width / chartData.length / 6.5)))
         : Math.max(6, Math.min(20, Math.floor(width / chartData.length / 2.5)));
 
     return (
@@ -97,8 +97,8 @@ export default function ExportChartStatic({ data, category = 'station', width = 
                     <>
                         <Bar dataKey="electric" name="ระบบไฟฟ้า" fill="#3B82F6" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
                         <Bar dataKey="ground" name="ระบบกราวด์" fill="#10B981" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
-                        <Bar dataKey="feeder" name="สายFeed" fill="#F59E0B" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
-                        <Bar dataKey="tower" name="Yagi" fill="#8B5CF6" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="feeder" name="สาย Feeder" fill="#F59E0B" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="tower" name="อุปกรณ์บนเสา (Yagi)" fill="#8B5CF6" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
                         <Bar dataKey="radio" name="เครื่องวิทยุ" fill="#EC4899" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
                     </>
                 )}

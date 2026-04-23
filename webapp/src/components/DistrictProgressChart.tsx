@@ -30,7 +30,7 @@ export default React.memo(function DistrictProgressChart({ data, category = 'sta
             if (isClient) {
                 districtStats[dist] = { 
                     electricSum: 0, groundSum: 0, feederSum: 0, 
-                    towerSum: 0, radioSum: 0, linkSum: 0,
+                    towerSum: 0, radioSum: 0,
                     count: 0 
                 };
             } else {
@@ -44,7 +44,6 @@ export default React.memo(function DistrictProgressChart({ data, category = 'sta
             districtStats[dist].feederSum += (parseFloat(d.feederProgress) || 0);
             districtStats[dist].towerSum += (parseFloat(d.towerProgress) || 0);
             districtStats[dist].radioSum += (parseFloat(d.radioProgress) || 0);
-            districtStats[dist].linkSum += (parseFloat(d.linkProgress) || 0);
         } else {
             districtStats[dist].foundationSum += (parseFloat(d.foundationProgress) || 0);
             districtStats[dist].poleSum += (parseFloat(d.poleInstallationProgress) || 0);
@@ -63,7 +62,6 @@ export default React.memo(function DistrictProgressChart({ data, category = 'sta
                 feeder: Math.round(stats.feederSum / stats.count),
                 tower: Math.round(stats.towerSum / stats.count),
                 radio: Math.round(stats.radioSum / stats.count),
-                link: Math.round(stats.linkSum / stats.count),
                 count: stats.count
             };
         }
@@ -110,7 +108,7 @@ export default React.memo(function DistrictProgressChart({ data, category = 'sta
     };
 
     return (
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <BarChart
                 data={chartData}
                 layout="vertical"
@@ -147,7 +145,6 @@ export default React.memo(function DistrictProgressChart({ data, category = 'sta
                         <Bar dataKey="feeder" name="เฉลี่ยสาย Feeder" fill="#F59E0B" radius={[0, 4, 4, 0]} barSize={10} />
                         <Bar dataKey="tower" name="อุปกรณ์บนเสา" fill="#8B5CF6" radius={[0, 4, 4, 0]} barSize={10} />
                         <Bar dataKey="radio" name="เครื่องวิทยุ" fill="#EC4899" radius={[0, 4, 4, 0]} barSize={10} />
-                        <Bar dataKey="link" name="ทดสอบสัญญาณ" fill="#06B6D4" radius={[0, 4, 4, 0]} barSize={10} />
                     </>
                 )}
             </BarChart>

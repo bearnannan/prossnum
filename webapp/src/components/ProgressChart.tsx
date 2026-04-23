@@ -53,7 +53,6 @@ export default React.memo(function ProgressChart({ data, category = 'station' }:
                 feeder: parseFloat(d.feederProgress) || 0,
                 tower: parseFloat(d.towerProgress) || 0,
                 radio: parseFloat(d.radioProgress) || 0,
-                link: parseFloat(d.linkProgress) || 0,
             };
         }
         
@@ -160,7 +159,6 @@ export default React.memo(function ProgressChart({ data, category = 'station' }:
                             <Bar dataKey="feeder" name="สาย Feeder" fill="#F59E0B" radius={[4, 4, 0, 0]} barSize={12} />
                             <Bar dataKey="tower" name="อุปกรณ์บนเสา" fill="#8B5CF6" radius={[4, 4, 0, 0]} barSize={12} />
                             <Bar dataKey="radio" name="เครื่องวิทยุ" fill="#EC4899" radius={[4, 4, 0, 0]} barSize={12} />
-                            <Bar dataKey="link" name="ทดสอบสัญญาณ" fill="#06B6D4" radius={[4, 4, 0, 0]} barSize={12} />
                         </>
                     )}
 

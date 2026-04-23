@@ -12,9 +12,10 @@ interface TopNavBarProps {
 
 export default function TopNavBar({ onLogout, onMenuToggle }: TopNavBarProps) {
   const router = useRouter();
+  const [isPending, startTransition] = React.useTransition();
   const { data: session } = useSession();
-  
   const user = session?.user;
+
   const handleLogout = async () => {
     if (onLogout) {
       onLogout();
@@ -22,8 +23,10 @@ export default function TopNavBar({ onLogout, onMenuToggle }: TopNavBarProps) {
     }
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
-      router.refresh();
+      startTransition(() => {
+        router.push('/login');
+        router.refresh();
+      });
     } catch (err) {
       console.error('Failed to log out', err);
     }

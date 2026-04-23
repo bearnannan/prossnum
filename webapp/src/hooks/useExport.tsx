@@ -62,14 +62,17 @@ export function useExport() {
     let notStartedCount = 0;
     let meterRequestCount = 0;
     let meterInstalledCount = 0;
+    let radioInstalledCount = 0;
 
     provinceData.forEach(item => {
       let progress: number;
       if (activeCategory === 'client') {
         progress = (parseFloat(item.electricProgress || 0) + parseFloat(item.groundProgress || 0) + parseFloat(item.feederProgress || 0)) / 3;
+        if (Number(item.radioProgress) === 100) radioInstalledCount++;
       } else {
         progress = (parseFloat(item.foundationProgress || 0) + parseFloat(item.poleInstallationProgress || 0)) / 2;
       }
+
       if (progress >= 100) completedCount++;
       else if (progress > 0) inProgressCount++;
       else notStartedCount++;
@@ -83,12 +86,27 @@ export function useExport() {
       }
     });
 
-    text += `จำนวนทั้งหมด ${totalStations} สถานี\n`;
-    text += `  - ติดตั้งแล้วเสร็จ ${completedCount} สถานี\n`;
-    text += `  - อยู่ระหว่างติดตั้ง ${inProgressCount} สถานี\n`;
-    text += `  - ยังไม่ได้ติดตั้ง ${notStartedCount} สถานี\n`;
-    text += `  - ยื่นขอมิเตอร์ ${meterRequestCount} สถานี\n`;
-    text += `  - ติดตั้งมิเตอร์แล้ว ${meterInstalledCount} สถานี\n\n`;
+    if (activeCategory === 'client') {
+      text += `จำนวนทั้งหมด ${totalStations} สถานี\n`;
+      text += `1. ติดตั้งระบบลูกข่าย\n`;
+      text += `   - ติดตั้งระบบ ลข.แล้ว ${completedCount} สถานี\n`;
+      text += `   - อยู่ระหว่างติดตั้ง ${inProgressCount} สถานี\n`;
+      text += `   - ยังไม่ได้ติดตั้ง ${notStartedCount} สถานี\n`;
+      text += `2. วางเครื่องวิทยุชนิดประจำที่\n`;
+      text += `   - วางเครื่องวิทยุแล้วเสร็จ ${radioInstalledCount} สถานี\n`;
+      text += `3. งานมิเตอร์ไฟฟ้า\n`;
+      text += `   - ยื่นขอมิเตอร์แล้ว ${meterRequestCount} สถานี\n`;
+      text += `   - ติดตั้งมิเตอร์แล้ว ${meterInstalledCount} สถานี\n`;
+    } else {
+      text += `จำนวนทั้งหมด ${totalStations} สถานี\n`;
+      text += `  - ติดตั้งแล้วเสร็จ ${completedCount} สถานี\n`;
+      text += `  - อยู่ระหว่างติดตั้ง ${inProgressCount} สถานี\n`;
+      text += `  - ยังไม่ได้ติดตั้ง ${notStartedCount} สถานี\n`;
+      text += `  - ยื่นขอมิเตอร์ ${meterRequestCount} สถานี\n`;
+      text += `  - ติดตั้งมิเตอร์แล้ว ${meterInstalledCount} สถานี\n`;
+    }
+
+    text += `=========================================\n\n`;
 
     const groupedEntries = Object.entries(grouped) as [string, any[]][];
     groupedEntries.forEach(([district, items], gIdx) => {
@@ -101,9 +119,9 @@ export function useExport() {
           text += `   - ระบบไฟฟ้า: ${item.electricProgress}% (ระยะสาย Main: ${item.electricMain})\n`;
           text += `   - ระบบกราวด์: ${item.groundProgress}% (AC: ${item.groundAC} Ω | Equip: ${item.groundEquip} Ω)\n`;
           text += `   - สาย Feeder: ${item.feederProgress}% (Yagi No: ${item.yagiNo} | SN: ${item.sn} | ระยะ feed: ${item.feedDistance})\n`;
-          text += `   - การติดตั้งอุปกรณ์บนเสา: ${item.towerProgress}%\n`;
-          text += `   - การติดตั้งเครื่องวิทยุฯ: ${item.radioProgress}% (SN: ${item.radioSN})\n`;
-          text += `   - แบตเตอรี่ SN: ${item.batterySN}\n`;
+          text += `   - การติดตั้งอุปกรณ์บนเสา (Yagi): ${item.towerProgress}%\n`;
+          text += `   - การติดตั้งเครื่องวิทยุ: ${item.radioProgress}% (SN: ${item.radioSN})\n`;
+          text += `   - แบตเตอรี่ (SN): ${item.batterySN}\n`;
           text += `   - ขาติดตั้ง: ${item.mountType} | องศา: ${item.angle} | Test Feeder: ${item.testFeeder}\n`;
           text += `   - ยื่นขอมิเตอร์: ${item.meterRequest || "ยังไม่ได้ยื่น"}\n`;
           text += `   - มิเตอร์: ${item.meterInstalled ? "ติดตั้งแล้ว" : "ยังไม่ได้ติดตั้ง"}\n`;
@@ -181,7 +199,7 @@ export function useExport() {
         const root = createRoot(container);
 
         await new Promise<void>(resolve => {
-          root.render(<ExportBentoReportRaw district={d} stations={stations} category={activeCategory} />);
+          root.render(<ExportBentoReportRaw district={d} stations={stations} allStations={data} category={activeCategory} />);
           setTimeout(resolve, 800);
         });
 
@@ -242,7 +260,7 @@ export function useExport() {
         const root = createRoot(container);
 
         await new Promise<void>(res => {
-          root.render(<ExportBentoReportRaw district={d} stations={stations} category={activeCategory} />);
+          root.render(<ExportBentoReportRaw district={d} stations={stations} allStations={data} category={activeCategory} />);
           setTimeout(res, 800);
         });
 

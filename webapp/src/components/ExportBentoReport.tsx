@@ -18,7 +18,8 @@ interface StationData {
 
 interface ExportBentoReportProps {
     district: string;
-    stations: any[];
+    stations: any[]; // Stations in this district (for the table)
+    allStations?: any[]; // All stations in province (for the summary header)
     category?: 'station' | 'client';
 }
 
@@ -28,30 +29,60 @@ function avg(stations: any[], key: string): number {
     return Math.round(sum / stations.length);
 }
 
-export default function ExportBentoReport({ district, stations, category = 'station' }: ExportBentoReportProps) {
+export default function ExportBentoReport({ district, stations, allStations = [], category = 'station' }: ExportBentoReportProps) {
     const isClient = category === 'client';
     const provinceName = stations[0]?.province || 'กาญจนบุรี';
     const displayDistrict = district.startsWith('อำเภอ') ? district : `อำเภอ${district}`;
     const provinceLabel = `จ.${provinceName}`;
     const stationCount = stations.length;
-    
+
+    // We use allStations for the summary header if provided, otherwise fallback to current page stations
+    const summarySource = allStations.length > 0 ? allStations : stations;
+    const totalInProvince = summarySource.length;
+
     let avgOverall = 0;
-    let stat1 = { label: '', value: 0, color: '' };
-    let stat2 = { label: '', value: 0, color: '' };
+    let stat1 = { label: '', value: 0, sub: '', color: '' };
+    let stat2 = { label: '', value: 0, sub: '', color: '' };
+    let stat3 = { label: '', value: 0, sub: '', color: '' };
 
     if (isClient) {
-        const avgElectric = avg(stations, 'electricProgress');
-        const avgGround = avg(stations, 'groundProgress');
-        const avgFeeder = avg(stations, 'feederProgress');
-        avgOverall = Math.round((avgElectric + avgGround + avgFeeder) / 3);
-        stat1 = { label: 'เสร็จสมบูรณ์', value: avgElectric, color: '#60A5FA' };
-        stat2 = { label: 'กำลังดำเนินการ', value: avgGround, color: '#34D399' };
+        // Summary counts for Client
+        let completedCount = 0;
+        let radioInstalledCount = 0;
+        let meterInstalledCount = 0;
+
+        summarySource.forEach(item => {
+            const prog = (parseFloat(item.electricProgress || 0) + parseFloat(item.groundProgress || 0) + parseFloat(item.feederProgress || 0)) / 3;
+            if (prog >= 100) completedCount++;
+            if (Number(item.radioProgress) === 100) radioInstalledCount++;
+            if (item.meterInstalled) meterInstalledCount++;
+        });
+
+        const avgElectric = avg(summarySource, 'electricProgress');
+        const avgGround = avg(summarySource, 'groundProgress');
+        const avgFeeder = avg(summarySource, 'feederProgress');
+        const avgTower = avg(summarySource, 'towerProgress');
+        const avgRadio = avg(summarySource, 'radioProgress');
+
+        avgOverall = Math.round((avgElectric + avgGround + avgFeeder + avgTower + avgRadio) / 5);
+
+        stat1 = { label: 'ติดตั้งระบบ ลข.', value: completedCount, sub: `จาก ${totalInProvince}`, color: '#60A5FA' };
+        stat2 = { label: 'วางเครื่องวิทยุ', value: radioInstalledCount, sub: `จาก ${totalInProvince}`, color: '#34D399' };
+        stat3 = { label: 'งานมิเตอร์ไฟฟ้า', value: meterInstalledCount, sub: `จาก ${totalInProvince}`, color: '#F59E0B' };
     } else {
-        const avgFoundation = avg(stations, 'foundationProgress');
-        const avgPole = avg(stations, 'poleInstallationProgress');
+        const avgFoundation = avg(summarySource, 'foundationProgress');
+        const avgPole = avg(summarySource, 'poleInstallationProgress');
         avgOverall = Math.round((avgFoundation + avgPole) / 2);
-        stat1 = { label: 'ฐานราก', value: avgFoundation, color: '#60A5FA' };
-        stat2 = { label: 'ติดตั้งเสา', value: avgPole, color: '#34D399' };
+
+        let completedCount = 0;
+        summarySource.forEach(item => {
+            const prog = (parseFloat(item.foundationProgress || 0) + parseFloat(item.poleInstallationProgress || 0)) / 2;
+            if (prog >= 100) completedCount++;
+        });
+
+        stat1 = { label: 'ติดตั้งแล้วเสร็จ', value: completedCount, sub: `จาก ${totalInProvince}`, color: '#60A5FA' };
+        stat2 = { label: 'ฐานรากเฉลี่ย', value: avgFoundation, sub: '%', color: '#34D399' };
+        stat3 = { label: 'ติดตั้งเสาเฉลี่ย', value: avgPole, sub: '%', color: '#F59E0B' };
     }
 
     // Progress ring color
@@ -117,48 +148,59 @@ export default function ExportBentoReport({ district, stations, category = 'stat
                         <span style={{ fontSize: '15px', color: '#64748B', fontWeight: 500, letterSpacing: '0.5px' }}>{stationCount} สถานีลูกข่าย</span>
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     {/* Stat 1 */}
                     <div style={{ 
                         textAlign: 'center', 
-                        background: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.05) 100%)', 
-                        borderRadius: '20px', 
-                        padding: '16px 28px',
-                        border: '1px solid rgba(59,130,246,0.3)',
-                        minWidth: '120px',
-                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)'
+                        background: 'linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(37,99,235,0.05) 100%)', 
+                        borderRadius: '16px', 
+                        padding: '12px 16px',
+                        border: '1px solid rgba(59,130,246,0.2)',
+                        minWidth: '100px',
                     }}>
-                        <div style={{ color: '#93C5FD', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>{stat1.label}</div>
-                        <div style={{ color: '#FFFFFF', fontSize: '38px', fontWeight: 900, lineHeight: 1 }}>{stat1.value}<span style={{ fontSize: '18px', fontWeight: 600, opacity: 0.7, marginLeft: '2px' }}>%</span></div>
-                        <div style={{ color: '#64748B', fontSize: '10px', marginTop: '6px', fontWeight: 600, letterSpacing: '0.5px' }}>เฉลี่ยทั้งหมด</div>
+                        <div style={{ color: '#93C5FD', fontSize: '9px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>{stat1.label}</div>
+                        <div style={{ color: '#FFFFFF', fontSize: '28px', fontWeight: 900, lineHeight: 1 }}>{stat1.value}</div>
+                        <div style={{ color: '#64748B', fontSize: '10px', marginTop: '4px', fontWeight: 600 }}>{stat1.sub}</div>
                     </div>
                     {/* Stat 2 */}
                     <div style={{ 
                         textAlign: 'center', 
-                        background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.05) 100%)', 
-                        borderRadius: '20px', 
-                        padding: '16px 28px',
-                        border: '1px solid rgba(16,185,129,0.3)',
-                        minWidth: '120px',
-                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)'
+                        background: 'linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(5,150,105,0.05) 100%)', 
+                        borderRadius: '16px', 
+                        padding: '12px 16px',
+                        border: '1px solid rgba(16,185,129,0.2)',
+                        minWidth: '100px',
                     }}>
-                        <div style={{ color: '#6EE7B7', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>{stat2.label}</div>
-                        <div style={{ color: '#FFFFFF', fontSize: '38px', fontWeight: 900, lineHeight: 1 }}>{stat2.value}<span style={{ fontSize: '18px', fontWeight: 600, opacity: 0.7, marginLeft: '2px' }}>%</span></div>
-                        <div style={{ color: '#64748B', fontSize: '10px', marginTop: '6px', fontWeight: 600, letterSpacing: '0.5px' }}>เฉลี่ยทั้งหมด</div>
+                        <div style={{ color: '#6EE7B7', fontSize: '9px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>{stat2.label}</div>
+                        <div style={{ color: '#FFFFFF', fontSize: '28px', fontWeight: 900, lineHeight: 1 }}>{stat2.value}</div>
+                        <div style={{ color: '#64748B', fontSize: '10px', marginTop: '4px', fontWeight: 600 }}>{stat2.sub}</div>
+                    </div>
+                    {/* Stat 3 */}
+                    <div style={{ 
+                        textAlign: 'center', 
+                        background: 'linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(217,119,6,0.05) 100%)', 
+                        borderRadius: '16px', 
+                        padding: '12px 16px',
+                        border: '1px solid rgba(245,158,11,0.2)',
+                        minWidth: '100px',
+                    }}>
+                        <div style={{ color: '#FCD34D', fontSize: '9px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '4px' }}>{stat3.label}</div>
+                        <div style={{ color: '#FFFFFF', fontSize: '28px', fontWeight: 900, lineHeight: 1 }}>{stat3.value}</div>
+                        <div style={{ color: '#64748B', fontSize: '10px', marginTop: '4px', fontWeight: 600 }}>{stat3.sub}</div>
                     </div>
                     {/* Overall progress */}
                     <div style={{ 
                         textAlign: 'center', 
-                        background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)', 
-                        borderRadius: '20px', 
-                        padding: '18px 32px',
+                        background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)', 
+                        borderRadius: '16px', 
+                        padding: '14px 20px',
                         border: '1px solid rgba(255,255,255,0.15)',
-                        minWidth: '140px',
-                        boxShadow: '0 10px 30px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
+                        minWidth: '110px',
+                        marginLeft: '8px'
                     }}>
-                        <div style={{ color: '#E2E8F0', fontSize: '12px', fontWeight: 800, letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '8px' }}>ความคืบหน้า</div>
-                        <div style={{ color: ringColor, fontSize: '48px', fontWeight: 900, lineHeight: 1, textShadow: `0 4px 15px ${ringColor}40` }}>{avgOverall}<span style={{ fontSize: '20px', fontWeight: 600, color: '#94A3B8', marginLeft: '4px' }}>%</span></div>
-                        <div style={{ color: '#94A3B8', fontSize: '10px', marginTop: '6px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>ภาพรวมเขต</div>
+                        <div style={{ color: '#E2E8F0', fontSize: '10px', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px' }}>ความคืบหน้า</div>
+                        <div style={{ color: ringColor, fontSize: '36px', fontWeight: 900, lineHeight: 1 }}>{avgOverall}<span style={{ fontSize: '14px', fontWeight: 600, color: '#94A3B8', marginLeft: '2px' }}>%</span></div>
+                        <div style={{ color: '#94A3B8', fontSize: '9px', marginTop: '4px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{isClient ? 'เฉลี่ยรวม' : 'ภาพรวม'}</div>
                     </div>
                 </div>
             </div>
@@ -206,7 +248,7 @@ export default function ExportBentoReport({ district, stations, category = 'stat
                             แผนที่พิกัดสถานี
                         </div>
                         <div style={{ flex: 1, overflow: 'hidden', borderRadius: '14px', backgroundColor: '#F8FAFC' }}>
-                            <ExportMapStatic stations={stations} />
+                            <ExportMapStatic stations={stations} category={category} />
                         </div>
                     </div>
                 </div>
@@ -246,8 +288,10 @@ export default function ExportBentoReport({ district, stations, category = 'stat
                                             <>
                                                 <th style={{ textAlign: 'right', padding: '6px 2px', color: '#3B82F6', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>ไฟฟ้า</th>
                                                 <th style={{ textAlign: 'right', padding: '6px 2px', color: '#10B981', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>กราวด์</th>
-                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#F59E0B', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>Feed</th>
-                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#4B5563', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>RSSI</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#F59E0B', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>Feeder</th>
+                                                <th style={{ textAlign: 'right', padding: '6px 2px', color: '#8B5CF6', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>Yagi</th>
+                                                <th style={{ textAlign: 'center', padding: '6px 2px', color: '#6366F1', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>วิทยุ</th>
+                                                <th style={{ textAlign: 'center', padding: '6px 2px', color: '#4B5563', fontWeight: 600, borderBottom: '1px solid #E5E7EB' }}>มิเตอร์</th>
                                             </>
                                         )}
                                     </tr>
@@ -274,7 +318,13 @@ export default function ExportBentoReport({ district, stations, category = 'stat
                                                     <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.electricProgress || 0}%</td>
                                                     <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.groundProgress || 0}%</td>
                                                     <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.feederProgress || 0}%</td>
-                                                    <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6', color: '#4B5563' }}>{s.rssi || "-"}</td>
+                                                    <td style={{ padding: '4px 2px', textAlign: 'right', borderBottom: '1px solid #F3F4F6' }}>{s.towerProgress || 0}%</td>
+                                                    <td style={{ padding: '4px 2px', textAlign: 'center', borderBottom: '1px solid #F3F4F6' }}>
+                                                        {s.radioProgress === 100 ? "✅" : "❌"}
+                                                    </td>
+                                                    <td style={{ padding: '4px 2px', textAlign: 'center', borderBottom: '1px solid #F3F4F6' }}>
+                                                        {s.meterInstalled ? "✅" : "❌"}
+                                                    </td>
                                                 </>
                                             )}
                                         </tr>

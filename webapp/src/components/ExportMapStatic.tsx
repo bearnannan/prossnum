@@ -7,7 +7,8 @@ interface StationData {
     poleInstallationProgress: number | string;
 }
 
-export default function ExportMapStatic({ stations }: { stations: StationData[] }) {
+export default function ExportMapStatic({ stations, category = 'station' }: { stations: any[], category?: 'station' | 'client' }) {
+    const isClient = category === 'client';
     const validPoints = stations
         .map(s => [parseFloat(s.lat as any), parseFloat(s.lon as any)])
         .filter(([lat, lon]) => !isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0);
@@ -27,11 +28,33 @@ export default function ExportMapStatic({ stations }: { stations: StationData[] 
     }
 
     // Group markers by status
-    const completelyDone = stations.filter(s => (parseFloat(s.foundationProgress as any) || 0) >= 100 && (parseFloat(s.poleInstallationProgress as any) || 0) >= 100);
-    const notStarted = stations.filter(s => (parseFloat(s.foundationProgress as any) || 0) === 0 && (parseFloat(s.poleInstallationProgress as any) || 0) === 0);
-    const inProgress = stations.filter(s => !completelyDone.includes(s) && !notStarted.includes(s));
+    let completelyDone: any[] = [];
+    let notStarted: any[] = [];
+    let inProgress: any[] = [];
 
-    const makeMarkerParam = (color: string, list: StationData[]) => {
+    if (isClient) {
+        completelyDone = stations.filter(s => 
+            (parseFloat(s.electricProgress) || 0) >= 100 && 
+            (parseFloat(s.groundProgress) || 0) >= 100 && 
+            (parseFloat(s.feederProgress) || 0) >= 100 &&
+            (parseFloat(s.towerProgress) || 0) >= 100 &&
+            (parseFloat(s.radioProgress) || 0) >= 100
+        );
+        notStarted = stations.filter(s => 
+            (parseFloat(s.electricProgress) || 0) === 0 && 
+            (parseFloat(s.groundProgress) || 0) === 0 && 
+            (parseFloat(s.feederProgress) || 0) === 0 &&
+            (parseFloat(s.towerProgress) || 0) === 0 &&
+            (parseFloat(s.radioProgress) || 0) === 0
+        );
+    } else {
+        completelyDone = stations.filter(s => (parseFloat(s.foundationProgress as any) || 0) >= 100 && (parseFloat(s.poleInstallationProgress as any) || 0) >= 100);
+        notStarted = stations.filter(s => (parseFloat(s.foundationProgress as any) || 0) === 0 && (parseFloat(s.poleInstallationProgress as any) || 0) === 0);
+    }
+    
+    inProgress = stations.filter(s => !completelyDone.includes(s) && !notStarted.includes(s));
+
+    const makeMarkerParam = (color: string, list: any[]) => {
         const pts = list.map(s => [parseFloat(s.lat as any), parseFloat(s.lon as any)]).filter(([lat, lon]) => !isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0);
         if (pts.length === 0) return '';
         return `&markers=color:${color}|size:small|` + pts.map(p => `${p[0]},${p[1]}`).join('|');

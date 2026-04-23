@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { StatCard } from './StatCard';
 
-export function StatGrid({ activeCategory, overallProgress, filteredData }: {
+export const StatGrid = memo(function StatGrid({ activeCategory, overallProgress, filteredData }: {
   activeCategory: 'station' | 'client';
   overallProgress: number;
   filteredData: any[];
@@ -57,4 +57,4 @@ export function StatGrid({ activeCategory, overallProgress, filteredData }: {
       )}
     </div>
   );
-}
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useMemo, useEffect, Suspense } from "react";
+import { useRef, useState, useMemo, useEffect, Suspense, useTransition, useDeferredValue } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import useSWR from "swr";
@@ -58,6 +58,9 @@ const ComparisonChart = dynamic(() => import('@/components/ComparisonChart'), {
 
 function DashboardContent() {
   const [activeCategory, setActiveCategory] = useState<'station' | 'client'>('station');
+  const [searchTerm, setSearchTerm] = useState("");
+  const deferredSearchTerm = useDeferredValue(searchTerm);
+  const [chartTab, setChartTab] = useState<'average' | 'comparison'>('average');
   const { data: responseData, error: swrError, isLoading: swrIsLoading, mutate } = useSWR(`/api/sheet-data?sheet=${activeCategory}`, fetcher, {
     dedupingInterval: 60000,
     keepPreviousData: true,
@@ -126,12 +129,18 @@ function DashboardContent() {
   const [isStationModalOpen, setIsStationModalOpen] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [editingStation, setEditingStation] = useState<any | null>(null);
-  const [chartTab, setChartTab] = useState<'average' | 'comparison'>('average');
+  const [isPending, startTransition] = useTransition();
+
+  const handleCategoryChange = (category: 'station' | 'client') => {
+    startTransition(() => {
+      setActiveCategory(category);
+    });
+  };
+
   const { showToast } = useToast();
   const router = useRouter();
 
   const {
-    searchTerm, setSearchTerm,
     filterDistrict, setFilterDistrict,
     filterType, setFilterType,
     filterStatus, setFilterStatus,
@@ -139,9 +148,21 @@ function DashboardContent() {
     selectedProvince, setSelectedProvince,
     provinces, districts,
     filteredData, sortedData,
-    handleSort,
+    handleSort: _handleSort,
     overallProgress
-  } = useDashboard(data, activeCategory);
+  } = useDashboard(data, activeCategory, searchTerm, setSearchTerm, deferredSearchTerm);
+
+  const handleSort = (key: string) => {
+    startTransition(() => {
+      _handleSort(key);
+    });
+  };
+
+  const handleProvinceChange = (province: string) => {
+    startTransition(() => {
+      setSelectedProvince(province);
+    });
+  };
 
   const exportRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -210,12 +231,18 @@ function DashboardContent() {
   return (
     <div className="bg-zinc-50/50 dark:bg-zinc-950/80 architectural-bg text-zinc-900 dark:text-zinc-100 min-h-screen font-sans">
       <TopNavBar onLogout={handleLogout} onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+      
+      {/* ─── Global Transition Progress Bar ─── */}
+      <div className={`fixed top-0 left-0 right-0 h-1 z-[60] bg-blue-500/20 overflow-hidden transition-opacity duration-300 ${isPending ? 'opacity-100' : 'opacity-0'}`}>
+        <div className="h-full bg-blue-500 animate-indeterminate-shimmer w-[40%]" />
+      </div>
+
       <SideNavBar 
         activeCategory={activeCategory} 
-        onCategoryChange={setActiveCategory} 
+        onCategoryChange={handleCategoryChange} 
         provinces={provinces}
         selectedProvince={selectedProvince}
-        onProvinceChange={setSelectedProvince}
+        onProvinceChange={handleProvinceChange}
         isOpen={isMobileMenuOpen} 
         onClose={() => setIsMobileMenuOpen(false)} 
       />
@@ -301,32 +328,27 @@ function DashboardContent() {
 
 // Simplified persistent cache provider for SWR using idb-keyval
 const idbCacheProvider = () => {
-    // We only use this on the client
     if (typeof window === "undefined") return new Map();
-
     const cache = new Map();
     
-    // Attempt to load entire cache from IDB on startup
+    // Load cache from IDB
     get("swr-cache").then((stored: any) => {
-        if (stored) {
-            for (const [key, value] of Object.entries(stored)) {
-                cache.set(key, value);
-            }
+        if (stored && typeof stored === 'object') {
+            Object.entries(stored).forEach(([key, value]) => cache.set(key, value));
         }
-    });
+    }).catch(console.error);
 
     return {
         get: (key: string) => cache.get(key),
         set: (key: string, value: any) => {
             cache.set(key, value);
-            // Persist the entire cache to IDB
             const obj = Object.fromEntries(cache.entries());
-            set("swr-cache", obj);
+            set("swr-cache", obj).catch(console.error);
         },
         delete: (key: string) => {
             cache.delete(key);
             const obj = Object.fromEntries(cache.entries());
-            set("swr-cache", obj);
+            set("swr-cache", obj).catch(console.error);
         },
         keys: () => cache.keys()
     };
@@ -336,7 +358,9 @@ export default function Home() {
   return (
     <SWRConfig value={{ provider: idbCacheProvider }}>
       <ErrorBoundary>
-        <DashboardContent />
+        <Suspense fallback={<SkeletonLayout />}>
+          <DashboardContent />
+        </Suspense>
       </ErrorBoundary>
     </SWRConfig>
   );

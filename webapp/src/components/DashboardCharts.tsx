@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, memo } from 'react';
 import dynamic from 'next/dynamic';
 
 const MapView = dynamic(() => import('@/components/MapView'), {
@@ -16,7 +16,7 @@ const ComparisonChart = dynamic(() => import('@/components/ComparisonChart'), {
   loading: () => <div className="h-full w-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-800/50 rounded-xl text-zinc-400 text-sm animate-pulse">Loading Chart...</div>
 });
 
-export function DashboardCharts({
+export const DashboardCharts = memo(function DashboardCharts({
   activeCategory,
   filteredData,
   chartTab,
@@ -45,7 +45,7 @@ export function DashboardCharts({
             </button>
           </div>
         </div>
-        <div className="h-[420px]">
+        <div className="h-[420px] overflow-hidden">
           {chartTab === 'average' ? <DistrictProgressChart data={filteredData} category={activeCategory} /> : <ComparisonChart data={filteredData} category={activeCategory} />}
         </div>
       </div>
@@ -57,4 +57,4 @@ export function DashboardCharts({
       </div>
     </Suspense>
   );
-}
+});

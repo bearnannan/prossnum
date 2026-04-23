@@ -50,7 +50,6 @@ interface SupabaseClientRow {
     feed_distance: string;
     tower_progress: number;
     radio_progress: number;
-    link_progress: number;
     radio_sn: string | null;
     battery_sn: string;
     rssi: string;
@@ -103,7 +102,6 @@ export interface ClientSystemData {
     feedDistance: string;
     towerProgress: number;
     radioProgress: number;
-    linkProgress: number;
     radioSN: string;
     batterySN: string;
     rssi: string;
@@ -159,7 +157,6 @@ function mapClient(item: SupabaseClientRow): ClientSystemData {
         feedDistance: item.feed_distance,
         towerProgress: item.tower_progress,
         radioProgress: item.radio_progress,
-        linkProgress: item.link_progress,
         radioSN: item.radio_sn ?? "",
         batterySN: item.battery_sn,
         rssi: item.rssi,
@@ -244,7 +241,6 @@ export async function POST(req: Request) {
                     feed_distance: data.feedDistance,
                     tower_progress: Number(data.towerProgress),
                     radio_progress: Number(data.radioProgress),
-                    link_progress: Number(data.linkProgress),
                     radio_sn: data.radioSN,
                     battery_sn: data.batterySN,
                     rssi: data.rssi,
@@ -346,7 +342,6 @@ export async function PUT(req: Request) {
                     feed_distance: data.feedDistance,
                     tower_progress: Number(data.towerProgress),
                     radio_progress: Number(data.radioProgress),
-                    link_progress: Number(data.linkProgress),
                     radio_sn: data.radioSN,
                     battery_sn: data.batterySN,
                     rssi: data.rssi,

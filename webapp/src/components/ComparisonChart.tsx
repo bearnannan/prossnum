@@ -110,7 +110,7 @@ export default React.memo(function ComparisonChart({ data, category = 'station' 
 
     return (
         <div className="w-full overflow-y-auto" style={{ height: "100%" }}>
-            <ResponsiveContainer width="100%" height={chartHeight}>
+            <ResponsiveContainer width="100%" height={chartHeight} minWidth={0} minHeight={0}>
                 <BarChart
                     data={chartData}
                     margin={{ top: 10, right: 24, left: 10, bottom: 10 }}

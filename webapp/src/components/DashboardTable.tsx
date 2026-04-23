@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { ProgressBar } from '@/components/ProgressBar';
 import { formatDateDisplay } from '@/hooks/useExport';
 
-export function DashboardTable({
+export const DashboardTable = memo(function DashboardTable({
   activeCategory,
   filteredData,
   sortedData,
@@ -89,7 +89,7 @@ export function DashboardTable({
                   <th className="px-5 py-3.5 min-w-[140px]">กราวด์</th>
                   <th className="px-5 py-3.5">AC Ω</th>
                   <th className="px-5 py-3.5 min-w-[140px]">Feeder</th>
-                  <th className="px-5 py-3.5">Radio (%)</th>
+                  <th className="px-5 py-3.5 text-center">วางวิทยุ</th>
                   <th className="px-5 py-3.5">Radio SN</th>
                   <th className="px-5 py-3.5">RSSI</th>
                   <th className="px-5 py-3.5">ขอมิเตอร์</th>
@@ -159,7 +159,13 @@ export function DashboardTable({
                       <td className="px-5 py-3.5">
                         <ProgressBar value={parseFloat(item.feederProgress || 0)} color="amber" />
                       </td>
-                      <td className="px-5 py-3.5 text-xs">{item.radioProgress}%</td>
+                      <td className="px-5 py-3.5 text-center">
+                        {Number(item.radioProgress) === 100 ? (
+                          <span className="material-symbols-outlined text-blue-500 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                        ) : (
+                          <span className="material-symbols-outlined text-zinc-300 dark:text-zinc-700 text-lg">cancel</span>
+                        )}
+                      </td>
                       <td className="px-5 py-3.5 font-mono text-[10px] text-zinc-500">{item.radioSN || "-"}</td>
                       <td className="px-5 py-3.5 font-mono text-xs text-zinc-600">{item.rssi || "-"}</td>
                       <td className="px-5 py-3.5">
@@ -209,4 +215,4 @@ export function DashboardTable({
       </div>
     </div>
   );
-}
+});
