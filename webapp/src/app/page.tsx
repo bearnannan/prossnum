@@ -358,7 +358,7 @@ export default function Home() {
   return (
     <SWRConfig value={{ provider: idbCacheProvider }}>
       <ErrorBoundary>
-        <Suspense fallback={<SkeletonLayout />}>
+        <Suspense fallback={<SkeletonLayout type="grid" />}>
           <DashboardContent />
         </Suspense>
       </ErrorBoundary>
