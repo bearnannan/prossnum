@@ -1,0 +1,1278 @@
+# yaml-language-server: $schema=../../testutil/testcase.schema.json
+
+CreateTable:
+  desired: |
+    CREATE TABLE bigdata (
+      data bigint
+    );
+DropTable:
+  current: |
+    CREATE TABLE bigdata (
+      data bigint
+    );
+  up: |
+    DROP TABLE [dbo].[bigdata];
+  down: |
+    CREATE TABLE bigdata (
+      data bigint
+    );
+TestMssqldefColumnLiteral:
+  desired: |
+    CREATE TABLE v (
+      v_integer integer NOT NULL,
+      v_text text,
+      v_smallmoney smallmoney,
+      v_money money,
+      v_datetimeoffset datetimeoffset(1),
+      v_datetime2 datetime2,
+      v_datetime2_with_precision datetime2(3),
+      v_smalldatetime smalldatetime,
+      v_nchar nchar(30),
+      v_nvarchar nvarchar(30),
+      v_nvarchar_max nvarchar(max),
+      v_varchar_max varchar(max),
+      v_varbinary_max varbinary(max),
+      v_ntext ntext
+    );
+TestMssqldefMultipleIndex:
+  desired: |
+    CREATE TABLE v (
+      v_integer integer NOT NULL,
+      v_nchar nchar(30)
+    );
+    CREATE NONCLUSTERED INDEX idx1_v ON v (v_integer);
+    CREATE NONCLUSTERED INDEX idx2_v ON v (v_nchar);
+CreateIndexWithFilter:
+  desired: |
+    CREATE TABLE v (
+      v_int int
+    );
+    CREATE INDEX idx_v ON v (v_int) WHERE (v_int IS NOT NULL);
+IndexesOnChangedFilter:
+  current: |
+    CREATE TABLE v (
+      v_int int,
+      v_nvarchar nvarchar(30)
+    );
+    CREATE INDEX idx_v ON v (v_int, v_nvarchar) WHERE (v_int IS NOT NULL);
+  desired: |
+    CREATE TABLE v (
+      v_int int,
+      v_nvarchar nvarchar(30)
+    );
+    CREATE INDEX idx_v ON v (v_int, v_nvarchar) WHERE (v_int IS NOT NULL AND v_nvarchar IS NOT NULL);
+  up: |
+    DROP INDEX [idx_v] ON [dbo].[v];
+    CREATE INDEX idx_v ON v (v_int, v_nvarchar) WHERE (v_int IS NOT NULL AND v_nvarchar IS NOT NULL);
+  down: |
+    DROP INDEX [idx_v] ON [dbo].[v];
+    CREATE INDEX idx_v ON v (v_int, v_nvarchar) WHERE (v_int IS NOT NULL);
+CreateColumnStoreIndex:
+  current: |
+    CREATE TABLE v (
+      v_int int,
+      v_nvarchar nvarchar(30)
+    );
+  desired: |
+    CREATE TABLE v (
+      v_int int,
+      v_nvarchar nvarchar(30)
+    );
+    CREATE NONCLUSTERED COLUMNSTORE INDEX idx_v ON v (v_int, v_nvarchar);
+  up: |
+    CREATE NONCLUSTERED COLUMNSTORE INDEX idx_v ON v (v_int, v_nvarchar);
+  down: |
+    DROP INDEX [idx_v] ON [dbo].[v];
+CreateColumnStoreIndexWithoutKeyword:
+  current:
+    CREATE TABLE v (
+      v_int int,
+      v_nvarchar nvarchar(30)
+    );
+  desired: |
+    CREATE TABLE v (
+      v_int int,
+      v_nvarchar nvarchar(30)
+    );
+    CREATE COLUMNSTORE INDEX idx_v ON v (v_int, v_nvarchar);
+  up: |
+    CREATE COLUMNSTORE INDEX idx_v ON v (v_int, v_nvarchar);
+  down: |
+    DROP INDEX [idx_v] ON [dbo].[v];
+DropColumnStoreIndex:
+  current: |
+    CREATE TABLE v (
+      v_int int,
+      v_nvarchar nvarchar(30)
+    );
+    CREATE NONCLUSTERED COLUMNSTORE INDEX idx_v ON v (v_int, v_nvarchar);
+  desired: |
+    CREATE TABLE v (
+      v_int int,
+      v_nvarchar nvarchar(30)
+    );
+  up: |
+    DROP INDEX [idx_v] ON [dbo].[v];
+  down: |
+    CREATE NONCLUSTERED COLUMNSTORE INDEX idx_v ON v (v_int, v_nvarchar);
+DropTableOnNonDefaultSchema:
+  current: |
+    CREATE TABLE FOO.bigdata1 (
+      data bigint
+    );
+    CREATE TABLE FOO.bigdata2 (
+      data bigint
+    );
+  desired: |
+    CREATE TABLE FOO.bigdata1 (
+      data bigint
+    );
+  up: |
+    DROP TABLE [FOO].[bigdata2];
+  down: |
+    CREATE TABLE FOO.bigdata2 (
+      data bigint
+    );
+CreateTableOnNonStandardDefaultSchema:
+  desired: |
+    CREATE TABLE v (
+      v_int int,
+      v_nvarchar nvarchar(30)
+    );
+  user: "mssqldef_user"
+
+# Built-in types must not be schema-qualified on non-default schema
+AddBitColumnOnNonDefaultSchema:
+  current: |
+    CREATE TABLE items (
+      id int
+    );
+  desired: |
+    CREATE TABLE items (
+      id int,
+      requires_consent bit NOT NULL DEFAULT 1
+    );
+  up: |
+    ALTER TABLE [FOO].[items] ADD [requires_consent] bit NOT NULL DEFAULT 1;
+  down: |
+    ALTER TABLE [FOO].[items] DROP CONSTRAINT [DF__items__requires___239E4DCF];
+    ALTER TABLE [FOO].[items] DROP COLUMN [requires_consent];
+  user: "mssqldef_user"
+  min_version: '2019' # auto-generated constraint name depends on a specific version
+  max_version: '2019' # auto-generated constraint name depends on a specific version
+
+AddIntColumnOnNonDefaultSchema:
+  current: |
+    CREATE TABLE items (
+      id int
+    );
+  desired: |
+    CREATE TABLE items (
+      id int,
+      count int NOT NULL
+    );
+  up: |
+    ALTER TABLE [FOO].[items] ADD [count] int NOT NULL;
+  down: |
+    ALTER TABLE [FOO].[items] DROP COLUMN [count];
+  user: "mssqldef_user"
+DropTableOnNonStandardDefaultSchema:
+  current: |
+    CREATE TABLE v (
+      v_int int,
+      v_nvarchar nvarchar(30)
+    );
+  up: |
+    DROP TABLE [FOO].[v];
+  down: |
+    CREATE TABLE v (
+      v_int int,
+      v_nvarchar nvarchar(30)
+    );
+  user: "mssqldef_user"
+MultipleView:
+  current: |
+    CREATE VIEW v1 AS SELECT 1 AS N;
+    CREATE VIEW v2 AS SELECT 2 AS N;
+  up: |
+    DROP VIEW [dbo].[v1];
+    DROP VIEW [dbo].[v2];
+  down: |
+    CREATE VIEW v1 AS SELECT 1 AS N;
+    CREATE VIEW v2 AS SELECT 2 AS N;
+UnicodeString:
+  desired: |
+    CREATE VIEW v AS SELECT Session_Context(N'key') AS x;
+InsteadOfTrigger:
+  desired: |
+    CREATE TABLE users (
+      id integer,
+      name text,
+      age integer,
+      CONSTRAINT PK_users PRIMARY KEY CLUSTERED (id)
+    );
+    CREATE TRIGGER [insert_users] ON [dbo].[users] instead of insert AS
+    insert into users(id, name, age) select id + 1, name, age from INSERTED;
+ConvertMssqlTypes:
+  desired: |
+    CREATE VIEW v AS
+      SELECT
+        Convert(bigint, 0) as v_bigint,
+        Convert(bit, 0) as v_bit,
+        Convert(int, 2) as v_int,
+        Convert(money, 3) as v_money,
+        Convert(numeric(9, 3), 4) as v_numeric,
+        Convert(smallint, 5) as v_smallint,
+        Convert(smallmoney, 6) as v_smallmoney,
+        Convert(tinyint, 7) as v_tinyint,
+        Convert(float, 8) as v_float,
+        Convert(real, 9) as v_real,
+        Convert(datetime2(0), '2023-03-11 23:50:00') as v_datetime2,
+        Convert(datetimeoffset(0), '2023-03-11 23:50:00+0900') as v_datetimeoffset,
+        Convert(smalldatetime, '2023-03-11 23:50') as v_smalldatetime,
+        Convert(text, 'Hello, World') as v_text,
+        Convert(varchar(20), 'Hello, World') as v_varchar,
+        Convert(nchar, N'H') as v_nchar,
+        Convert(ntext, N'Hello, World') as v_ntext,
+        Convert(nvarchar(20), N'Hello, World') as v_nvarchar,
+        Convert(varbinary(20), 123456) as v_varbinary;
+SetOptionInTrigger:
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      name text
+    );
+    CREATE TABLE logs (
+      id bigint NOT NULL,
+      dt datetime
+    );
+    CREATE TRIGGER [insert_log] ON [dbo].[users] after insert AS
+    set nocount on
+    insert into logs select id, getdate() from inserted;
+IndexColumnOrder:
+  current:
+    CREATE TABLE v (
+      v1 int,
+      v2 int,
+      CONSTRAINT [v_pk] PRIMARY KEY CLUSTERED ([v2] ASC, [v1] ASC)
+    );
+  desired:
+    CREATE TABLE v (
+      v1 int,
+      v2 int,
+      CONSTRAINT [v_pk] PRIMARY KEY CLUSTERED ([v2] ASC, [v1] ASC)
+    );
+ReservedWordColumnName:
+  current: |
+    CREATE TABLE v(
+      [V_INT] int,
+      [TIMESTAMP] datetime
+    );
+  desired: |
+    CREATE TABLE v(
+      [V_INT] int,
+      [TIMESTAMP] datetime
+    );
+ChangePrimaryKey:
+  current: |
+    CREATE TABLE v (
+      v1 int NOT NULL,
+      v2 int NOT NULL,
+      CONSTRAINT [v_pk] PRIMARY KEY CLUSTERED ([v1])
+    )
+  desired: |
+    CREATE TABLE v (
+      v1 int NOT NULL,
+      v2 int NOT NULL,
+      CONSTRAINT [v_pk] PRIMARY KEY CLUSTERED ([v2])
+    )
+  up: |
+    ALTER TABLE [dbo].[v] DROP CONSTRAINT [v_pk];
+    ALTER TABLE [dbo].[v] ADD CONSTRAINT [v_pk] PRIMARY KEY CLUSTERED ([v2]);
+  down: |
+    ALTER TABLE [dbo].[v] DROP CONSTRAINT [v_pk];
+    ALTER TABLE [dbo].[v] ADD CONSTRAINT [v_pk] PRIMARY KEY CLUSTERED ([v1]);
+CreateViewWithMultiline:
+  desired: |
+    CREATE VIEW v AS
+    SELECT
+    10 as N;
+PercentConstraintName:
+  current: |
+    CREATE TABLE [dbo].[percent_test] (
+      [test%] int CONSTRAINT [DF_percent_test_test%] DEFAULT (NULL)
+    );
+  desired: |
+    CREATE TABLE [dbo].[percent_test] (
+      [test%] int CONSTRAINT [DF_percent_test_test%] DEFAULT (NULL)
+    );
+UpdateWithFromAndWhere:
+  desired: |
+    CREATE TABLE reservation (
+      id BIGINT NOT NULL IDENTITY (1, 1),
+      start_time DATETIME2(0) NOT NULL,
+      end_time DATETIME2(0) NOT NULL,
+      reserve_time INTEGER,
+      CONSTRAINT reservation_pk PRIMARY KEY CLUSTERED (id)
+    );
+    CREATE TRIGGER [reservation_insert] ON [dbo].[reservation] instead of update AS
+    set nocount on
+    update reservation set reserve_time = DATEDIFF(second, inserted.start_time, inserted.end_time) from inserted where reservation.id = inserted.id;
+ViewWithHeaderComment:
+  desired: |
+    -- DUAL view
+    CREATE VIEW DUAL AS SELECT 'X' AS X;
+  up: |
+    CREATE VIEW DUAL AS SELECT 'X' AS X;
+  down: |
+    DROP VIEW [dbo].[dual];
+TriggerIfWithoutBeginEnd:
+  desired: |
+    CREATE TABLE users (
+        id   int          not null,
+        name varchar(255) not null
+    );
+    CREATE TRIGGER update_name_trigger
+        ON users
+        AFTER UPDATE
+        AS
+    IF UPDATE(name)
+        BEGIN
+            UPDATE u
+            SET name = i.name + '+1'
+            FROM users AS u
+                INNER JOIN inserted AS i ON u.id = i.id
+        END
+  up: |
+    CREATE TABLE users (
+        id   int          not null,
+        name varchar(255) not null
+    );
+    CREATE TRIGGER [update_name_trigger] ON [dbo].[users] after update AS
+    if UPDATE(name)
+    begin
+    update u set name = i.name + '+1' from users as u join inserted as i on u.id = i.id
+    end;
+  down: |
+    DROP TRIGGER [update_name_trigger];
+    DROP TABLE [dbo].[users];
+TriggerIfWithBeginEnd:
+  desired: |
+    CREATE TABLE users (
+        id   int          not null,
+        name varchar(255) not null
+    );
+    CREATE TRIGGER update_name_trigger
+        ON users
+        AFTER UPDATE
+        AS
+    BEGIN
+        IF UPDATE(name)
+            BEGIN
+                UPDATE u
+                SET name = i.name + '+1'
+                FROM users AS u
+                    INNER JOIN inserted AS i ON u.id = i.id
+            END
+    END
+  up: |
+    CREATE TABLE users (
+        id   int          not null,
+        name varchar(255) not null
+    );
+    CREATE TRIGGER [update_name_trigger] ON [dbo].[users] after update AS
+    begin
+    if UPDATE(name)
+    begin
+    update u set name = i.name + '+1' from users as u join inserted as i on u.id = i.id
+    end
+    end;
+  down: |
+    DROP TRIGGER [update_name_trigger];
+    DROP TABLE [dbo].[users];
+CollateOnColumn:
+  desired: |
+    create table users (
+        id   int          not null,
+        name varchar(255) not null
+    );
+    create view user_view as
+    select id,
+          name collate database_default as name
+    from users;
+DeclareVariable:
+  current: |
+    CREATE TABLE users (
+        id bigint NOT NULL,
+        name text
+    );
+    CREATE TABLE logs (
+        id bigint NOT NULL,
+        dt datetime
+    );
+  desired: |
+    CREATE TABLE users (
+        id bigint NOT NULL,
+        name text
+    );
+    CREATE TABLE logs (
+        id bigint NOT NULL,
+        dt datetime
+    );
+    CREATE TRIGGER [insert_log] ON [dbo].[users] after insert AS
+    declare @date as datetime
+    set nocount on
+    begin
+        set @date = GETDATE()
+        insert into logs select id, @date from inserted
+    end
+  up: |
+    CREATE TRIGGER [insert_log] ON [dbo].[users] after insert AS
+    declare
+    @date datetime
+    set nocount on
+    begin
+    set @date = getdate()
+    insert into logs select id, @date from inserted
+    end;
+  down: |
+    DROP TRIGGER [insert_log];
+CovertCurrentTimestampWithStyle:
+  current: |
+    CREATE TABLE users (
+        id bigint NOT NULL,
+        name text
+    );
+  desired: |
+    CREATE TABLE users (
+        id bigint NOT NULL,
+        name text
+    );
+    CREATE TRIGGER [insert_log] ON [dbo].[users] after insert AS
+    declare @datetime as datetime
+    begin
+        set @datetime = CAST(CONVERT(VARCHAR, CURRENT_TIMESTAMP, 110) AS datetime)
+    end
+  up: |
+    CREATE TRIGGER [insert_log] ON [dbo].[users] after insert AS
+    declare
+    @datetime datetime
+    begin
+    set @datetime = cast(convert(varchar, current_timestamp, 110) as datetime)
+    end;
+  down: |
+    DROP TRIGGER [insert_log];
+TableHint:
+  desired: |
+    CREATE TABLE users (
+        id bigint NOT NULL,
+        name text
+    );
+    CREATE TRIGGER [insert_log] ON [dbo].[users] after insert AS
+    select MAX(id) from Inserted with(tablock)
+    select MAX(id) from Inserted with(readuncommitted)
+    select MAX(id) from Inserted with(updlock);
+WhileLoopFetchIntoMulti:
+  current: |
+    CREATE TABLE users (
+        id bigint NOT NULL,
+        code varchar(20),
+        updatedat datetime
+    );
+  desired: |
+    CREATE TABLE users (
+        id bigint NOT NULL,
+        code varchar(20),
+        updatedat datetime
+    );
+    CREATE TRIGGER [insert_log] ON [dbo].[users] after insert AS
+    declare @code as varchar(20)
+    declare @updatedat as datetime
+    begin
+      DECLARE cur CURSOR FOR
+        SELECT code, MAX(updatedat)
+        FROM [Inserted]
+        GROUP BY code
+
+      OPEN cur
+      FETCH NEXT FROM cur INTO @code, @updatedat
+      WHILE (@@FETCH_STATUS=0) -- with parentheses
+      BEGIN
+        FETCH NEXT FROM cur INTO @code, @updatedat
+      END
+      CLOSE cur
+      DEALLOCATE cur
+    end
+  up: |
+    CREATE TRIGGER [insert_log] ON [dbo].[users] after insert AS
+    declare
+    @code varchar(20)
+    declare
+    @updatedat datetime
+    begin
+    declare
+    cur cursor for
+    select code, MAX(updatedat) from Inserted group by code
+    open cur
+    fetch next from cur into @code, @updatedat
+    while (@@FETCH_STATUS = 0)
+    begin
+    fetch next from cur into @code, @updatedat
+    end
+    close cur
+    deallocate cur
+    end;
+  down: |
+    DROP TRIGGER [insert_log];
+TriggerNameWithSchema:
+  desired: |
+    CREATE TABLE users (
+        id bigint NOT NULL,
+        name text
+    );
+    CREATE TRIGGER [dbo].[insert_log] ON [dbo].[users] after insert AS
+    set nocount on;
+DanglingElse:
+  current: |
+    CREATE TABLE users (
+        id bigint NOT NULL,
+        name text
+    );
+  desired: |
+    CREATE TABLE users (
+        id bigint NOT NULL,
+        name text
+    );
+    CREATE TRIGGER [insert_log] ON [dbo].[users] after insert AS
+    IF UPDATE(name) set nocount on
+    IF UPDATE(name) set nocount on ELSE set nocount off
+    IF UPDATE(name) set nocount on ELSE BEGIN set nocount off END
+    IF UPDATE(name) BEGIN set nocount on END
+    IF UPDATE(name) BEGIN set nocount on END ELSE set nocount off
+    IF UPDATE(name) BEGIN set nocount on END ELSE BEGIN set nocount off END
+    ;
+  up: |
+    CREATE TRIGGER [insert_log] ON [dbo].[users] after insert AS
+    if UPDATE(name)
+    set nocount on
+    if UPDATE(name)
+    set nocount on
+    else
+    set nocount off
+    if UPDATE(name)
+    set nocount on
+    else
+    begin
+    set nocount off
+    end
+    if UPDATE(name)
+    begin
+    set nocount on
+    end
+    if UPDATE(name)
+    begin
+    set nocount on
+    end
+    else
+    set nocount off
+    if UPDATE(name)
+    begin
+    set nocount on
+    end
+    else
+    begin
+    set nocount off
+    end;
+  down: |
+    DROP TRIGGER [insert_log];
+Execute:
+  desired: |
+    CREATE TABLE users (
+        id bigint NOT NULL,
+        name text
+    );
+    CREATE TRIGGER [insert_log] ON [dbo].[users] after insert AS
+    declare
+    @o1 int
+    exec sp_executesql N'SELECT @o1 = @p1', N'@p1 int, @o1 int output', 1, @o1 output
+    execute ('SELECT 1');
+IfWhileCompoundConditions:
+  desired: |
+    CREATE TABLE users (
+        id bigint NOT NULL,
+        name text
+    );
+    CREATE TRIGGER [insert_log] ON [dbo].[users] after insert AS
+    while (1 = 1 and 2 = 2)
+    begin
+    if (not 1 = 1)
+    set nocount on
+    else
+    set nocount off
+    end;
+Return:
+  desired: |
+    CREATE TABLE users (
+        id bigint NOT NULL,
+        name text
+    );
+    CREATE TRIGGER [insert_log] ON [dbo].[users] after insert AS
+    if (1 = 1)
+    return;
+RenameColumn:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      username text,
+      age integer
+    );
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      user_name text, -- @renamed from=username
+      age integer
+    );
+  up: |
+    EXEC sp_rename 'users.username', 'user_name', 'COLUMN';
+  down: |
+    ALTER TABLE [dbo].[users] ADD [username] text;
+    ALTER TABLE [dbo].[users] DROP COLUMN [user_name];
+RenameColumnWithTypeChange:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      username varchar(100),
+      age integer
+    );
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      user_name text NOT NULL, -- @renamed from=username
+      age integer
+    );
+  up: |
+    EXEC sp_rename 'users.username', 'user_name', 'COLUMN';
+    ALTER TABLE [users] ALTER COLUMN [user_name] text NOT NULL;
+  down: |
+    ALTER TABLE [dbo].[users] ADD [username] varchar(100);
+    ALTER TABLE [dbo].[users] DROP COLUMN [user_name];
+RenameTable:
+  current: |
+    CREATE TABLE user_accounts (
+      id bigint NOT NULL,
+      username text,
+      age integer
+    );
+  desired: |
+    CREATE TABLE users ( -- @renamed from=user_accounts
+      id bigint NOT NULL,
+      username text,
+      age integer
+    );
+  up: |
+    EXEC sp_rename 'user_accounts', 'users';
+  down: |
+    CREATE TABLE user_accounts (
+      id bigint NOT NULL,
+      username text,
+      age integer
+    );
+    DROP TABLE [dbo].[users];
+RenameTableWithCommentVariant:
+  current: |
+    CREATE TABLE old_users (
+      id bigint NOT NULL,
+      name text
+    );
+  desired: |
+    CREATE TABLE new_users /* @renamed from=old_users */ (
+      id bigint NOT NULL,
+      name text
+    );
+  up: |
+    EXEC sp_rename 'old_users', 'new_users';
+  down: |
+    CREATE TABLE old_users (
+      id bigint NOT NULL,
+      name text
+    );
+    DROP TABLE [dbo].[new_users];
+RenameTableWithQuotedName:
+  current: |
+    CREATE TABLE [user_accounts] (
+      id bigint NOT NULL,
+      name text
+    );
+  desired: |
+    CREATE TABLE [user_profiles] ( -- @renamed from="user_accounts"
+      id bigint NOT NULL,
+      name text
+    );
+  up: |
+    EXEC sp_rename 'user_accounts', 'user_profiles';
+  down: |
+    CREATE TABLE [user_accounts] (
+      id bigint NOT NULL,
+      name text
+    );
+    DROP TABLE [dbo].[user_profiles];
+RenameTableAndMultipleChanges:
+  current: |
+    CREATE TABLE old_accounts (
+      id bigint NOT NULL,
+      user_name varchar(50),
+      is_active bit,
+      old_field text
+    );
+  desired: |
+    CREATE TABLE accounts ( -- @renamed from=old_accounts
+      id bigint NOT NULL PRIMARY KEY,
+      username varchar(100) NOT NULL, -- @renamed from=user_name
+      is_active bit DEFAULT 1
+    );
+  up: |
+    EXEC sp_rename 'old_accounts', 'accounts';
+    EXEC sp_rename 'accounts.user_name', 'username', 'COLUMN';
+    ALTER TABLE [accounts] ALTER COLUMN [username] varchar(100) NOT NULL;
+    ALTER TABLE [dbo].[accounts] ADD DEFAULT 1 FOR [is_active];
+    ALTER TABLE [dbo].[accounts] ADD PRIMARY KEY CLUSTERED ([id]);
+    ALTER TABLE [dbo].[accounts] DROP COLUMN [old_field];
+  down: |
+    CREATE TABLE old_accounts (
+      id bigint NOT NULL,
+      user_name varchar(50),
+      is_active bit,
+      old_field text
+    );
+    DROP TABLE [dbo].[accounts];
+RenameIndex:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100)
+    );
+    CREATE INDEX old_email_idx ON users (email);
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100)
+    );
+    CREATE INDEX new_email_idx /* @renamed from=old_email_idx */ ON users (email);
+  up: |
+    EXEC sp_rename 'users.old_email_idx', 'new_email_idx', 'INDEX';
+  down: |
+    CREATE INDEX old_email_idx ON users (email);
+    DROP INDEX [new_email_idx] ON [dbo].[users];
+RenameIndexInTable:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100),
+      INDEX idx_email (email)
+    );
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100),
+      INDEX email_idx (email) -- @renamed from=idx_email
+    );
+  up: |
+    EXEC sp_rename 'users.idx_email', 'email_idx', 'INDEX';
+  down: |
+    CREATE NONCLUSTERED INDEX [idx_email] ON [dbo].[users] ([email]);
+    DROP INDEX [email_idx] ON [dbo].[users];
+RenameMultipleIndexes:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100)
+    );
+    CREATE INDEX idx_email ON users (email);
+    CREATE INDEX idx_username ON users (username);
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100)
+    );
+    CREATE INDEX email_idx /* @renamed from=idx_email */ ON users (email);
+    CREATE INDEX username_idx /* @renamed from=idx_username */ ON users (username);
+  up: |
+    EXEC sp_rename 'users.idx_email', 'email_idx', 'INDEX';
+    EXEC sp_rename 'users.idx_username', 'username_idx', 'INDEX';
+  down: |
+    CREATE INDEX idx_email ON users (email);
+    CREATE INDEX idx_username ON users (username);
+    DROP INDEX [email_idx] ON [dbo].[users];
+    DROP INDEX [username_idx] ON [dbo].[users];
+RenameUniqueConstraint:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100),
+      CONSTRAINT old_unique_email UNIQUE (email)
+    );
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100),
+      CONSTRAINT unique_email UNIQUE (email) -- @renamed from=old_unique_email
+    );
+  up: |
+    EXEC sp_rename 'users.old_unique_email', 'unique_email', 'INDEX';
+  down: |
+    CREATE UNIQUE NONCLUSTERED INDEX [old_unique_email] ON [dbo].[users] ([email]);
+    ALTER TABLE [dbo].[users] DROP CONSTRAINT [unique_email];
+IdentityWithNegativeValue:
+  desired: |
+    CREATE TABLE test_identity_negative1 (
+      id int IDENTITY(-100, -5) NOT NULL
+    );
+    CREATE TABLE test_identity_negative2 (
+      id bigint IDENTITY(-1, 1) NOT NULL
+    );
+    CREATE TABLE test_identity_negative3 (
+      id int IDENTITY(0, -1) NOT NULL
+    );
+    CREATE TABLE test_identity_negative4 (
+      id bigint IDENTITY(-1000, -10) NOT NULL
+    );
+CheckInClauseInteger:
+  desired: |
+    CREATE TABLE products (
+      id int PRIMARY KEY,
+      status int,
+      CONSTRAINT products_status_chk CHECK (status IN (1, 2, 3))
+    );
+CheckInClauseString:
+  desired: |
+    CREATE TABLE users (
+      id int PRIMARY KEY,
+      role varchar(50),
+      CONSTRAINT users_role_chk CHECK (role IN ('admin', 'user', 'guest'))
+    );
+CheckInClauseWithMultipleConditions:
+  desired: |
+    CREATE TABLE items (
+      id int PRIMARY KEY,
+      category varchar(50),
+      priority int,
+      CONSTRAINT items_chk CHECK (category IN ('electronics', 'clothing', 'food') AND priority >= 1 AND priority <= 5)
+    );
+AddCheckConstraintWithIn:
+  current: |
+    CREATE TABLE documents (
+      id int PRIMARY KEY,
+      state varchar(20)
+    );
+  desired: |
+    CREATE TABLE documents (
+      id int PRIMARY KEY,
+      state varchar(20),
+      CONSTRAINT documents_state_chk CHECK (state IN ('draft', 'review', 'published', 'archived'))
+    );
+  up: |
+    ALTER TABLE [dbo].[documents] ADD CONSTRAINT [documents_state_chk] CHECK (state in ('draft', 'review', 'published', 'archived'));
+  down: |
+    ALTER TABLE [dbo].[documents] DROP CONSTRAINT [documents_state_chk];
+ModifyCheckConstraintIn:
+  current: |
+    CREATE TABLE tasks (
+      id int PRIMARY KEY,
+      status varchar(20),
+      CONSTRAINT tasks_status_chk CHECK (status IN ('todo', 'in_progress'))
+    );
+  desired: |
+    CREATE TABLE tasks (
+      id int PRIMARY KEY,
+      status varchar(20),
+      CONSTRAINT tasks_status_chk CHECK (status IN ('todo', 'in_progress', 'done'))
+    );
+  up: |
+    ALTER TABLE [dbo].[tasks] DROP CONSTRAINT [tasks_status_chk];
+    ALTER TABLE [dbo].[tasks] ADD CONSTRAINT [tasks_status_chk] CHECK (status in ('todo', 'in_progress', 'done'));
+  down: |
+    ALTER TABLE [dbo].[tasks] DROP CONSTRAINT [tasks_status_chk];
+    ALTER TABLE [dbo].[tasks] ADD CONSTRAINT [tasks_status_chk] CHECK (status in ('todo', 'in_progress'));
+DropCheckConstraintWithIn:
+  current: |
+    CREATE TABLE events (
+      id int PRIMARY KEY,
+      type varchar(20),
+      CONSTRAINT events_type_chk CHECK (type IN ('public', 'private'))
+    );
+  desired: |
+    CREATE TABLE events (
+      id int PRIMARY KEY,
+      type varchar(20)
+    );
+  up: |
+    ALTER TABLE [dbo].[events] DROP CONSTRAINT [events_type_chk];
+  down: |
+    ALTER TABLE [dbo].[events] ADD CONSTRAINT [events_type_chk] CHECK (type in ('public', 'private'));
+CheckInClauseNormalization:
+  current: |
+    CREATE TABLE workflows (
+      id int PRIMARY KEY,
+      state varchar(20),
+      CONSTRAINT workflows_state_chk CHECK (state in ('active', 'paused', 'stopped'))
+    );
+  desired: |
+    CREATE TABLE workflows (
+      id int PRIMARY KEY,
+      state varchar(20),
+      CONSTRAINT workflows_state_chk CHECK (state IN ('active', 'paused', 'stopped'))
+    );
+CheckTableLevelToColumnLevel:
+  current: |
+    CREATE TABLE orders (
+      id int PRIMARY KEY,
+      status varchar(20),
+      CONSTRAINT orders_status_chk CHECK (status IN ('pending', 'shipped', 'delivered'))
+    );
+  desired: |
+    CREATE TABLE orders (
+      id int PRIMARY KEY,
+      status varchar(20) CHECK (status IN ('pending', 'shipped', 'delivered'))
+    );
+CheckTableLevelToUnnamedColumnLevel:
+  current: |
+    CREATE TABLE payments (
+      id int PRIMARY KEY,
+      method varchar(20),
+      CONSTRAINT CK_payments_method CHECK (method IN ('card', 'cash', 'transfer'))
+    );
+  desired: |
+    CREATE TABLE payments (
+      id int PRIMARY KEY,
+      method varchar(20) CHECK (method IN ('card', 'cash', 'transfer'))
+    );
+CheckDuplicateValuesInOrChain:
+  current: |
+    CREATE TABLE items (
+      id int PRIMARY KEY,
+      category varchar(20),
+      CONSTRAINT items_category_chk CHECK (category = 'electronics' OR category = 'electronics' OR category = 'clothing')
+    );
+  desired: |
+    CREATE TABLE items (
+      id int PRIMARY KEY,
+      category varchar(20),
+      CONSTRAINT items_category_chk CHECK (category IN ('electronics', 'clothing'))
+    );
+DecimalDefault:
+  desired: |
+    CREATE TABLE some_table (
+      v0 decimal(5, 2) DEFAULT 0.0,
+      v1 decimal(5, 2) DEFAULT 1.2,
+      v2 decimal(30, 20) DEFAULT  0.0000000000123456789,
+      v3 decimal(30, 20) DEFAULT '0.0000000000123456789'
+    );
+NegativeDefaultNumbers:
+  desired: |
+    CREATE TABLE items (
+      v0 float DEFAULT - 20,
+      v1 float DEFAULT -3.14,
+      v6 float DEFAULT -20,
+      v7 decimal(5, 2) DEFAULT -20.0,
+      v8 decimal(5, 2) DEFAULT 20.0,
+      v9 decimal(5, 2) DEFAULT 0.0,
+      v10 decimal(10, 4) DEFAULT 0.001,
+      v11 decimal(10, 4) DEFAULT -0.001
+    );
+NumericDecimalDefaults:
+  current: |
+    CREATE TABLE test (
+      id int,
+      num numeric,
+      price decimal
+    );
+  desired: |
+    CREATE TABLE test (
+      id int,
+      num numeric(18),
+      price decimal(18)
+    );
+NumericDecimalExplicit:
+  current: |
+    CREATE TABLE test (
+      id int,
+      num1 numeric(10),
+      num2 numeric(15, 4),
+      price1 decimal(12),
+      price2 decimal(20, 6)
+    );
+  desired: |
+    CREATE TABLE test (
+      id int,
+      num1 numeric(10),
+      num2 numeric(15, 4),
+      price1 decimal(12),
+      price2 decimal(20, 6)
+    );
+AlterColumnSetDefault:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      status varchar(20),
+      priority int
+    );
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      status varchar(20) CONSTRAINT [DF_users_status] DEFAULT 'active',
+      priority int CONSTRAINT [DF_users_priority] DEFAULT 1
+    );
+  up: |
+    ALTER TABLE [dbo].[users] ADD CONSTRAINT [DF_users_status] DEFAULT 'active' FOR [status];
+    ALTER TABLE [dbo].[users] ADD CONSTRAINT [DF_users_priority] DEFAULT 1 FOR [priority];
+  down: |
+    ALTER TABLE [dbo].[users] DROP CONSTRAINT [DF_users_status];
+    ALTER TABLE [dbo].[users] DROP CONSTRAINT [DF_users_priority];
+AlterColumnDropDefault:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      status varchar(20) CONSTRAINT [DF_users_status] DEFAULT 'active',
+      priority int CONSTRAINT [DF_users_priority] DEFAULT 1
+    );
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      status varchar(20),
+      priority int
+    );
+  up: |
+    ALTER TABLE [dbo].[users] DROP CONSTRAINT [DF_users_status];
+    ALTER TABLE [dbo].[users] DROP CONSTRAINT [DF_users_priority];
+  down: |
+    ALTER TABLE [dbo].[users] ADD CONSTRAINT [DF_users_status] DEFAULT 'active' FOR [status];
+    ALTER TABLE [dbo].[users] ADD CONSTRAINT [DF_users_priority] DEFAULT 1 FOR [priority];
+AlterColumnChangeDefault:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      status varchar(20) CONSTRAINT [DF_users_status] DEFAULT 'pending',
+      is_active bit CONSTRAINT [DF_users_is_active] DEFAULT 0
+    );
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      status varchar(20) CONSTRAINT [DF_users_status] DEFAULT 'active',
+      is_active bit CONSTRAINT [DF_users_is_active] DEFAULT 1
+    );
+  up: |
+    ALTER TABLE [dbo].[users] DROP CONSTRAINT [DF_users_status];
+    ALTER TABLE [dbo].[users] ADD CONSTRAINT [DF_users_status] DEFAULT 'active' FOR [status];
+    ALTER TABLE [dbo].[users] DROP CONSTRAINT [DF_users_is_active];
+    ALTER TABLE [dbo].[users] ADD CONSTRAINT [DF_users_is_active] DEFAULT 1 FOR [is_active];
+  down: |
+    ALTER TABLE [dbo].[users] DROP CONSTRAINT [DF_users_status];
+    ALTER TABLE [dbo].[users] ADD CONSTRAINT [DF_users_status] DEFAULT 'pending' FOR [status];
+    ALTER TABLE [dbo].[users] DROP CONSTRAINT [DF_users_is_active];
+    ALTER TABLE [dbo].[users] ADD CONSTRAINT [DF_users_is_active] DEFAULT 0 FOR [is_active];
+AlterColumnSetNotNull:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      name varchar(100),
+      email varchar(255)
+    );
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      name varchar(100) NOT NULL,
+      email varchar(255) NOT NULL
+    );
+  up: |
+    ALTER TABLE [dbo].[users] ALTER COLUMN [name] varchar(100) NOT NULL;
+    ALTER TABLE [dbo].[users] ALTER COLUMN [email] varchar(255) NOT NULL;
+  down: |
+    ALTER TABLE [dbo].[users] ALTER COLUMN [name] varchar(100);
+    ALTER TABLE [dbo].[users] ALTER COLUMN [email] varchar(255);
+AlterColumnDropNotNull:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      name varchar(100) NOT NULL,
+      email varchar(255) NOT NULL
+    );
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      name varchar(100),
+      email varchar(255)
+    );
+  up: |
+    ALTER TABLE [dbo].[users] ALTER COLUMN [name] varchar(100);
+    ALTER TABLE [dbo].[users] ALTER COLUMN [email] varchar(255);
+  down: |
+    ALTER TABLE [dbo].[users] ALTER COLUMN [name] varchar(100) NOT NULL;
+    ALTER TABLE [dbo].[users] ALTER COLUMN [email] varchar(255) NOT NULL;
+VarcharMaxExchange:
+  current: |
+    CREATE TABLE test_table (
+      id int,
+      col1 varchar(100),
+      col2 varchar(max)
+    );
+  desired: |
+    CREATE TABLE test_table (
+      id int,
+      col1 varchar(max),
+      col2 varchar(100)
+    );
+  up: |
+    ALTER TABLE [dbo].[test_table] ALTER COLUMN [col1] varchar(max);
+    ALTER TABLE [dbo].[test_table] ALTER COLUMN [col2] varchar(100);
+  down: |
+    ALTER TABLE [dbo].[test_table] ALTER COLUMN [col1] varchar(100);
+    ALTER TABLE [dbo].[test_table] ALTER COLUMN [col2] varchar(max);
+
+UnnamedForeignKey:
+  desired: |
+    CREATE TABLE users (
+      id BIGINT NOT NULL PRIMARY KEY
+    );
+
+    CREATE TABLE posts (
+      id BIGINT NOT NULL PRIMARY KEY,
+      user_id BIGINT,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+MultipleUnnamedForeignKeys:
+  desired: |
+    CREATE TABLE users (
+      id BIGINT NOT NULL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL
+    );
+
+    CREATE TABLE categories (
+      id BIGINT NOT NULL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL
+    );
+
+    CREATE TABLE tags (
+      id BIGINT NOT NULL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL
+    );
+
+    CREATE TABLE articles (
+      id BIGINT NOT NULL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      author_id BIGINT NOT NULL,
+      category_id BIGINT NOT NULL,
+      tag_id BIGINT,
+      FOREIGN KEY (author_id) REFERENCES users(id),
+      FOREIGN KEY (category_id) REFERENCES categories(id),
+      FOREIGN KEY (tag_id) REFERENCES tags(id)
+    );
+
+# Test dropping an unnamed FK: The FK in current state has a database-generated name
+# (e.g., FK__posts__user_id__4CA06362), but after dropping, the desired state has no FK.
+# This verifies that column-based matching correctly identifies the FK to drop.
+DropUnnamedForeignKey:
+  current: |
+    CREATE TABLE users (
+      id BIGINT NOT NULL PRIMARY KEY
+    );
+
+    CREATE TABLE posts (
+      id BIGINT NOT NULL PRIMARY KEY,
+      user_id BIGINT,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  desired: |
+    CREATE TABLE users (
+      id BIGINT NOT NULL PRIMARY KEY
+    );
+
+    CREATE TABLE posts (
+      id BIGINT NOT NULL PRIMARY KEY,
+      user_id BIGINT
+    );
+
+# Test modifying an unnamed FK to reference a different table.
+# The FK in current state references users(id), but desired references admins(id).
+# This verifies that column-based matching detects the FK needs to be recreated.
+ModifyUnnamedForeignKey:
+  current: |
+    CREATE TABLE users (
+      id BIGINT NOT NULL PRIMARY KEY
+    );
+
+    CREATE TABLE admins (
+      id BIGINT NOT NULL PRIMARY KEY
+    );
+
+    CREATE TABLE posts (
+      id BIGINT NOT NULL PRIMARY KEY,
+      author_id BIGINT,
+      FOREIGN KEY (author_id) REFERENCES users(id)
+    );
+  desired: |
+    CREATE TABLE users (
+      id BIGINT NOT NULL PRIMARY KEY
+    );
+
+    CREATE TABLE admins (
+      id BIGINT NOT NULL PRIMARY KEY
+    );
+
+    CREATE TABLE posts (
+      id BIGINT NOT NULL PRIMARY KEY,
+      author_id BIGINT,
+      FOREIGN KEY (author_id) REFERENCES admins(id)
+    );
+
+CompositeUnnamedForeignKey:
+  desired: |
+    CREATE TABLE tenants (
+      id BIGINT NOT NULL PRIMARY KEY
+    );
+
+    CREATE TABLE users (
+      tenant_id BIGINT NOT NULL,
+      user_id BIGINT NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      PRIMARY KEY (tenant_id, user_id)
+    );
+
+    CREATE TABLE posts (
+      id BIGINT NOT NULL PRIMARY KEY,
+      tenant_id BIGINT NOT NULL,
+      author_id BIGINT NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      FOREIGN KEY (tenant_id, author_id) REFERENCES users(tenant_id, user_id)
+    );
+
+# Test inline `FOREIGN KEY REFERENCES` syntax (column-level FK) which is valid T-SQL.
+# This is an idempotency-only test to verify the parser handles this syntax correctly.
+InlineForeignKeyReferences:
+  desired: |
+    CREATE TABLE authors (
+      id BIGINT IDENTITY(1,1) PRIMARY KEY,
+      name NVARCHAR(255) NOT NULL
+    );
+
+    CREATE TABLE books (
+      id BIGINT IDENTITY(1,1) PRIMARY KEY,
+      title NVARCHAR(255) NOT NULL,
+      author_id BIGINT NOT NULL FOREIGN KEY REFERENCES authors(id),
+      price DECIMAL(10, 2) NOT NULL
+    );
+
+UseStatement:
+  desired: |
+    use test_db;
+    CREATE TABLE bigdata (
+      data bigint
+    );

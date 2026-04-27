@@ -1,0 +1,4 @@
+ignore:
+  - "parser/parser.go"
+  - "**/*_test.go"
+  - "testutil/**"

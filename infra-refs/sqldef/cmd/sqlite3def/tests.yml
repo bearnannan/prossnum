@@ -1,0 +1,467 @@
+# yaml-language-server: $schema=../../testutil/testcase.schema.json
+
+CreateTable:
+  desired: |
+    CREATE TABLE users (
+      id integer NOT NULL,
+      name text,
+      age integer
+    );
+DropTable:
+  current: |
+    CREATE TABLE users (
+      id integer NOT NULL,
+      name text,
+      age integer
+    );
+    CREATE TABLE bigdata (
+      data integer
+    );
+  desired: |
+    CREATE TABLE users (
+      id integer NOT NULL,
+      name text,
+      age integer
+    );
+  up: |
+    DROP TABLE "bigdata";
+  down: |
+    CREATE TABLE bigdata (
+      data integer
+    );
+CreateTableQuotes:
+  current: |
+    CREATE TABLE "test_table" (
+      id integer primary key
+    );
+  desired: |
+    CREATE TABLE "test_table" (
+      id integer primary key
+    );
+  up: ''
+  down: ""
+CreateTableWithAutoincrement:
+  desired: |
+    CREATE TABLE users (
+      id integer PRIMARY KEY AUTOINCREMENT,
+      name text,
+      age integer
+    );
+CreateView:
+  current: |
+    CREATE TABLE users (
+      id integer NOT NULL,
+      name text,
+      age integer
+    );
+  desired: |
+    CREATE TABLE users (
+      id integer NOT NULL,
+      name text,
+      age integer
+    );
+    CREATE VIEW "view_users" AS select id from users where age = 1;
+  up: |
+    CREATE VIEW "view_users" AS select id from users where age = 1;
+  down: |
+    DROP VIEW "view_users";
+DropAndCreateView:
+  current: |
+    CREATE TABLE users (
+      id integer NOT NULL,
+      name text,
+      age integer
+    );
+    CREATE VIEW "view_users" AS select id from users where age = 1;
+  desired: |
+    CREATE TABLE users (
+      id integer NOT NULL,
+      name text,
+      age integer
+    );
+    CREATE VIEW "view_users" AS select id from users where age = 2;
+  up: |
+    DROP VIEW "view_users";
+    CREATE VIEW "view_users" AS select id from users where age = 2;
+  down: |
+    DROP VIEW "view_users";
+    CREATE VIEW "view_users" AS select id from users where age = 1;
+ColumnLiteral:
+  desired: |
+    CREATE TABLE users (
+      id integer NOT NULL,
+      name text,
+      age integer
+    );
+DataTypes:
+  # Remaining SQL spec: bit varying, interval, numeric, decimal, real,
+  # smallint, smallserial, xml
+  desired: |
+    CREATE TABLE users (
+      c_timestamp timestamp,
+      c_integer integer,
+      c_text text
+    );
+BlobType:
+  desired: |
+    CREATE TABLE bigdata (
+      data
+    );
+SingleQuotedID:
+  desired: |
+    CREATE TABLE 'bigdata' (
+      'data' integer
+    );
+Index:
+  desired: |
+    CREATE TABLE bigdata (
+      -- unique constraint generates an index entry automatically in sqlite_master table
+      path text UNIQUE,
+      data integer
+    );
+    CREATE INDEX index_bigdata ON bigdata(data);
+TableOptions:
+  desired: |
+    CREATE TABLE bigdata(
+      id integer PRIMARY KEY,
+      data text
+    ) STRICT, WITHOUT ROWID;
+  legacy_ignore_quotes: false
+StrictTableWithAnyType:
+  desired: |
+    CREATE TABLE flexible(
+      id integer PRIMARY KEY,
+      name text NOT NULL,
+      data ANY
+    ) STRICT;
+  legacy_ignore_quotes: false
+AddColumnToStrictTable:
+  current: |
+    CREATE TABLE config(
+      id integer PRIMARY KEY
+    ) STRICT;
+  desired: |
+    CREATE TABLE config(
+      id integer PRIMARY KEY,
+      payload ANY
+    ) STRICT;
+  up: |
+    ALTER TABLE config ADD COLUMN payload ANY;
+  down: |
+    ALTER TABLE config DROP COLUMN payload;
+  legacy_ignore_quotes: false
+WithoutRowidOnly:
+  desired: |
+    CREATE TABLE lookup(
+      name text PRIMARY KEY,
+      data text
+    ) WITHOUT ROWID;
+  legacy_ignore_quotes: false
+StrictWithoutRowidAndAnyType:
+  desired: |
+    CREATE TABLE kv(
+      id integer PRIMARY KEY,
+      data ANY
+    ) STRICT, WITHOUT ROWID;
+  legacy_ignore_quotes: false
+StrictOnly:
+  desired: |
+    CREATE TABLE items(
+      id integer PRIMARY KEY,
+      name text
+    ) STRICT;
+  legacy_ignore_quotes: false
+ForeignKeyConstraint:
+  desired: |
+    CREATE TABLE artist(
+      artistid    INTEGER PRIMARY KEY,
+      artistname  TEXT
+    );
+    CREATE TABLE track(
+      trackid     INTEGER,
+      trackname   TEXT,
+      trackartist INTEGER REFERENCES artist(artistid)
+    );
+IndependentConstraintDefinition:
+  desired: |
+    CREATE TABLE artist(
+      artistid    INTEGER,
+      artistname  TEXT,
+      PRIMARY KEY(artistid)
+    );
+    CREATE TABLE track(
+      trackid     INTEGER,
+      trackname   TEXT,
+      trackartist INTEGER,
+      CHECK (trackid > 0),
+      FOREIGN KEY(trackartist) REFERENCES artist(artistid)
+    );
+
+RenameColumn:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      username text,
+      age integer
+    );
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      user_name text, -- @renamed from=username
+      age integer
+    );
+  up: |
+    ALTER TABLE "users" RENAME COLUMN "username" TO "user_name";
+  down: |
+    ALTER TABLE "users" ADD COLUMN "username" text;
+    ALTER TABLE "users" DROP COLUMN "user_name";
+RenameColumnWithTypeChange:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      username varchar(100),
+      age integer
+    );
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      user_name text NOT NULL, -- @renamed from=username
+      age integer
+    );
+  up: |
+    ALTER TABLE "users" ADD COLUMN "user_name" text NOT NULL;
+    UPDATE "users" SET "user_name" = "username";
+    ALTER TABLE "users" DROP COLUMN "username";
+  down: |
+    ALTER TABLE "users" ADD COLUMN "username" varchar(100);
+    ALTER TABLE "users" DROP COLUMN "user_name";
+RenameTable:
+  current: |
+    CREATE TABLE user_accounts (
+      id bigint NOT NULL,
+      username text,
+      age integer
+    );
+  desired: |
+    CREATE TABLE users ( -- @renamed from=user_accounts
+      id bigint NOT NULL,
+      username text,
+      age integer
+    );
+  up: |
+    ALTER TABLE "user_accounts" RENAME TO "users";
+  down: |
+    CREATE TABLE user_accounts (
+      id bigint NOT NULL,
+      username text,
+      age integer
+    );
+    DROP TABLE "users";
+RenameTableWithCommentVariant:
+  current: |
+    CREATE TABLE old_users (
+      id bigint NOT NULL,
+      name text
+    );
+  desired: |
+    CREATE TABLE new_users /* @renamed from=old_users */ (
+      id bigint NOT NULL,
+      name text
+    );
+  up: |
+    ALTER TABLE "old_users" RENAME TO "new_users";
+  down: |
+    CREATE TABLE old_users (
+      id bigint NOT NULL,
+      name text
+    );
+    DROP TABLE "new_users";
+RenameTableWithQuotedName:
+  current: |
+    CREATE TABLE "user accounts" (
+      id bigint NOT NULL,
+      name text
+    );
+  desired: |
+    CREATE TABLE "user_profiles" ( -- @renamed from="user accounts"
+      id bigint NOT NULL,
+      name text
+    );
+  up: |
+    ALTER TABLE "user accounts" RENAME TO "user_profiles";
+  down: |
+    CREATE TABLE "user accounts" (
+      id bigint NOT NULL,
+      name text
+    );
+    DROP TABLE "user_profiles";
+RenameTableAndMultipleColumnChanges:
+  current: |
+    CREATE TABLE old_accounts (
+      id bigint NOT NULL,
+      user_name varchar(50),
+      is_active integer,
+      old_field text
+    );
+  desired: |
+    CREATE TABLE accounts ( -- @renamed from=old_accounts
+      id bigint NOT NULL,
+      username varchar(100) NOT NULL, -- @renamed from=user_name
+      is_active integer DEFAULT 1,
+      created_at timestamp DEFAULT CURRENT_TIMESTAMP
+    );
+  up: |
+    ALTER TABLE "old_accounts" RENAME TO "accounts";
+    ALTER TABLE "accounts" ADD COLUMN "username" varchar(100) NOT NULL;
+    UPDATE "accounts" SET "username" = "user_name";
+    ALTER TABLE "accounts" DROP COLUMN "user_name";
+    ALTER TABLE "accounts" ADD COLUMN "created_at" timestamp DEFAULT current_timestamp;
+    ALTER TABLE "accounts" DROP COLUMN "old_field";
+  down: |
+    CREATE TABLE old_accounts (
+      id bigint NOT NULL,
+      user_name varchar(50),
+      is_active integer,
+      old_field text
+    );
+    DROP TABLE "accounts";
+RenameIndex:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100)
+    );
+    CREATE INDEX old_email_idx ON users (email);
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100)
+    );
+    CREATE INDEX new_email_idx /* @renamed from=old_email_idx */ ON users (email);
+  up: |
+    DROP INDEX "old_email_idx";
+    CREATE INDEX "new_email_idx" ON "users" ("email");
+  down: |
+    CREATE INDEX old_email_idx ON users (email);
+    DROP INDEX "new_email_idx";
+RenameMultipleIndexes:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100)
+    );
+    CREATE INDEX idx_email ON users (email);
+    CREATE INDEX idx_username ON users (username);
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100)
+    );
+    CREATE INDEX email_idx /* @renamed from=idx_email */ ON users (email);
+    CREATE INDEX username_idx /* @renamed from=idx_username */ ON users (username);
+  up: |
+    DROP INDEX "idx_email";
+    CREATE INDEX "email_idx" ON "users" ("email");
+    DROP INDEX "idx_username";
+    CREATE INDEX "username_idx" ON "users" ("username");
+  down: |
+    CREATE INDEX idx_email ON users (email);
+    CREATE INDEX idx_username ON users (username);
+    DROP INDEX "email_idx";
+    DROP INDEX "username_idx";
+RenameUniqueIndex:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100)
+    );
+    CREATE UNIQUE INDEX old_unique_email ON users (email);
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      username varchar(100)
+    );
+    CREATE UNIQUE INDEX unique_email /* @renamed from=old_unique_email */ ON users (email);
+  up: |
+    DROP INDEX "old_unique_email";
+    CREATE UNIQUE INDEX "unique_email" ON "users" ("email");
+  down: |
+    CREATE UNIQUE INDEX old_unique_email ON users (email);
+    DROP INDEX "unique_email";
+RenameIndexWithWhereClause:
+  current: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      is_active boolean DEFAULT 1
+    );
+    CREATE INDEX old_active_users ON users (email) WHERE is_active = 1;
+  desired: |
+    CREATE TABLE users (
+      id bigint NOT NULL,
+      email varchar(255),
+      is_active boolean DEFAULT 1
+    );
+    CREATE INDEX active_users_idx /* @renamed from=old_active_users */ ON users (email) WHERE is_active = 1;
+  up: |
+    DROP INDEX "old_active_users";
+    CREATE INDEX "active_users_idx" ON "users" ("email") WHERE is_active = 1;
+  down: |
+    CREATE INDEX old_active_users ON users (email) WHERE is_active = 1;
+    DROP INDEX "active_users_idx";
+PartialIndexWithWhereIn:
+  desired: |
+    CREATE TABLE orders (id integer, status text);
+    CREATE INDEX idx_active ON orders (id)
+    WHERE status IN ('active', 'pending');
+PartialIndexWithWhereNotIn:
+  desired: |
+    CREATE TABLE orders (id integer, status text);
+    CREATE INDEX idx_non_cancelled ON orders (id)
+    WHERE status NOT IN ('cancelled', 'deleted');
+PartialIndexWithWhereInUnsorted:
+  desired: |
+    CREATE TABLE orders (id integer, status text);
+    CREATE INDEX idx_active ON orders (id)
+    WHERE status IN ('pending', 'active');
+PartialIndexWithWhereNotInUnsorted:
+  desired: |
+    CREATE TABLE orders (id integer, status text);
+    CREATE INDEX idx_non_cancelled ON orders (id)
+    WHERE status NOT IN ('deleted', 'cancelled');
+NumericDecimalWithoutPrecision:
+  current: |
+    CREATE TABLE test (
+      id int,
+      num numeric,
+      price decimal
+    );
+  desired: |
+    CREATE TABLE test (
+      id int,
+      num numeric,
+      price decimal
+    );
+NumericDecimalExplicit:
+  current: |
+    CREATE TABLE test (
+      id int,
+      num1 numeric(10),
+      num2 numeric(15, 4),
+      price1 decimal(12),
+      price2 decimal(20, 6)
+    );
+  desired: |
+    CREATE TABLE test (
+      id int,
+      num1 numeric(10),
+      num2 numeric(15, 4),
+      price1 decimal(12),
+      price2 decimal(20, 6)
+    );

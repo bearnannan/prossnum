@@ -1,0 +1,306 @@
+# mssqldef
+
+```
+Usage:
+  mssqldef [OPTION]... DATABASE --export
+  mssqldef [OPTION]... DATABASE --apply < desired.sql
+  mssqldef [OPTION]... DATABASE --dry-run < desired.sql
+  mssqldef [OPTION]... current.sql < desired.sql
+
+Application Options:
+  -U, --user=USERNAME         MSSQL user name (default: sa)
+  -P, --password=PASSWORD     MSSQL user password, overridden by $MSSQL_PWD
+  -h, --host=HOSTNAME         Host to connect to the MSSQL server (default: 127.0.0.1)
+  -p, --port=PORT             Port used for the connection (default: 1433)
+  -E, --trusted-connection    Use Windows authentication
+      --instance=INSTANCE     Instance name
+      --trust-server-cert     Trust server certificate
+      --password-prompt       Force MSSQL user password prompt
+      --file=FILENAME         Read desired SQL from the file, rather than stdin (default: -)
+      --dry-run               Don't run DDLs but just show them
+      --apply                 Apply DDLs to the database (default, but will require this flag in future versions)
+      --export                Just dump the current schema to stdout
+      --enable-drop           Enable destructive changes such as DROP for TABLE, SCHEMA, ROLE, USER, FUNCTION, PROCEDURE, TRIGGER, VIEW, INDEX, SEQUENCE, TYPE
+      --config=PATH           YAML configuration file (can be specified multiple times)
+      --config-inline=YAML    YAML configuration as inline string (can be specified multiple times)
+      --help                  Show this help
+      --version               Show version information
+```
+
+## Synopsis
+
+```shell
+# Export current schema
+$ mssqldef -U sa -P password123 mydb --export
+CREATE TABLE dbo.users (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(255) NOT NULL
+);
+
+# Save it to edit
+$ mssqldef -U sa -P password123 mydb --export > schema.sql
+```
+
+```shell
+# Use Windows Authentication (Windows Only)
+> mssqldef /E /h localhost /instance SQLEXPRESS mydb /export
+```
+
+Update schema.sql as follows:
+
+```diff
+ CREATE TABLE dbo.users (
+     id INT IDENTITY(1,1) PRIMARY KEY,
+-    name NVARCHAR(255) NOT NULL
++    name NVARCHAR(255) NOT NULL,
++    email NVARCHAR(320) NOT NULL,
++    created_at DATETIME2 DEFAULT GETDATE()
+ );
++
++CREATE INDEX IX_users_email ON dbo.users(email);
+```
+
+And then run:
+
+```shell
+# Preview migration plan (dry run)
+$ mssqldef -U sa -P password123 mydb --dry-run < schema.sql
+-- dry run --
+BEGIN TRANSACTION;
+ALTER TABLE dbo.users ADD email NVARCHAR(320) NOT NULL;
+ALTER TABLE dbo.users ADD created_at DATETIME2 DEFAULT GETDATE();
+CREATE INDEX IX_users_email ON dbo.users(email);
+COMMIT;
+
+# Apply DDLs
+$ mssqldef -U sa -P password123 mydb --apply < schema.sql
+-- Apply --
+BEGIN TRANSACTION;
+ALTER TABLE dbo.users ADD email NVARCHAR(320) NOT NULL;
+ALTER TABLE dbo.users ADD created_at DATETIME2 DEFAULT GETDATE();
+CREATE INDEX IX_users_email ON dbo.users(email);
+COMMIT;
+
+# Operations are idempotent - safe to run multiple times
+$ mssqldef -U sa -P password123 mydb --apply < schema.sql
+-- Nothing is modified --
+
+# By default, DROP operations are skipped (safe mode)
+# To enable DROP TABLE, DROP COLUMN, etc., use --enable-drop
+$ mssqldef -U sa -P password123 mydb --apply --enable-drop < schema.sql
+-- Apply --
+BEGIN TRANSACTION;
+DROP TABLE dbo.old_users;
+COMMIT;
+
+# Use config file to filter tables
+$ cat > config.yml <<EOF
+target_tables: |
+  dbo\.users
+  dbo\.posts_\d+
+skip_tables: |
+  sys\..*
+  temp_.*
+EOF
+$ mssqldef -U sa -P password123 mydb --apply --config=config.yml < schema.sql
+
+# Use inline YAML configuration
+$ mssqldef -U sa -P password123 mydb --apply --config-inline="skip_tables: backup_.*" < schema.sql
+
+# Multiple configs (later values override earlier ones)
+$ mssqldef -U sa -P password123 mydb --apply --config=base.yml --config-inline="target_tables: dbo\..*" < schema.sql
+```
+
+## Offline Mode (File-to-File Comparison)
+
+mssqldef can compare two schema files **without connecting to a database**. This is useful for CI/CD pipelines, schema validation, and generating migration scripts.
+
+### How It Works
+
+When the database argument ends with `.sql`, mssqldef operates in offline mode:
+
+```shell
+# Normal mode: connects to database
+$ mssqldef -U sa -P password123 mydb --apply < schema.sql
+
+# Offline mode: compares two files (no database connection)
+$ mssqldef current.sql < desired.sql
+```
+
+In offline mode:
+- No database connection is established
+- The tool compares two SQL files (current vs desired)
+- DDL statements are generated to show what would change
+- Changes are **always** shown in dry-run mode (not applied to any database)
+
+### Basic Usage
+
+```shell
+# Compare two schema files
+$ mssqldef current_schema.sql < desired_schema.sql
+-- dry run --
+BEGIN;
+ALTER TABLE [dbo].[users] ADD [email] nvarchar(320) NOT NULL;
+GO
+CREATE INDEX IX_users_email ON dbo.users(email);
+GO
+COMMIT;
+
+# Using --file flag instead of stdin
+$ mssqldef --file desired_schema.sql current_schema.sql
+
+# Verify idempotency (compare identical schemas)
+$ mssqldef desired_schema.sql < desired_schema.sql
+-- Nothing is modified --
+```
+
+## Supported features
+
+The following DDLs are generated by updating `CREATE TABLE`.
+Some can also be used in the input schema.sql file.
+
+- Tables: CREATE TABLE, DROP TABLE, ALTER TABLE, sp_rename
+- Columns: ADD COLUMN, DROP COLUMN, sp_rename, IDENTITY
+- Constraints: PRIMARY KEY, FOREIGN KEY, UNIQUE, ADD CONSTRAINT, DROP CONSTRAINT, sp_rename
+- Indexes: CREATE INDEX, DROP INDEX, CREATE COLUMNSTORE INDEX, sp_rename, WHERE, ASC, DESC
+- Views: CREATE VIEW, DROP VIEW
+- Triggers: CREATE TRIGGER, DROP TRIGGER, INSTEAD OF
+- Schemas: CREATE SCHEMA
+
+## Column, Table, and Index Renaming
+
+### Column Renaming
+
+mssqldef supports renaming columns using the `-- @renamed from=old_name` annotation:
+
+```sql
+CREATE TABLE users (
+  id bigint NOT NULL,
+  user_name text, -- @renamed from=username
+  age integer
+);
+```
+
+This generates:
+```sql
+EXEC sp_rename 'users.username', 'user_name', 'COLUMN';
+```
+
+For columns with special characters or spaces, use double quotes:
+
+```sql
+CREATE TABLE users (
+  id bigint NOT NULL,
+  column_with_underscore varchar(50), -- @renamed from="column-with-dash"
+  normal_column text, -- @renamed from="special column"
+);
+```
+
+### Table Renaming
+
+mssqldef supports renaming tables using the `-- @renamed from=old_name` annotation on the CREATE TABLE line:
+
+```sql
+CREATE TABLE users ( -- @renamed from=user_accounts
+  id bigint NOT NULL,
+  username text,
+  age integer
+);
+```
+
+You can also use the block comment style:
+
+```sql
+CREATE TABLE users /* @renamed from=user_accounts */ (
+  id bigint NOT NULL,
+  username text,
+  age integer
+);
+```
+
+This generates:
+```sql
+EXEC sp_rename 'user_accounts', 'users';
+```
+
+For tables with special characters or spaces, use double quotes:
+
+```sql
+CREATE TABLE user_profiles ( -- @renamed from="user accounts"
+  id bigint NOT NULL,
+  name text
+);
+```
+
+You can combine table renaming with column renaming and other schema changes:
+
+```sql
+CREATE TABLE accounts ( -- @renamed from=old_accounts
+  id bigint NOT NULL PRIMARY KEY,
+  username varchar(100) NOT NULL, -- @renamed from=user_name
+  is_active bit DEFAULT 1
+);
+```
+
+### Index Renaming
+
+mssqldef supports renaming indexes using the `-- @renamed from=old_name` or `/* @renamed from=old_name */` annotation:
+
+```sql
+CREATE INDEX new_email_idx /* @renamed from=old_email_idx */ ON users (email);
+```
+
+This generates:
+```sql
+EXEC sp_rename 'users.old_email_idx', 'new_email_idx', 'INDEX';
+```
+
+You can rename multiple indexes:
+
+```sql
+CREATE INDEX email_idx ON users (email); -- @renamed from=idx_email
+CREATE INDEX username_idx ON users (username); -- @renamed from=idx_username
+```
+
+The rename annotation also works for unique indexes:
+
+```sql
+CREATE UNIQUE INDEX unique_email /* @renamed from=old_unique_email */ ON users (email);
+```
+
+## Configuration
+
+Configuration can be provided through YAML files (`--config`) or inline YAML strings (`--config-inline`). Multiple configurations can be specified and will be merged in order.
+
+### Using Configuration Files
+
+```shell
+$ mssqldef -U sa -P password123 mydb --apply --config config.yml < schema.sql
+```
+
+### Using Inline Configuration
+
+```shell
+$ mssqldef -U sa -P password123 mydb --apply --config-inline 'enable_drop: true' < schema.sql
+```
+
+### Combining Multiple Configurations
+
+```shell
+$ mssqldef -U sa -P password123 mydb --apply \
+  --config base.yml \
+  --config-inline 'skip_tables: [logs, temp_data]' \
+  --config-inline 'enable_drop: true' \
+  < schema.sql
+```
+
+### Available Configuration Options
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `enable_drop` | boolean | Enable destructive changes (DROP statements). Equivalent to `--enable-drop` flag. |
+| `target_tables` | string | Regular expression patterns (one per line) to specify which tables to manage. Only tables matching these patterns will be processed. |
+| `skip_tables` | string | Regular expression patterns (one per line) to specify which tables to skip. Tables matching these patterns will be ignored. |
+| `skip_views` | string | Regular expression patterns (one per line) to specify which views to skip. |
+| `target_schema` | string | Schema names (one per line) to specify which schemas to manage. Only objects in these schemas will be processed. |
+| `legacy_ignore_quotes` | boolean | Controls identifier quoting behavior. When `true` (default), all identifiers are quoted in output. When `false`, identifiers preserve their original quoting from the source SQL. Default is `true` but will change to `false` in the next major version. |

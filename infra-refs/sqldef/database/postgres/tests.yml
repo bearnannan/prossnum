@@ -1,0 +1,261 @@
+CreateTable:
+  compare_with_generic_parser: true
+  sql: |
+    CREATE TABLE bigdata (
+      id bigint,
+      created_at timestamp with time zone,
+      created_date time with time zone,
+      fn integer default foo.my_func()
+    );
+CreateTableWithConstraint:
+  sql: |
+    CREATE TABLE tbl (
+      id bigint,
+      user_id bigint,
+      email text,
+      PRIMARY KEY (id),
+      CONSTRAINT uniq_email UNIQUE (email),
+      CONSTRAINT user_id_fk FOREIGN KEY (user_id) REFERENCES users(id, name)
+    );
+CreateTableWithConstraintInlineColumn:
+  sql: |
+    CREATE TABLE tbl (
+      id bigint PRIMARY KEY,
+      user_id bigint REFERENCES users(id, name),
+      email text UNIQUE
+    );
+CreateTableWithDefault:
+  compare_with_generic_parser: true
+  sql: |
+    CREATE TABLE users (
+      default_null integer default null,
+      default_int integer default 20,
+      default_bool bool default true,
+      default_numeric numeric(5, 0) default 42.195,
+      default_fixed_char character(3) default 'JPN'::bpchar,
+      default_json json default '[]',
+      default_json_with_cast json default '[]'::json,
+      default_jsonb jsonb default '[]'::jsonb,
+      default_current_timestamp timestamp default CURRENT_TIMESTAMP,
+      default_current_date date default CURRENT_DATE,
+      default_current_time time default CURRENT_TIME,
+      default_array_int integer[] default '{}'::integer[],
+      joined_at timestamp with time zone NOT NULL DEFAULT '0001-01-01 00:00:00'::timestamp without time zone
+    );
+CreateTableWithDefaultWithoutCompare:
+  # Queries that cannot be parsed with generic parse OR results do not match
+  sql: |
+    CREATE TABLE users (
+      default_int int default true,
+      default_bool boolean default true,
+      default_text text default '',
+      default_now timestamp default now(),
+      default_text_with_cast text default ''::text,
+      default_date_text text DEFAULT CURRENT_TIMESTAMP::date::text,
+      default_array_constructor int[] DEFAULT ARRAY[],
+      default_array_constructor_with_cast int[] DEFAULT ARRAY[]::int[],
+      default_array_element_typecast text[] DEFAULT ARRAY[current_date::text]::text[]
+    );
+CreateTableWithSchema:
+  compare_with_generic_parser: true
+  sql: |
+    CREATE TABLE public.bigdata (
+      data bigint
+    );
+CreatePolicyWithUuidCast:
+  sql: |
+    CREATE POLICY tenant_isolation_policy ON test_table AS PERMISSIVE FOR ALL TO public
+    USING (current_schema()::uuid = current_database()::uuid);
+CreateTableWithNotNull:
+  compare_with_generic_parser: true
+  sql: |
+    CREATE TABLE public.airline_confirmation (
+      airline_id bigint,
+      code varchar(512),
+      booking_id bigint NOT NULL
+    );
+CheckConstraint:
+  compare_with_generic_parser: true
+  sql: |
+    CREATE TABLE test (
+      v varchar(10) CHECK (v::text ~ '[0-9]'::text),
+      price integer CHECK (price = 0 OR NOT price <= -1 AND price IS NULL),
+      min_value integer CONSTRAINT test_min_value_check CHECK (min_value > 0),
+      max_value integer CHECK (max_value > 0) NO INHERIT,
+      quantity integer,
+      CONSTRAINT chk CHECK (quantity > 0 AND price > 0)
+    );
+CheckConstraintAllAny:
+  sql: |
+    CREATE TABLE test (
+      n1 int CHECK (n1 = ANY (ARRAY[1, 2, 3])),
+      n2 int CHECK (n2 = ALL ('{1, 2, 3}'::integer[])),
+      t1 text CHECK (t1 = SOME ('{x, y}'::text[]))
+    );
+CheckConstraintPosixRegex:
+  compare_with_generic_parser: true
+  sql: |
+    CREATE TABLE test (
+      posix_regex        text NOT NULL CHECK (posix_regex        ~   '[0-9]'),
+      posix_regex_ci     text NOT NULL CHECK (posix_regex_ci     ~*  '[0-9]'),
+      posix_not_regex    text NOT NULL CHECK (posix_not_regex    !~  '[0-9]'),
+      posix_not_regex_ci text NOT NULL CHECK (posix_not_regex_ci !~* '[0-9]')
+    );
+CreateView:
+  compare_with_generic_parser: true
+  sql: |
+    create view hoge_view as
+    select amount from hoge;
+CreateViewWithCast:
+  sql: |
+    create view hoge_view as
+    select
+      b::bool,
+      b2::boolean,
+      s::smallint,
+      i::integer,
+      bi::bigint,
+      r::real,
+      d::double precision,
+      n::numeric(10,2),
+      t::text,
+      dt::date,
+      uu::uuid
+    from hoge;
+CreateViewWithFullColumn:
+  sql: |
+    CREATE VIEW public.hoge_view
+    AS SELECT (hoge.amount)::numeric(10,2) AS amount_num FROM hoge;
+CreateViewWithCaseWhen:
+  sql: |
+    create view hoge_view as
+    select
+      -- pattern 1
+      amount::numeric(10,2) as amount_num1,
+      -- pattern 2
+      (
+        jsonb_extract_path_text(payload, 'amount')
+      )::numeric(10,2) as amount_num2,
+      -- pattern 3
+      (
+        case hoge_type
+          when 'hoge' then jsonb_extract_path_text(payload, 'hoge', 'amount')
+        end
+      )::numeric(10,2) as amount_num3,
+      -- pattern 4
+      (
+        to_timestamp(
+          jsonb_extract_path_text(payload, 'created')::bigint
+        )
+      ) as created,
+      -- pattern 5
+      (
+        cast(
+          to_timestamp(
+            jsonb_extract_path_text(payload, 'created')::bigint
+          ) as date
+        )
+      ) as created_date
+    from hoge;
+CreateViewWithoutFrom:
+  sql: |
+    create view v as select 10 as n;
+CreateViewWithStarExpr:
+  compare_with_generic_parser: true
+  sql: |
+    create view hoge_view as
+    select t.* from hoge t;
+CreateIndex:
+  compare_with_generic_parser: true
+  sql: |
+    CREATE INDEX username on users using btree (name asc);
+CreateIndexWithFuncCall:
+  sql: |
+    CREATE UNIQUE INDEX airline_confirmation_code_unique_idx
+    ON public.airline_confirmation
+    USING btree (airline_id, booking_id, lower((code)::text))
+    WHERE ((code IS NOT NULL) AND (airline_id IS NOT NULL));
+CreateIndexConcurrently:
+  sql: |
+    CREATE INDEX CONCURRENTLY username on users (name);
+CreateIndexWithUnusedToken:
+  compare_with_generic_parser: true
+  sql: |
+    CREATE INDEX lines_number on lines using btree (number asc);
+AlterTableUnique:
+  compare_with_generic_parser: true
+  sql: |
+    ALTER TABLE users ADD CONSTRAINT username UNIQUE (name, age);
+AlterTableAddForeignKey:
+  sql: |
+    ALTER TABLE ONLY public.posts ADD CONSTRAINT posts_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL ON UPDATE RESTRICT;
+UserDefinedType:
+  sql: |
+    CREATE TABLE "public"."test" (
+        tag "public"."tags",
+        tags "public"."tags"[]
+    )
+CreateTableWithConstraintOptions:
+  sql: |
+    CREATE TABLE image_bindings (
+      image_id INT REFERENCES images(id) ON DELETE CASCADE DEFERRABLE INITIALLY IMMEDIATE,
+      image_order INT NOT NULL,
+      image_owner_type VARCHAR(20) NOT NULL,
+      image_owner_id INT NOT NULL,
+      CONSTRAINT image_owner_fk FOREIGN KEY (image_owner_type, image_owner_id) REFERENCES image_owners(type, id) ON DELETE CASCADE DEFERRABLE INITIALLY IMMEDIATE,
+      CONSTRAINT image_order_unique UNIQUE (image_owner_type, image_owner_id, image_order) DEFERRABLE INITIALLY DEFERRED
+    );
+CreateIndexWithCoalesce:
+  sql: |
+    CREATE TABLE users (
+      name TEXT,
+      user_name TEXT
+    );
+    CREATE INDEX create_index_with_function_call ON users (name, COALESCE(user_name, 'NO_NAME'::TEXT));
+
+CreateIndexWithBoolExpr:
+  sql: |
+    CREATE TABLE users (
+      is_active BOOLEAN
+    );
+    CREATE INDEX create_index_with_bool ON users ((CASE WHEN is_active IS TRUE THEN 1 ELSE 0 END));
+
+CreateSchema:
+  sql: |
+    CREATE SCHEMA foo;
+    CREATE SCHEMA IF NOT EXISTS bar;
+
+MathInDefault:
+  sql: |
+    CREATE TABLE public.foo (
+      expires_at timestamp with time zone NOT NULL DEFAULT (CURRENT_TIMESTAMP + '1 day'::interval)
+    )
+
+ExcludeConstraintBasic:
+  sql: |
+    ALTER TABLE exclude_example
+    ADD CONSTRAINT ex
+    EXCLUDE USING btree (name WITH =);
+
+ExcludeConstraintUsingGist:
+  sql: |
+    ALTER TABLE exclude_example
+    ADD CONSTRAINT ex
+    EXCLUDE USING GIST (event_start WITH &&, event_end WITH &&);
+
+ExcludeConstraintUsingWhere:
+  sql: |
+    ALTER TABLE exclude_example
+    ADD CONSTRAINT ex
+    EXCLUDE (lower(name) WITH =) WHERE (name <> '');
+
+ExcludeConstraintWithCreateTable:
+  sql: |
+    CREATE TABLE exclude_example (
+      name varchar(255),
+      event_start tstzrange NOT NULL,
+      event_end tstzrange NOT NULL,
+      CONSTRAINT ex1 EXCLUDE (name WITH =),
+      CONSTRAINT ex2 EXCLUDE (lower(name) WITH =) where (name <> ''),
+      CONSTRAINT ex3 EXCLUDE USING GIST (event_start WITH &&, event_end WITH &&)
+    );

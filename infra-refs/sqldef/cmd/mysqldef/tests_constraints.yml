@@ -1,0 +1,330 @@
+# yaml-language-server: $schema=../../testutil/testcase.schema.json
+
+ConstraintCheck:
+  desired: |
+    CREATE TABLE `books` (
+      `id` int(10) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      `type` VARCHAR(255) NOT NULL COMMENT 'manga, novel',
+      `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      `deleted_at` datetime DEFAULT null,
+      CONSTRAINT `books_type_chk` CHECK (`type` IN ('manga', 'novel'))
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC;
+  min_version: '8.0'
+ColumnCheck:
+  flavor: "!mariadb"
+  desired: |
+    CREATE TABLE `books` (
+      `id` int(10) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      `type` VARCHAR(255) NOT NULL CONSTRAINT `books_type_chk` CHECK (`type` REGEXP '^(manga|novel)$') COMMENT 'manga, novel',
+      `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      `deleted_at` datetime DEFAULT null
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC;
+  min_version: '8.0'
+ForeignKeyNormalizeRestrict:
+  desired: |
+    CREATE TABLE `groups` (
+      `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY
+    );
+    CREATE TABLE `users` (
+      `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      `group_id` BIGINT NOT NULL,
+      KEY `fk_users_groups` (`group_id`),
+      CONSTRAINT `fk_users_groups` FOREIGN KEY (`group_id`) REFERENCES `groups` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+    );
+AddForeignKeyWithAlter:
+  current: |
+    CREATE TABLE users (id BIGINT PRIMARY KEY);
+    CREATE TABLE posts (
+      content text,
+      user_id bigint
+    );
+  desired: |
+    CREATE TABLE users (id BIGINT PRIMARY KEY);
+    CREATE TABLE posts (
+      content text,
+      user_id bigint
+    );
+    ALTER TABLE posts ADD CONSTRAINT posts_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE;
+  up: |
+    ALTER TABLE posts ADD CONSTRAINT posts_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE;
+  down: |
+    ALTER TABLE `posts` DROP FOREIGN KEY `posts_ibfk_1`;
+    ALTER TABLE `posts` DROP INDEX `posts_ibfk_1`;
+CreateTableForeignKey:
+  current: |
+    CREATE TABLE users (id BIGINT PRIMARY KEY);
+    CREATE TABLE posts (
+      content text,
+      user_id bigint
+    );
+  desired: |
+    CREATE TABLE users (id BIGINT PRIMARY KEY);
+    CREATE TABLE posts (
+      content text,
+      user_id bigint,
+      CONSTRAINT posts_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id)
+    );
+  up: |
+    ALTER TABLE `posts` ADD CONSTRAINT `posts_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+  down: |
+    ALTER TABLE `posts` DROP FOREIGN KEY `posts_ibfk_1`;
+    ALTER TABLE `posts` DROP INDEX `posts_ibfk_1`;
+CreateTableForeignKeyWithOptions:
+  current: |
+    CREATE TABLE users (id BIGINT PRIMARY KEY);
+    CREATE TABLE posts (
+      content text,
+      user_id bigint,
+      CONSTRAINT posts_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id)
+    );
+  desired: |
+    CREATE TABLE users (id BIGINT PRIMARY KEY);
+    CREATE TABLE posts (
+      content text,
+      user_id bigint,
+      CONSTRAINT posts_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+  up: |
+    ALTER TABLE `posts` DROP FOREIGN KEY `posts_ibfk_1`;
+    ALTER TABLE `posts` ADD CONSTRAINT `posts_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+  down: |
+    ALTER TABLE `posts` DROP FOREIGN KEY `posts_ibfk_1`;
+    ALTER TABLE `posts` ADD CONSTRAINT `posts_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
+DropForeignKey:
+  current: |
+    CREATE TABLE users (id BIGINT PRIMARY KEY);
+    CREATE TABLE posts (
+      content text,
+      user_id bigint,
+      CONSTRAINT posts_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+  desired: |
+    CREATE TABLE users (id BIGINT PRIMARY KEY);
+    CREATE TABLE posts (
+      content text,
+      user_id bigint
+    );
+  up: |
+    ALTER TABLE `posts` DROP FOREIGN KEY `posts_ibfk_1`;
+    ALTER TABLE `posts` DROP INDEX `posts_ibfk_1`;
+  down: |
+    ALTER TABLE `posts` ADD CONSTRAINT `posts_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+CheckInClauseInteger:
+  desired: |
+    CREATE TABLE `products` (
+      `id` int PRIMARY KEY,
+      `status` int,
+      CONSTRAINT `products_status_chk` CHECK (`status` IN (1, 2, 3))
+    );
+  min_version: '8.0'
+CheckInClauseString:
+  desired: |
+    CREATE TABLE `users` (
+      `id` int PRIMARY KEY,
+      `role` varchar(50),
+      CONSTRAINT `users_role_chk` CHECK (`role` IN ('admin', 'user', 'guest'))
+    );
+  min_version: '8.0'
+CheckInClauseColumnLevel:
+  desired: |
+    CREATE TABLE `orders` (
+      `id` int PRIMARY KEY,
+      `status` varchar(20) CHECK (`status` IN ('pending', 'approved', 'shipped', 'delivered'))
+    );
+  min_version: '8.0'
+CheckInClauseWithMultipleConditions:
+  desired: |
+    CREATE TABLE `items` (
+      `id` int PRIMARY KEY,
+      `category` varchar(50),
+      `priority` int,
+      CONSTRAINT `items_chk` CHECK (`category` IN ('electronics', 'clothing', 'food') AND `priority` >= 1 AND `priority` <= 5)
+    );
+  min_version: '8.0'
+AddCheckConstraintWithIn:
+  flavor: "!mariadb"
+  current: |
+    CREATE TABLE `documents` (
+      `id` int PRIMARY KEY,
+      `state` varchar(20)
+    );
+  desired: |
+    CREATE TABLE `documents` (
+      `id` int PRIMARY KEY,
+      `state` varchar(20),
+      CONSTRAINT `documents_state_chk` CHECK (`state` IN ('draft', 'review', 'published', 'archived'))
+    );
+  up: |
+    ALTER TABLE `documents` ADD CONSTRAINT `documents_state_chk` CHECK (state in ('draft', 'review', 'published', 'archived'));
+  down: |
+    ALTER TABLE `documents` DROP CHECK `documents_state_chk`;
+  min_version: '8.0'
+ModifyCheckConstraintIn:
+  flavor: "!mariadb"
+  current: |
+    CREATE TABLE `tasks` (
+      `id` int PRIMARY KEY,
+      `status` varchar(20),
+      CONSTRAINT `tasks_status_chk` CHECK (`status` IN ('todo', 'in_progress'))
+    );
+  desired: |
+    CREATE TABLE `tasks` (
+      `id` int PRIMARY KEY,
+      `status` varchar(20),
+      CONSTRAINT `tasks_status_chk` CHECK (`status` IN ('todo', 'in_progress', 'done'))
+    );
+  up: |
+    ALTER TABLE `tasks` DROP CHECK `tasks_status_chk`;
+    ALTER TABLE `tasks` ADD CONSTRAINT `tasks_status_chk` CHECK (status in ('todo', 'in_progress', 'done'));
+  down: |
+    ALTER TABLE `tasks` DROP CHECK `tasks_status_chk`;
+    ALTER TABLE `tasks` ADD CONSTRAINT `tasks_status_chk` CHECK (status in ('todo', 'in_progress'));
+  min_version: '8.0'
+DropCheckConstraintWithIn:
+  flavor: "!mariadb"
+  current: |
+    CREATE TABLE `events` (
+      `id` int PRIMARY KEY,
+      `type` varchar(20),
+      CONSTRAINT `events_type_chk` CHECK (`type` IN ('public', 'private'))
+    );
+  desired: |
+    CREATE TABLE `events` (
+      `id` int PRIMARY KEY,
+      `type` varchar(20)
+    );
+  up: |
+    ALTER TABLE `events` DROP CHECK `events_type_chk`;
+  down: |
+    ALTER TABLE `events` ADD CONSTRAINT `events_type_chk` CHECK (type in ('public', 'private'));
+  min_version: '8.0'
+CheckInClauseWithNegation:
+  desired: |
+    CREATE TABLE `messages` (
+      `id` int PRIMARY KEY,
+      `status` varchar(20),
+      CONSTRAINT `messages_status_chk` CHECK (`status` NOT IN ('deleted', 'spam'))
+    );
+  min_version: '8.0'
+CheckInClauseMultipleColumns:
+  desired: |
+    CREATE TABLE `shipments` (
+      `id` int PRIMARY KEY,
+      `status` varchar(20),
+      `priority` int,
+      CONSTRAINT `shipments_status_chk` CHECK (`status` IN ('pending', 'shipped')),
+      CONSTRAINT `shipments_priority_chk` CHECK (`priority` IN (1, 2, 3))
+    );
+  min_version: '8.0'
+CheckInClauseNormalization:
+  current: |
+    CREATE TABLE `workflows` (
+      `id` int PRIMARY KEY,
+      `state` varchar(20),
+      CONSTRAINT `workflows_state_chk` CHECK (`state` in ('active', 'paused', 'stopped'))
+    );
+  desired: |
+    CREATE TABLE `workflows` (
+      `id` int PRIMARY KEY,
+      `state` varchar(20),
+      CONSTRAINT `workflows_state_chk` CHECK (`state` IN ('active', 'paused', 'stopped'))
+    );
+  up: ""
+  down: ""
+  min_version: '8.0'
+CheckTableLevelToColumnLevel:
+  current: |
+    CREATE TABLE `orders` (
+      `id` int PRIMARY KEY,
+      `status` varchar(20),
+      CONSTRAINT `orders_status_chk` CHECK (`status` IN ('pending', 'shipped', 'delivered'))
+    );
+  desired: |
+    CREATE TABLE `orders` (
+      `id` int PRIMARY KEY,
+      `status` varchar(20) CHECK (`status` IN ('pending', 'shipped', 'delivered'))
+    );
+  up: ""
+  down: ""
+  min_version: '8.0'
+CheckTableLevelToUnnamedColumnLevel:
+  current: |
+    CREATE TABLE `payments` (
+      `id` int PRIMARY KEY,
+      `method` varchar(20),
+      CONSTRAINT `payments_method_chk` CHECK (`method` IN ('card', 'cash', 'transfer'))
+    );
+  desired: |
+    CREATE TABLE `payments` (
+      `id` int PRIMARY KEY,
+      `method` varchar(20) CHECK (`method` IN ('card', 'cash', 'transfer'))
+    );
+  up: ""
+  down: ""
+  min_version: '8.0'
+CheckDuplicateValuesInOrChain:
+  current: |
+    CREATE TABLE `items` (
+      `id` int PRIMARY KEY,
+      `category` varchar(20),
+      CONSTRAINT `items_category_chk` CHECK (`category` = 'electronics' OR `category` = 'electronics' OR `category` = 'clothing')
+    );
+  desired: |
+    CREATE TABLE `items` (
+      `id` int PRIMARY KEY,
+      `category` varchar(20),
+      CONSTRAINT `items_category_chk` CHECK (`category` IN ('electronics', 'clothing'))
+    );
+  up: ""
+  down: ""
+  min_version: '8.0'
+CheckRowValueConstructorMultipleInnerValues:
+  flavor: "!mariadb"
+  current: |
+    CREATE TABLE `test_multi` (
+      `col_a` int,
+      `col_b` int,
+      CONSTRAINT `test_multi_chk` CHECK ((`col_a`, `col_b`) IN ((3, 1), (2, 4)))
+    );
+  desired: |
+    CREATE TABLE `test_multi` (
+      `col_a` int,
+      `col_b` int,
+      CONSTRAINT `test_multi_chk` CHECK ((`col_a`, `col_b`) IN ((1, 3), (2, 4)))
+    );
+  up: |
+    ALTER TABLE `test_multi` DROP CHECK `test_multi_chk`;
+    ALTER TABLE `test_multi` ADD CONSTRAINT `test_multi_chk` CHECK ((col_a, col_b) in ((1, 3), (2, 4)));
+  down: |
+    ALTER TABLE `test_multi` DROP CHECK `test_multi_chk`;
+    ALTER TABLE `test_multi` ADD CONSTRAINT `test_multi_chk` CHECK ((col_a, col_b) in ((3, 1), (2, 4)));
+  min_version: '8.0'
+CheckRowValueConstructorOuterOrderShouldMatch:
+  current: |
+    CREATE TABLE `test_outer` (
+      `col_a` int,
+      `col_b` int,
+      CONSTRAINT `test_outer_chk` CHECK ((`col_a`, `col_b`) IN ((1, 2), (3, 4)))
+    );
+  desired: |
+    CREATE TABLE `test_outer` (
+      `col_a` int,
+      `col_b` int,
+      CONSTRAINT `test_outer_chk` CHECK ((`col_a`, `col_b`) IN ((3, 4), (1, 2)))
+    );
+  up: ""
+  down: ""
+  min_version: '8.0'
+
+# Table with CHECK constraint via COMMENT (works on both MySQL and MariaDB)
+TableWithCommentAndDefaults:
+  desired: |
+    CREATE TABLE `books` (
+      `id` int(10) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      `type` VARCHAR(255) NOT NULL COMMENT 'manga, novel',
+      `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      `deleted_at` datetime DEFAULT null
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=DYNAMIC;

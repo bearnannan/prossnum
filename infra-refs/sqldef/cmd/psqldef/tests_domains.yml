@@ -1,0 +1,306 @@
+# yaml-language-server: $schema=../../testutil/testcase.schema.json
+
+CreateDomain:
+  desired: |
+    CREATE DOMAIN us_postal_code AS text;
+
+CreateDomainWithoutSchemaQualification:
+  desired: |
+    CREATE DOMAIN email AS text;
+
+CreateDomainWithConstraints:
+  desired: |
+    CREATE DOMAIN positive_int AS integer
+      DEFAULT 1
+      NOT NULL;
+
+DropDomain:
+  current: |
+    CREATE DOMAIN us_postal_code AS text;
+  desired: |
+  up: |
+    DROP DOMAIN "public"."us_postal_code";
+  down: |
+    CREATE DOMAIN us_postal_code AS text;
+CreateDomainWithDefault:
+  desired: |
+    CREATE DOMAIN status_code AS integer DEFAULT 200;
+
+CreateDomainWithCollation:
+  desired: |
+    CREATE DOMAIN case_insensitive_text AS text COLLATE "en_US";
+
+CreateDomainWithSchemaQualification:
+  desired: |
+    CREATE SCHEMA test_schema;
+    CREATE DOMAIN test_schema.my_domain AS text;
+
+DropDomainMultipleSchemas:
+  current: |
+    CREATE SCHEMA test_schema;
+    CREATE DOMAIN test_schema.test_domain AS text;
+    CREATE DOMAIN public_domain AS integer;
+  desired: |
+  up: |
+    DROP DOMAIN "public"."public_domain";
+    DROP DOMAIN "test_schema"."test_domain";
+  down: |
+    CREATE DOMAIN test_schema.test_domain AS text;
+    CREATE DOMAIN public_domain AS integer;
+CreateAndKeepDomainInNonPublicSchema:
+  current: |
+    CREATE SCHEMA test_schema;
+  desired: |
+    CREATE SCHEMA test_schema;
+    CREATE DOMAIN test_schema.my_domain AS text;
+  up: |
+    CREATE DOMAIN test_schema.my_domain AS text;
+  down: |
+    DROP DOMAIN "test_schema"."my_domain";
+UnqualifiedAndQualifiedAreSame:
+  current: |
+    CREATE DOMAIN email AS text;
+  desired: |
+    CREATE DOMAIN public.email AS text;
+  up: |
+  down: ""
+MixedQualifiedAndUnqualifiedDomains:
+  desired: |
+    CREATE DOMAIN email AS text;
+    CREATE DOMAIN status_code AS integer;
+
+CreateDomainWithCheckValue:
+  desired: |
+    CREATE DOMAIN us_postal_code AS text
+      CHECK (VALUE ~ '^\d{5}$' OR VALUE ~ '^\d{5}-\d{4}$');
+
+CreateDomainWithNamedCheck:
+  desired: |
+    CREATE DOMAIN positive_number AS integer
+      CONSTRAINT positive_check CHECK (VALUE > 0);
+
+CreateDomainWithMultipleChecks:
+  desired: |
+    CREATE DOMAIN valid_score AS integer
+      CHECK (VALUE >= 0)
+      CHECK (VALUE <= 100);
+
+CreateDomainWithMultipleNamedChecks:
+  desired: |
+    CREATE DOMAIN percentage AS numeric(5,2)
+      CONSTRAINT min_check CHECK (VALUE >= 0.0)
+      CONSTRAINT max_check CHECK (VALUE <= 100.0);
+
+DomainWithCheckIsIdempotent:
+  current: |
+    CREATE DOMAIN positive_int AS integer CHECK (VALUE > 0);
+  desired: |
+    CREATE DOMAIN positive_int AS integer CHECK (VALUE > 0);
+  up: |
+  down: ""
+CreateDomainCheckAndNotNull:
+  desired: |
+    CREATE DOMAIN username AS text
+      NOT NULL
+      CHECK (length(VALUE) >= 3 AND length(VALUE) <= 50);
+
+DropDomainWithConstraints:
+  current: |
+    CREATE DOMAIN email AS text CHECK (VALUE ~ '@');
+  desired: |
+  up: |
+    DROP DOMAIN "public"."email";
+  down: |
+    CREATE DOMAIN email AS text CHECK (VALUE ~ '@');
+CreateTableUsingDomain:
+  desired: |
+    CREATE DOMAIN email AS text CHECK (VALUE ~ '@');
+    CREATE TABLE users (
+      id integer PRIMARY KEY,
+      email_addr email NOT NULL
+    );
+
+CreateDomainWithCheckFunction:
+  desired: |
+    CREATE DOMAIN uppercase_text AS text
+      CHECK (VALUE = upper(VALUE));
+
+MultiplDomainsInTable:
+  desired: |
+    CREATE DOMAIN email AS text CHECK (VALUE ~ '@');
+    CREATE DOMAIN username AS text CHECK (length(VALUE) >= 3);
+    CREATE TABLE users (
+      id integer PRIMARY KEY,
+      name username,
+      email email
+    );
+
+CreateDomainDateOfBirth:
+  desired: |
+    CREATE DOMAIN date_of_birth AS date
+      CHECK (VALUE > '1900-01-01'::date AND VALUE < CURRENT_DATE);
+
+CreateDomainFutureDate:
+  desired: |
+    CREATE DOMAIN scheduled_date AS timestamp
+      CHECK (VALUE >= CURRENT_TIMESTAMP);
+
+CreateDomainLowercaseString:
+  desired: |
+    CREATE DOMAIN lowercase_identifier AS text
+      CHECK (VALUE = lower(VALUE) AND VALUE ~ '^[a-z0-9_]+$');
+
+CreateDomainBoundedString:
+  desired: |
+    CREATE DOMAIN short_description AS text
+      CHECK (char_length(VALUE) >= 3 AND char_length(VALUE) <= 255);
+
+CreateDomainPhoneNumber:
+  desired: |
+    CREATE DOMAIN us_phone AS text
+      CHECK (VALUE ~ '^\d{3}-\d{3}-\d{4}$' OR VALUE ~ '^\(\d{3}\) \d{3}-\d{4}$');
+
+CreateDomainUrl:
+  desired: |
+    CREATE DOMAIN web_url AS text
+      CHECK (VALUE ~ '^https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(/.*)?$');
+
+CreateDomainNonEmptyString:
+  desired: |
+    CREATE DOMAIN required_text AS text
+      NOT NULL
+      CHECK (VALUE != '' AND char_length(VALUE) > 0);
+
+CreateDomainNoLeadingTrailingSpaces:
+  desired: |
+    CREATE DOMAIN clean_text AS text
+      CHECK (VALUE !~ '^\s' AND VALUE !~ '\s$');
+
+CreateDomainIpAddress:
+  desired: |
+    CREATE DOMAIN ipv4_address AS inet
+      CHECK (family(VALUE) = 4);
+
+CreateDomainAge:
+  desired: |
+    CREATE DOMAIN age AS integer
+      CHECK (VALUE >= 0 AND VALUE <= 150);
+
+CreateDomainYear:
+  desired: |
+    CREATE DOMAIN year_value AS integer
+      CHECK (VALUE >= 1900 AND VALUE <= 2100);
+
+CreateDomainQuantity:
+  desired: |
+    CREATE DOMAIN quantity AS integer
+      DEFAULT 0
+      NOT NULL
+      CHECK (VALUE >= 0);
+
+CreateDomainRating:
+  desired: |
+    CREATE DOMAIN star_rating AS integer
+      CHECK (VALUE >= 1 AND VALUE <= 5);
+
+CreateDomainPassword:
+  desired: |
+    CREATE DOMAIN password_hash AS text
+      NOT NULL
+      CHECK (char_length(VALUE) >= 60);
+
+CreateDomainUuidString:
+  desired: |
+    CREATE DOMAIN external_id AS text
+      CHECK (VALUE ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
+
+# ALTER DOMAIN test cases - simple cases that should work
+
+AlterDomainSetDefault:
+  current: |
+    CREATE DOMAIN status_code AS integer;
+  desired: |
+    CREATE DOMAIN status_code AS integer DEFAULT 200;
+  up: |
+    ALTER DOMAIN "public"."status_code" SET DEFAULT 200;
+  down: |
+    ALTER DOMAIN "public"."status_code" DROP DEFAULT;
+AlterDomainDropDefault:
+  current: |
+    CREATE DOMAIN status_code AS integer DEFAULT 200;
+  desired: |
+    CREATE DOMAIN status_code AS integer;
+  up: |
+    ALTER DOMAIN "public"."status_code" DROP DEFAULT;
+  down: |
+    ALTER DOMAIN "public"."status_code" SET DEFAULT 200;
+AlterDomainChangeDefault:
+  current: |
+    CREATE DOMAIN status_code AS integer DEFAULT 200;
+  desired: |
+    CREATE DOMAIN status_code AS integer DEFAULT 404;
+  up: |
+    ALTER DOMAIN "public"."status_code" SET DEFAULT 404;
+  down: |
+    ALTER DOMAIN "public"."status_code" SET DEFAULT 200;
+AlterDomainSetNotNull:
+  current: |
+    CREATE DOMAIN email AS text;
+  desired: |
+    CREATE DOMAIN email AS text NOT NULL;
+  up: |
+    ALTER DOMAIN "public"."email" SET NOT NULL;
+  down: |
+    ALTER DOMAIN "public"."email" DROP NOT NULL;
+AlterDomainDropNotNull:
+  current: |
+    CREATE DOMAIN email AS text NOT NULL;
+  desired: |
+    CREATE DOMAIN email AS text;
+  up: |
+    ALTER DOMAIN "public"."email" DROP NOT NULL;
+  down: |
+    ALTER DOMAIN "public"."email" SET NOT NULL;
+AlterDomainAddCheck:
+  current: |
+    CREATE DOMAIN positive_int AS integer;
+  desired: |
+    CREATE DOMAIN positive_int AS integer CHECK (VALUE > 0);
+  up: |
+    ALTER DOMAIN "public"."positive_int" ADD CHECK (VALUE > 0);
+  down: ""
+AlterDomainAddNamedCheck:
+  current: |
+    CREATE DOMAIN positive_int AS integer;
+  desired: |
+    CREATE DOMAIN positive_int AS integer CONSTRAINT positive_check CHECK (VALUE > 0);
+  up: |
+    ALTER DOMAIN "public"."positive_int" ADD CONSTRAINT positive_check CHECK (VALUE > 0);
+  down: |
+AlterDomainAddMultipleChecks:
+  current: |
+    CREATE DOMAIN valid_score AS integer;
+  desired: |
+    CREATE DOMAIN valid_score AS integer
+      CHECK (VALUE >= 0)
+      CHECK (VALUE <= 100);
+  up: |
+    ALTER DOMAIN "public"."valid_score" ADD CHECK (VALUE >= 0);
+    ALTER DOMAIN "public"."valid_score" ADD CHECK (VALUE <= 100);
+  down: ""
+
+# Domain based on another domain
+DomainBasedOnDomain:
+  legacy_ignore_quotes: false
+  desired: |
+    CREATE DOMAIN base_text AS text;
+    CREATE DOMAIN derived_text AS base_text CHECK (length(VALUE) > 0);
+
+# Domain with multiple constraints having same type (named constraints)
+DomainWithMultipleSameTypeConstraints:
+  legacy_ignore_quotes: false
+  desired: |
+    CREATE DOMAIN bounded_int AS integer
+      CONSTRAINT min_bound CHECK (VALUE >= 0)
+      CONSTRAINT max_bound CHECK (VALUE <= 1000)
+      CONSTRAINT not_42 CHECK (VALUE <> 42);

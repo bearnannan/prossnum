@@ -1,0 +1,35 @@
+node_modules/
+.venv/
+oracleJdk-25/
+.agent/
+.env*
+.DS_Store
+__pycache__/
+*.pyc
+
+# sensitive data
+.env*
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!components.json
+!next.config.*
+!postcss.config.*
+!tailwind.config.*
+!README.md
+!*.py
+!*.ttf
+!*.csv
+
+# Integrated Tools & Skills (Exclusion)
+.serena/
+FossFLOW/
+Memento-Skills/
+YourPOS-With-Stripe/
+caveman/
+cliTokenKill/
+drawio-mcp/
+ebook-for-education/
+oh-my-codex/
+public-apis/

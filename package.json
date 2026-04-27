@@ -1,0 +1,17 @@
+{
+  "scripts": {
+    "dev": "npm --prefix webapp run dev",
+    "build": "powershell -Command \"npm --prefix webapp run build | Tee-Object -FilePath webapp/memento_build.log\"",
+    "start": "npm --prefix webapp run start",
+    "memento:watch": "set PYTHONIOENCODING=utf-8 && d:/APP/prossnum/Memento-Skills/.venv/Scripts/python.exe d:/APP/prossnum/Memento-Skills/memento_watch.py",
+    "memento:doctor": "set PYTHONIOENCODING=utf-8 && d:/APP/prossnum/Memento-Skills/.venv/Scripts/python.exe d:/APP/prossnum/Memento-Skills/cli/main.py doctor"
+  },
+  "dependencies": {
+    "@headlessui/react": "^2.2.9",
+    "@supabase/supabase-js": "^2.100.0",
+    "@testsprite/testsprite-mcp": "^0.0.36",
+    "clsx": "^2.1.1",
+    "motion": "^12.38.0",
+    "tailwindcss": "^4.2.2"
+  }
+}

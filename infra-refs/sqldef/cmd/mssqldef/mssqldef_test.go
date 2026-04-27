@@ -1,0 +1,1749 @@
+// Integration test of mssqldef command.
+//
+// Test requirement:
+//   - go command
+//   - `sqlcmd` must be able to connect with the configured test credentials
+package main
+
+import (
+	"fmt"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/sqldef/sqldef/v3/database"
+	"github.com/sqldef/sqldef/v3/database/mssql"
+	"github.com/sqldef/sqldef/v3/schema"
+	tu "github.com/sqldef/sqldef/v3/testutil"
+)
+
+const (
+	applyPrefix     = "-- Apply --\n"
+	nothingModified = "-- Nothing is modified --\n"
+	skipPrefix      = "-- Skipped: "
+)
+
+type mssqlTestConfig struct {
+	host          string
+	port          int
+	adminUser     string
+	adminPassword string
+	userPassword  string
+}
+
+func wrapWithTransaction(ddls string) string {
+	return applyPrefix + "BEGIN TRANSACTION;\n" + ddls + "COMMIT TRANSACTION;\n"
+}
+
+// getMssqlTestConfig allows the integration tests to target an existing local SQL Server instance.
+// Environment variables:
+// - MSSQLDEF_TEST_HOST
+// - MSSQLDEF_TEST_PORT
+// - MSSQLDEF_TEST_ADMIN_USER
+// - MSSQLDEF_TEST_ADMIN_PASSWORD
+// - MSSQLDEF_TEST_USER_PASSWORD
+func getMssqlTestConfig() mssqlTestConfig {
+	port := 1433
+	if envPort := os.Getenv("MSSQLDEF_TEST_PORT"); envPort != "" {
+		parsedPort, err := strconv.Atoi(envPort)
+		if err != nil {
+			panic(fmt.Sprintf("invalid MSSQLDEF_TEST_PORT: %s", envPort))
+		}
+		port = parsedPort
+	}
+
+	adminPassword := os.Getenv("MSSQLDEF_TEST_ADMIN_PASSWORD")
+	if adminPassword == "" {
+		adminPassword = "Passw0rd"
+	}
+
+	userPassword := os.Getenv("MSSQLDEF_TEST_USER_PASSWORD")
+	if userPassword == "" {
+		userPassword = "Passw0rd"
+	}
+
+	host := os.Getenv("MSSQLDEF_TEST_HOST")
+	if host == "" {
+		host = "127.0.0.1"
+	}
+
+	adminUser := os.Getenv("MSSQLDEF_TEST_ADMIN_USER")
+	if adminUser == "" {
+		adminUser = "sa"
+	}
+
+	return mssqlTestConfig{
+		host:          host,
+		port:          port,
+		adminUser:     adminUser,
+		adminPassword: adminPassword,
+		userPassword:  userPassword,
+	}
+}
+
+func mssqlCLIArgs(dbName string, args ...string) []string {
+	config := getMssqlTestConfig()
+	base := []string{
+		"-U", config.adminUser,
+		"-P", config.adminPassword,
+		"-h", config.host,
+		"-p", strconv.Itoa(config.port),
+		dbName,
+	}
+	return append(base, args...)
+}
+
+func mssqlSQLCmdArgs(dbName string, query string) []string {
+	config := getMssqlTestConfig()
+	return []string{
+		"-S", fmt.Sprintf("%s,%d", config.host, config.port),
+		"-U", config.adminUser,
+		"-P", config.adminPassword,
+		"-d", dbName,
+		"-h", "-1",
+		"-Q", query,
+	}
+}
+
+// createTestDatabase creates a new database for a test case with the specified user.
+func createTestDatabase(t *testing.T, dbName string, user string) {
+	t.Helper()
+
+	// Drop and create the database
+	mustMssqlExec("master", fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName))
+	mustMssqlExec("master", fmt.Sprintf("CREATE DATABASE %s", dbName))
+
+	// Create FOO schema (used by some tests)
+	mustMssqlExec(dbName, "CREATE SCHEMA FOO")
+
+	// Set up user if specified
+	if user != "" {
+		mustMssqlExec(dbName, fmt.Sprintf("CREATE USER %s FOR LOGIN %s WITH DEFAULT_SCHEMA = FOO", user, user))
+		mustMssqlExec(dbName, fmt.Sprintf("ALTER ROLE db_owner ADD MEMBER %s", user))
+		mustMssqlExec(dbName, fmt.Sprintf("ALTER AUTHORIZATION ON SCHEMA::FOO TO %s", user))
+	}
+}
+
+// dropTestDatabase drops a test database. This is used in cleanup.
+func dropTestDatabase(dbName string) {
+	// Ignore errors during cleanup, as the database might already be dropped
+	_ = mssqlExec("master", fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName))
+}
+
+// connectDatabaseByName connects to a specific database with the given user.
+func connectDatabaseByName(dbName string, user string) (database.Database, error) {
+	config := getMssqlTestConfig()
+	password := config.userPassword
+	if user == config.adminUser {
+		password = config.adminPassword
+	}
+
+	return mssql.NewDatabase(database.Config{
+		User:     user,
+		Password: password,
+		Host:     config.host,
+		Port:     config.port,
+		DbName:   dbName,
+	})
+}
+
+func TestApply(t *testing.T) {
+	resetTestDatabase()
+
+	tests, err := tu.ReadTests("tests*.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	version := mustGetMssqlVersion()
+	sqlParser := mssql.NewParser()
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			dbName := tu.CreateTestDatabaseName(name, 128)
+			createTestDatabase(t, dbName, test.User)
+
+			t.Cleanup(func() {
+				dropTestDatabase(dbName)
+			})
+
+			var db database.Database
+			var err error
+			if test.User != "" {
+				db, err = connectDatabaseByName(dbName, test.User)
+			} else {
+				db, err = connectDatabaseByName(dbName, "sa")
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer db.Close()
+
+			tu.RunTest(t, db, test, schema.GeneratorModeMssql, sqlParser, version, "")
+		})
+	}
+}
+
+// TODO: non-CLI tests should be migrated to TestApply
+
+func TestMssqldefAddColumnNotNull(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO`,
+	)
+	assertApply(t, createTable)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20) NOT NULL
+		);
+		GO`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction("ALTER TABLE [dbo].[users] ALTER COLUMN [name] varchar(20) NOT NULL;\nGO\n"))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefRemoveColumnNotNull(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO`,
+	)
+	assertApply(t, createTable)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint,
+		  name varchar(20)
+		);
+		GO`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction("ALTER TABLE [dbo].[users] ALTER COLUMN [id] bigint;\nGO\n"))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefChangeColumnLength(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO`,
+	)
+	assertApply(t, createTable)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(100)
+		);
+		GO`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction("ALTER TABLE [dbo].[users] ALTER COLUMN [name] varchar(100);\nGO\n"))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefAlterTableAddUniqueConstraint(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO
+		`,
+	)
+	assertApply(t, createTable)
+
+	alterTable := tu.StripHeredoc(`
+		ALTER TABLE users
+		  ADD CONSTRAINT [uq_users] UNIQUE CLUSTERED ([name]);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable+alterTable, wrapWithTransaction(alterTable))
+	assertApplyOutput(t, createTable+alterTable, nothingModified)
+}
+
+func TestMssqldefAlterTableAddUniqueConstraintWithNONCLUSTERED(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO
+		`,
+	)
+	assertApply(t, createTable)
+
+	alterTable := tu.StripHeredoc(`
+		ALTER TABLE users
+		  ADD CONSTRAINT [uq_users] UNIQUE NONCLUSTERED ([name]);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable+alterTable, wrapWithTransaction(alterTable))
+	assertApplyOutput(t, createTable+alterTable, nothingModified)
+}
+
+func TestMssqldefAlterTableDropUniqueConstraint(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO
+		ALTER TABLE users
+		  ADD CONSTRAINT [uq_users] UNIQUE ([name]);
+		GO`,
+	)
+	assertApply(t, createTable)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction("ALTER TABLE [dbo].[users] DROP CONSTRAINT [uq_users];\nGO\n"))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableDropUniqueConstraint(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20),
+		  CONSTRAINT [uq_users] UNIQUE ([name])
+		);
+		GO`,
+	)
+	assertApply(t, createTable)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction("ALTER TABLE [dbo].[users] DROP CONSTRAINT [uq_users];\nGO\n"))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableQuotes(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE test_table (
+		  id integer
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE test_table (
+		  id integer
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTable(t *testing.T) {
+	resetTestDatabase()
+
+	createTable1 := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name text,
+		  age integer
+		);
+		GO
+		`,
+	)
+	createTable2 := tu.StripHeredoc(`
+		CREATE TABLE bigdata (
+		  data bigint
+		);
+		GO
+		`,
+	)
+
+	assertApplyOutput(t, createTable1+createTable2, wrapWithTransaction(createTable1+createTable2))
+	assertApplyOutput(t, createTable1+createTable2, nothingModified)
+	assertApplyOutput(t, createTable1, wrapWithTransaction("-- Skipped: DROP TABLE [dbo].[bigdata];\n"))
+}
+
+func TestMssqldefCreateTableWithDefault(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  profile varchar(50) NOT NULL DEFAULT (''),
+		  default_int int default ((20)),
+		  default_bool bit default ((1)),
+		  default_numeric numeric(5) default ((42.195)),
+		  default_fixed_char varchar(3) default ('JPN'),
+		  default_text text default (''),
+		  default_date datetimeoffset default (getdate())
+		);
+		GO
+		`,
+	)
+	expected := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  profile varchar(50) NOT NULL DEFAULT '',
+		  default_int int default 20,
+		  default_bool bit default 1,
+		  default_numeric numeric(5) default 42.195,
+		  default_fixed_char varchar(3) default 'JPN',
+		  default_text text default '',
+		  default_date datetimeoffset default getdate()
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(expected))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableWithIDENTITY(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id integer PRIMARY KEY IDENTITY(1,1),
+		  name text,
+		  age integer
+		);
+		GO
+		`,
+	)
+
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableWithCLUSTERED(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id integer,
+		  name text,
+		  age integer,
+		  CONSTRAINT PK_users PRIMARY KEY CLUSTERED (id)
+		);
+		GO
+		`,
+	)
+
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateView(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE [dbo].[users] (
+		  id integer NOT NULL,
+		  name text,
+		  age integer
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createView := "CREATE VIEW [dbo].[view_users] AS select id from dbo.users with(nolock) where age = 1;\nGO\n"
+	assertApplyOutput(t, createTable+createView, wrapWithTransaction(createView))
+	assertApplyOutput(t, createTable+createView, nothingModified)
+
+	createView = "CREATE VIEW [dbo].[view_users_new] AS select id from dbo.users with(nolock) where age = 2;\nGO\n"
+	skipDropView := "-- Skipped: DROP VIEW [dbo].[view_users];\n"
+	assertApplyOutput(t, createTable+createView, wrapWithTransaction(createView+skipDropView))
+	assertApplyOutput(t, createTable+createView, wrapWithTransaction(skipDropView))
+	assertApplyOutput(t, "", wrapWithTransaction("-- Skipped: DROP VIEW [dbo].[view_users];\n-- Skipped: DROP VIEW [dbo].[view_users_new];\n-- Skipped: DROP TABLE [dbo].[users];\n"))
+}
+
+func TestMssqldefTrigger(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name text
+		);
+		GO
+		CREATE TABLE logs (
+		  id bigint NOT NULL,
+		  log varchar(20),
+		  dt datetime
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTrigger := tu.StripHeredoc(`
+		CREATE TRIGGER [insert_log] ON [dbo].[users] for insert AS
+		insert into logs(log, dt) values ('insert', getdate());
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable+createTrigger, wrapWithTransaction(createTrigger))
+	assertApplyOutput(t, createTable+createTrigger, nothingModified)
+
+	createTrigger = tu.StripHeredoc(`
+		CREATE TRIGGER [insert_log] ON [dbo].[users] for insert AS
+		  delete from logs
+		  insert into logs(log, dt) values ('insert', getdate());
+		GO
+		`,
+	)
+
+	assertApplyOutput(t, createTable+createTrigger, wrapWithTransaction(tu.StripHeredoc(`
+		CREATE OR ALTER TRIGGER [insert_log] ON [dbo].[users] for insert AS
+		delete from logs
+		insert into logs(log, dt) values ('insert', getdate());
+		GO
+		`,
+	)))
+	assertApplyOutput(t, createTable+createTrigger, nothingModified)
+}
+
+func TestMssqldefTriggerWithRichSyntax(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name text
+		);
+		GO
+		CREATE TABLE logs (
+		  id bigint NOT NULL,
+		  log varchar(20),
+		  dt datetime
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTrigger := tu.StripHeredoc(`
+		CREATE TRIGGER [insert_log] ON [dbo].[users] after insert, delete AS
+			declare
+				@userId bigint,
+				@username varchar(20),
+				@date datetime
+			select @userId = id from inserted
+			set @date = getdate()
+			declare
+				users_cursor scroll cursor for
+					select name from users order by id asc
+			open users_cursor
+			while @@FETCH_STATUS = 0
+			begin
+				fetch first from users_cursor into @username
+				if @username = 'test'
+				begin
+					insert into logs(log, dt) values (@username, @date)
+				end
+				else
+				begin
+					insert into logs(log, dt) values ('insert user', @date)
+				end
+			end
+			close users_cursor
+			deallocate users_cursor
+			insert into logs(log, dt) values (@username, @date);
+			GO
+		`,
+	)
+	assertApplyOutput(t, createTable+createTrigger, wrapWithTransaction(createTrigger))
+	assertApplyOutput(t, createTable+createTrigger, nothingModified)
+}
+
+func TestMssqldefAddColumn(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id BIGINT NOT NULL PRIMARY KEY
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id BIGINT NOT NULL PRIMARY KEY,
+		  name varchar(40)
+		);
+		GO`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction("ALTER TABLE [dbo].[users] ADD [name] varchar(40);\nGO\n"))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefAddColumnWithIDENTITY(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id BIGINT NOT NULL PRIMARY KEY
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id BIGINT NOT NULL PRIMARY KEY,
+		  membership_id int IDENTITY(1,1) NOT FOR REPLICATION
+		);
+		GO`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction("ALTER TABLE [dbo].[users] ADD [membership_id] int IDENTITY(1,1) NOT FOR REPLICATION;\nGO\n"))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefAddColumnWithCheck(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id BIGINT NOT NULL PRIMARY KEY
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id BIGINT NOT NULL PRIMARY KEY,
+		  membership_id int CHECK NOT FOR REPLICATION (membership_id>(0))
+		);
+		GO`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction("ALTER TABLE [dbo].[users] ADD [membership_id] int CHECK NOT FOR REPLICATION (membership_id > (0));\nGO\n"))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableDropColumn(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL PRIMARY KEY,
+		  name varchar(20)
+		);
+		GO`,
+	)
+	assertApply(t, createTable)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL PRIMARY KEY
+		);
+		GO`,
+	)
+	assertApplyOptionsOutput(t, createTable, wrapWithTransaction("ALTER TABLE [dbo].[users] DROP COLUMN [name];\nGO\n"), "--enable-drop")
+	assertApplyOptionsOutput(t, createTable, nothingModified, "--enable-drop")
+}
+
+func TestMssqldefCreateTableDropColumnWithDefaultConstraint(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL PRIMARY KEY,
+		  name varchar(20) CONSTRAINT df_name DEFAULT NULL
+		);
+		GO`,
+	)
+	assertApply(t, createTable)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL PRIMARY KEY
+		);
+		GO`,
+	)
+	assertApplyOptionsOutput(t, createTable, wrapWithTransaction("ALTER TABLE [dbo].[users] DROP CONSTRAINT [df_name];\nGO\n"+"ALTER TABLE [dbo].[users] DROP COLUMN [name];\nGO\n"), "--enable-drop")
+	assertApplyOptionsOutput(t, createTable, nothingModified, "--enable-drop")
+}
+
+func TestMssqldefCreateTableDropColumnWithDefault(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL PRIMARY KEY,
+		  name varchar(20) DEFAULT NULL
+		);
+		GO`,
+	)
+	assertApply(t, createTable)
+
+	// extract name of default constraint from sql server
+	out, err := mssqlQuery("mssqldef_test", tu.StripHeredoc(`
+		SELECT OBJECT_NAME(c.default_object_id) FROM sys.columns c WHERE c.object_id = OBJECT_ID('dbo.users', 'U') AND c.default_object_id != 0;
+		`,
+	))
+	if err != nil {
+		t.Fatalf("failed to extract default object id: %v", err)
+	}
+	dfConstraintName := strings.TrimSpace(strings.Split(out, "\n")[0])
+	dropConstraint := fmt.Sprintf("ALTER TABLE [dbo].[users] DROP CONSTRAINT [%s];\nGO\n", dfConstraintName)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL PRIMARY KEY
+		);`,
+	)
+	assertApplyOptionsOutput(t, createTable, wrapWithTransaction(dropConstraint+"ALTER TABLE [dbo].[users] DROP COLUMN [name];\nGO\n"), "--enable-drop")
+	assertApplyOptionsOutput(t, createTable, nothingModified, "--enable-drop")
+}
+
+func TestMssqldefCreateTableDropColumnWithPK(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20) DEFAULT NULL,
+			CONSTRAINT pk_id PRIMARY KEY (id)
+		);`,
+	)
+	assertApply(t, createTable)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  name varchar(20) DEFAULT NULL
+		);`,
+	)
+	assertApplyOptionsOutput(t, createTable, wrapWithTransaction("ALTER TABLE [dbo].[users] DROP CONSTRAINT [pk_id];\nGO\n"+"ALTER TABLE [dbo].[users] DROP COLUMN [id];\nGO\n"), "--enable-drop")
+	assertApplyOptionsOutput(t, createTable, nothingModified, "--enable-drop")
+}
+
+func TestMssqldefCreateTableAddPrimaryKey(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL PRIMARY KEY,
+		  name varchar(20)
+		);
+		GO
+		`,
+	)
+
+	assertApplyOutput(t, createTable, wrapWithTransaction(
+		"ALTER TABLE [dbo].[users] ADD PRIMARY KEY CLUSTERED ([id]);\nGO\n",
+	))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableAddPrimaryKeyConstraint(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20),
+		  CONSTRAINT [pk_users] PRIMARY KEY CLUSTERED ([id] desc)
+		);
+		GO
+		`,
+	)
+
+	assertApplyOutput(t, createTable, wrapWithTransaction(
+		"ALTER TABLE [dbo].[users] ADD CONSTRAINT [pk_users] PRIMARY KEY CLUSTERED ([id] desc);\nGO\n",
+	))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableDropPrimaryKey(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL PRIMARY KEY,
+		  name varchar(20)
+		);
+		GO`,
+	)
+	assertApply(t, createTable)
+
+	// extract name of primary key constraint from sql server
+	out, err := mssqlQuery("mssqldef_test", tu.StripHeredoc(`
+		SELECT kc.name FROM sys.key_constraints kc WHERE kc.parent_object_id=OBJECT_ID('users', 'U') AND kc.[type]='PK';
+		`,
+	))
+	if err != nil {
+		t.Fatalf("failed to extract primary key id: %v", err)
+	}
+	pkConstraintName := strings.TrimSpace(strings.Split(out, "\n")[0])
+	dropConstraint := fmt.Sprintf("ALTER TABLE [dbo].[users] DROP CONSTRAINT [%s];\nGO\n", pkConstraintName)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(dropConstraint))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableDropPrimaryKeyConstraint(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20),
+		  CONSTRAINT [pk_users] PRIMARY KEY ([id])
+		);
+		GO`,
+	)
+	assertApply(t, createTable)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction("ALTER TABLE [dbo].[users] DROP CONSTRAINT [pk_users];\nGO\n"))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableWithIndexOption(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20),
+		  INDEX [ix_users_id] UNIQUE CLUSTERED ([id]) WITH (
+		    PAD_INDEX = ON,
+		    FILLFACTOR = 10,
+		    IGNORE_DUP_KEY = ON,
+		    STATISTICS_NORECOMPUTE = ON,
+		    STATISTICS_INCREMENTAL = OFF,
+		    ALLOW_ROW_LOCKS = ON,
+		    ALLOW_PAGE_LOCKS = ON
+		  )
+		);
+		GO
+		`)
+
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTablePrimaryKeyWithIndexOption(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20),
+		  CONSTRAINT [pk_users] PRIMARY KEY CLUSTERED ([id]) WITH (
+		    PAD_INDEX = OFF,
+		    STATISTICS_NORECOMPUTE = OFF,
+		    IGNORE_DUP_KEY = OFF,
+		    ALLOW_ROW_LOCKS = ON,
+		    ALLOW_PAGE_LOCKS = ON
+		  )
+		);
+		GO
+		`)
+
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableAddIndex(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20),
+		  INDEX [ix_users_id] UNIQUE CLUSTERED ([id] desc) WITH (
+		    PAD_INDEX = ON,
+		    FILLFACTOR = 10,
+		    STATISTICS_NORECOMPUTE = ON
+		  ) ON [PRIMARY]
+		);
+		GO
+		`,
+	)
+
+	assertApplyOutput(t, createTable, wrapWithTransaction(
+		"CREATE UNIQUE CLUSTERED INDEX [ix_users_id] ON [dbo].[users] ([id] desc) WITH (pad_index = ON, fillfactor = 10, statistics_norecompute = ON) ON [PRIMARY];\nGO\n",
+	))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableDropIndex(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20),
+		  INDEX [ix_users_id] UNIQUE CLUSTERED ([id]) WITH (
+		    PAD_INDEX = ON,
+		    FILLFACTOR = 10,
+		    STATISTICS_NORECOMPUTE = ON
+		  )
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20)
+		);
+		GO
+		`,
+	)
+
+	assertApplyOutput(t, createTable, wrapWithTransaction("-- Skipped: DROP INDEX [ix_users_id] ON [dbo].[users];\n"))
+	assertApplyOptionsOutput(t, createTable, wrapWithTransaction("DROP INDEX [ix_users_id] ON [dbo].[users];\nGO\n"), "--enable-drop")
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableChangeIndexDefinition(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20),
+		  INDEX [ix_users_id] UNIQUE CLUSTERED ([id] desc)
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20),
+		  INDEX [ix_users_id] UNIQUE CLUSTERED ([id] asc)
+		);
+		GO
+		`,
+	)
+
+	assertApplyOptionsOutput(t, createTable, wrapWithTransaction(
+		"DROP INDEX [ix_users_id] ON [dbo].[users];\nGO\n"+
+			"CREATE UNIQUE CLUSTERED INDEX [ix_users_id] ON [dbo].[users] ([id]);\nGO\n"), "--enable-drop")
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id bigint NOT NULL,
+		  name varchar(20),
+		  INDEX [ix_users_id] UNIQUE CLUSTERED ([id]) WITH (
+		    PAD_INDEX = ON,
+		    FILLFACTOR = 10
+		  )
+		);
+		GO
+		`,
+	)
+
+	assertApplyOptionsOutput(t, createTable, wrapWithTransaction(
+		"DROP INDEX [ix_users_id] ON [dbo].[users];\nGO\n"+
+			"CREATE UNIQUE CLUSTERED INDEX [ix_users_id] ON [dbo].[users] ([id]) WITH (pad_index = ON, fillfactor = 10);\nGO\n"),
+		"--enable-drop")
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableForeignKey(t *testing.T) {
+	resetTestDatabase()
+
+	createUsers := "CREATE TABLE users (id BIGINT PRIMARY KEY);\nGO\n"
+	createPosts := tu.StripHeredoc(`
+		CREATE TABLE posts (
+		  content text,
+		  user_id bigint
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createUsers+createPosts, wrapWithTransaction(createUsers+createPosts))
+	assertApplyOutput(t, createUsers+createPosts, nothingModified)
+
+	createPosts = tu.StripHeredoc(`
+		CREATE TABLE posts (
+		  content text,
+		  user_id bigint,
+		  CONSTRAINT posts_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id)
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createUsers+createPosts, wrapWithTransaction("ALTER TABLE [dbo].[posts] ADD CONSTRAINT [posts_ibfk_1] FOREIGN KEY ([user_id]) REFERENCES [dbo].[users] ([id]);\nGO\n"))
+	assertApplyOutput(t, createUsers+createPosts, nothingModified)
+
+	createPosts = tu.StripHeredoc(`
+		CREATE TABLE posts (
+		  content text,
+		  user_id bigint,
+		  CONSTRAINT posts_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createUsers+createPosts, wrapWithTransaction(
+		"ALTER TABLE [dbo].[posts] DROP CONSTRAINT [posts_ibfk_1];\nGO\n"+
+			"ALTER TABLE [dbo].[posts] ADD CONSTRAINT [posts_ibfk_1] FOREIGN KEY ([user_id]) REFERENCES [dbo].[users] ([id]) ON DELETE SET NULL ON UPDATE CASCADE;\nGO\n",
+	))
+	assertApplyOutput(t, createUsers+createPosts, nothingModified)
+
+	createPosts = tu.StripHeredoc(`
+		CREATE TABLE posts (
+		  content text,
+		  user_id bigint
+		);
+		`,
+	)
+	assertApplyOutput(t, createUsers+createPosts, wrapWithTransaction("ALTER TABLE [dbo].[posts] DROP CONSTRAINT [posts_ibfk_1];\nGO\n"))
+	assertApplyOutput(t, createUsers+createPosts, nothingModified)
+}
+
+func TestMssqldefCreateTableWithCheck(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE a (
+		  a_id INTEGER PRIMARY KEY CONSTRAINT [a_a_id_check] CHECK ([a_id]>(0)),
+		  my_text TEXT NOT NULL
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE a (
+		  a_id INTEGER PRIMARY KEY CONSTRAINT [a_a_id_check] CHECK ([a_id]>(1)),
+		  my_text TEXT NOT NULL
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(
+		"ALTER TABLE [dbo].[a] DROP CONSTRAINT [a_a_id_check];\nGO\n"+
+			"ALTER TABLE [dbo].[a] ADD CONSTRAINT [a_a_id_check] CHECK (a_id > (1));\nGO\n"))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE a (
+		  a_id INTEGER PRIMARY KEY,
+		  my_text TEXT NOT NULL
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(
+		"ALTER TABLE [dbo].[a] DROP CONSTRAINT [a_a_id_check];\nGO\n"))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateTableWithCheckWithoutName(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE a (
+		  a_id INTEGER PRIMARY KEY CHECK ([a_id]>(0)),
+		  my_text TEXT NOT NULL
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE a (
+		  a_id INTEGER PRIMARY KEY CHECK ([a_id]>(1)),
+		  my_text TEXT NOT NULL
+		);
+		GO
+		`,
+	)
+
+	// extract name of check constraint from sql server
+	out, err := mssqlQuery("mssqldef_test", tu.StripHeredoc(`
+		SELECT name FROM sys.check_constraints cc WHERE cc.parent_object_id = OBJECT_ID('dbo.a', 'U');
+		`,
+	))
+	if err != nil {
+		t.Fatalf("failed to extract check constraint name: %v", err)
+	}
+	checkConstraintName := strings.TrimSpace(strings.Split(out, "\n")[0])
+	dropConstraint := fmt.Sprintf("ALTER TABLE [dbo].[a] DROP CONSTRAINT [%s];\nGO\n", checkConstraintName)
+
+	assertApplyOutput(t, createTable, wrapWithTransaction(
+		dropConstraint+"ALTER TABLE [dbo].[a] ADD CONSTRAINT [a_a_id_check] CHECK (a_id > (1));\nGO\n"))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateIndex(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id BIGINT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+		  name varchar(40) DEFAULT NULL,
+		  created_at datetime NOT NULL
+		);
+		GO
+		`,
+	)
+	assertApply(t, createTable)
+
+	createIndex := "CREATE NONCLUSTERED INDEX [index_name] ON [users] ([name] DESC) INCLUDE([created_at]) WITH (PAD_INDEX = ON) ON [PRIMARY];\nGO\n"
+	assertApplyOutput(t, createTable+createIndex, wrapWithTransaction(createIndex))
+	assertApplyOutput(t, createTable+createIndex, nothingModified)
+
+	assertApplyOutput(t, createTable, wrapWithTransaction("-- Skipped: DROP INDEX [index_name] ON [dbo].[users];\n"))
+	assertApplyOptionsOutput(t, createTable, wrapWithTransaction("DROP INDEX [index_name] ON [dbo].[users];\nGO\n"), "--enable-drop")
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefCreateIndexChangeIndexDefinition(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id BIGINT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+		  name varchar(40) DEFAULT NULL,
+		  created_at datetime NOT NULL,
+		  updated_at datetime NOT NULL
+		);
+		GO
+		`,
+	)
+
+	createIndex := "CREATE NONCLUSTERED INDEX [index_name] ON [users] ([name] DESC) INCLUDE([created_at]) WITH (PAD_INDEX = ON);\nGO\n"
+	assertApplyOutput(t, createTable+createIndex, wrapWithTransaction(createTable+createIndex))
+	assertApplyOutput(t, createTable+createIndex, nothingModified)
+
+	createIndex = "CREATE NONCLUSTERED INDEX [index_name] ON [users] ([name] DESC) INCLUDE([created_at], [updated_at]) WITH (PAD_INDEX = ON);\nGO\n"
+	assertApplyOptionsOutput(t, createTable+createIndex, wrapWithTransaction(
+		"DROP INDEX [index_name] ON [dbo].[users];\nGO\n"+
+			"CREATE NONCLUSTERED INDEX [index_name] ON [users] ([name] DESC) INCLUDE([created_at], [updated_at]) WITH (PAD_INDEX = ON);\nGO\n"), "--enable-drop")
+	assertApplyOutput(t, createTable+createIndex, nothingModified)
+
+	createIndex = "CREATE NONCLUSTERED INDEX [index_name] ON [users] ([name] DESC) INCLUDE([created_at], [updated_at]) WITH (PAD_INDEX = ON, FILLFACTOR = 10);\nGO\n"
+	assertApplyOptionsOutput(t, createTable+createIndex, wrapWithTransaction(
+		"DROP INDEX [index_name] ON [dbo].[users];\nGO\n"+
+			"CREATE NONCLUSTERED INDEX [index_name] ON [users] ([name] DESC) INCLUDE([created_at], [updated_at]) WITH (PAD_INDEX = ON, FILLFACTOR = 10);\nGO\n"), "--enable-drop")
+	assertApplyOutput(t, createTable+createIndex, nothingModified)
+}
+
+func TestMssqldefCreateTableNotForReplication(t *testing.T) {
+	resetTestDatabase()
+
+	createUsers := "CREATE TABLE users (id BIGINT PRIMARY KEY);\nGO\n"
+	createPosts := tu.StripHeredoc(`
+		CREATE TABLE posts (
+		  post_id BIGINT IDENTITY(1,1) NOT FOR REPLICATION,
+		  user_id BIGINT,
+		  content TEXT,
+		  views INTEGER CHECK NOT FOR REPLICATION ([views]>(-1)),
+		  CONSTRAINT posts_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id) NOT FOR REPLICATION
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createUsers+createPosts, wrapWithTransaction(createUsers+createPosts))
+	assertApplyOutput(t, createUsers+createPosts, nothingModified)
+}
+
+func TestMssqldefCreateTableAddNotForReplication(t *testing.T) {
+	resetTestDatabase()
+
+	createUsers := "CREATE TABLE users (id BIGINT PRIMARY KEY);\nGO\n"
+	createPosts := tu.StripHeredoc(`
+		CREATE TABLE posts (
+		  post_id BIGINT IDENTITY(1,1),
+		  user_id BIGINT,
+		  content TEXT,
+		  views INTEGER CONSTRAINT posts_view_check CHECK ([views]>(-1)),
+		  CONSTRAINT posts_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id)
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createUsers+createPosts, wrapWithTransaction(createUsers+createPosts))
+	assertApplyOutput(t, createUsers+createPosts, nothingModified)
+
+	createPosts = tu.StripHeredoc(`
+		CREATE TABLE posts (
+		  post_id BIGINT IDENTITY(1,1) NOT FOR REPLICATION,
+		  user_id BIGINT,
+		  content TEXT,
+		  views INTEGER CONSTRAINT posts_view_check CHECK NOT FOR REPLICATION ([views]>(-1)),
+		  CONSTRAINT posts_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (id) NOT FOR REPLICATION
+		);
+		GO
+		`,
+	)
+	assertApplyOptionsOutput(t, createUsers+createPosts, wrapWithTransaction(
+		"ALTER TABLE [dbo].[posts] DROP COLUMN [post_id];\nGO\n"+
+			"ALTER TABLE [dbo].[posts] ADD [post_id] bigint IDENTITY(1,1) NOT FOR REPLICATION;\nGO\n"+
+			"ALTER TABLE [dbo].[posts] DROP CONSTRAINT [posts_view_check];\nGO\n"+
+			"ALTER TABLE [dbo].[posts] ADD CONSTRAINT [posts_view_check] CHECK NOT FOR REPLICATION (views > (-1));\nGO\n"+
+			"ALTER TABLE [dbo].[posts] DROP CONSTRAINT [posts_ibfk_1];\nGO\n"+
+			"ALTER TABLE [dbo].[posts] ADD CONSTRAINT [posts_ibfk_1] FOREIGN KEY ([user_id]) REFERENCES [dbo].[users] ([id]) NOT FOR REPLICATION;\nGO\n"),
+		"--enable-drop")
+	assertApplyOptionsOutput(t, createUsers+createPosts, nothingModified, "--enable-drop")
+}
+
+func TestMssqldefCreateTableAddDefaultChangeDefault(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE messages (
+		  id BIGINT NOT NULL PRIMARY KEY,
+		  content TEXT NOT NULL
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE messages (
+		  id BIGINT NOT NULL PRIMARY KEY,
+		  content TEXT NOT NULL CONSTRAINT [df_messages_content] DEFAULT ''
+		);
+		GO
+		`,
+	)
+
+	assertApplyOutput(t, createTable, wrapWithTransaction(
+		"ALTER TABLE [dbo].[messages] ADD CONSTRAINT [df_messages_content] DEFAULT '' FOR [content];\nGO\n",
+	))
+	assertApplyOutput(t, createTable, nothingModified)
+
+	createTable = tu.StripHeredoc(`
+		CREATE TABLE messages (
+		  id BIGINT NOT NULL PRIMARY KEY,
+		  content TEXT NOT NULL DEFAULT 'hello'
+		);
+		GO
+		`,
+	)
+
+	assertApplyOutput(t, createTable, wrapWithTransaction(
+		"ALTER TABLE [dbo].[messages] DROP CONSTRAINT [df_messages_content];\nGO\n"+
+			"ALTER TABLE [dbo].[messages] ADD DEFAULT 'hello' FOR [content];\nGO\n",
+	))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefUseSequenceInTrigger(t *testing.T) {
+	resetTestDatabase()
+
+	// Prepare sequence, because "CREATE SEQUENCE" is currently unavailable in mssqldef.
+	mustMssqlExec("mssqldef_test", tu.StripHeredoc(`
+		CREATE SEQUENCE seq_user_id AS int START WITH 1;
+		GO
+	`))
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id int NOT NULL PRIMARY KEY,
+		  name text,
+		  age int
+		);
+		GO
+	`)
+	createTrigger := tu.StripHeredoc(`
+		CREATE TRIGGER [insert_users_trigger] ON [dbo].[users] instead of insert AS
+		set nocount on
+		insert into dbo.users(id, name, age) select next value for seq_user_id, name, age from inserted;
+		GO
+	`)
+
+	assertApplyOutput(t, createTable+createTrigger, wrapWithTransaction(createTable+createTrigger))
+	assertApplyOutput(t, createTable+createTrigger, nothingModified)
+}
+
+//
+// ----------------------- following tests are for CLI -----------------------
+//
+
+func TestMssqldefApply(t *testing.T) {
+	resetTestDatabase()
+
+	createTable := tu.StripHeredoc(`
+		CREATE TABLE bigdata (
+		  data bigint
+		);
+		GO
+		`,
+	)
+	assertApplyOutput(t, createTable, wrapWithTransaction(createTable))
+	assertApplyOutput(t, createTable, nothingModified)
+}
+
+func TestMssqldefDryRun(t *testing.T) {
+	resetTestDatabase()
+	tu.WriteFile("schema.sql", tu.StripHeredoc(`
+		CREATE TABLE users (
+		  id integer NOT NULL PRIMARY KEY,
+		  age integer
+		);
+		GO
+		`,
+	))
+
+	dryRun := tu.MustExecute(t, "./mssqldef", mssqlCLIArgs("mssqldef_test", "--dry-run", "--file", "schema.sql")...)
+	apply := tu.MustExecute(t, "./mssqldef", mssqlCLIArgs("mssqldef_test", "--file", "schema.sql")...)
+	assert.Equal(t, strings.Replace(apply, "Apply", "dry run", 1), dryRun)
+}
+
+func TestMssqldefDropTable(t *testing.T) {
+	resetTestDatabase()
+	mustMssqlExec("mssqldef_test", tu.StripHeredoc(`
+		CREATE TABLE users (
+		    id integer NOT NULL PRIMARY KEY,
+		    age integer
+		);
+		GO
+		`,
+	))
+
+	tu.WriteFile("schema.sql", "")
+
+	dropTable := tu.StripHeredoc(`
+		DROP TABLE [dbo].[users];
+		GO
+		`,
+	)
+	out := tu.MustExecute(t, "./mssqldef", mssqlCLIArgs("mssqldef_test", "--enable-drop", "--file", "schema.sql")...)
+	assert.Equal(t, wrapWithTransaction(dropTable), out)
+}
+
+func TestMssqldefConfigInlineEnableDrop(t *testing.T) {
+	resetTestDatabase()
+
+	ddl := tu.StripHeredoc(`
+		CREATE TABLE users (
+		    id integer NOT NULL PRIMARY KEY,
+		    age integer
+		);
+		GO
+		`,
+	)
+	mustMssqlExec("mssqldef_test", ddl)
+
+	tu.WriteFile("schema.sql", "")
+
+	dropTable := tu.StripHeredoc(`
+		DROP TABLE [dbo].[users];
+		GO
+		`,
+	)
+	expectedOutput := wrapWithTransaction(dropTable)
+
+	outFlag := tu.MustExecute(t, "./mssqldef", mssqlCLIArgs("mssqldef_test", "--enable-drop", "--file", "schema.sql")...)
+	assert.Equal(t, expectedOutput, outFlag)
+
+	mustMssqlExec("mssqldef_test", ddl)
+
+	outConfigInline := tu.MustExecute(t, "./mssqldef", mssqlCLIArgs("mssqldef_test", "--config-inline", "enable_drop: true", "--file", "schema.sql")...)
+	assert.Equal(t, expectedOutput, outConfigInline)
+}
+
+func TestMssqldefExport(t *testing.T) {
+	resetTestDatabase()
+	out := tu.MustExecute(t, "./mssqldef", mssqlCLIArgs("mssqldef_test", "--export")...)
+	assert.Equal(t, "-- No table exists --\n", out)
+
+	mustMssqlExec("mssqldef_test", tu.StripHeredoc(`
+		CREATE TABLE dbo.v (
+		    v_int int NOT NULL,
+		    v_smallmoney smallmoney,
+		    v_money money,
+		    v_datetimeoffset datetimeoffset(1),
+		    v_datetime2 datetime2,
+		    v_smalldatetime smalldatetime,
+		    v_nchar nchar(30),
+		    v_varchar varchar(30),
+		    v_nvarchar nvarchar(50)
+		);
+		`,
+	))
+	out = tu.MustExecute(t, "./mssqldef", mssqlCLIArgs("mssqldef_test", "--export")...)
+	assert.Equal(t, tu.StripHeredoc(`
+		CREATE TABLE dbo.v (
+		    [v_int] int NOT NULL,
+		    [v_smallmoney] smallmoney,
+		    [v_money] money,
+		    [v_datetimeoffset] datetimeoffset(1),
+		    [v_datetime2] datetime2,
+		    [v_smalldatetime] smalldatetime,
+		    [v_nchar] nchar(30),
+		    [v_varchar] varchar(30),
+		    [v_nvarchar] nvarchar(50)
+		);
+		GO
+		`,
+	), out)
+}
+
+func TestMssqldefExportConstraint(t *testing.T) {
+	resetTestDatabase()
+
+	sql := tu.StripHeredoc(`
+		CREATE TABLE dbo.v (
+		    [v1] int NOT NULL,
+		    [v2] int NOT NULL,
+		    CONSTRAINT [v_pk] PRIMARY KEY CLUSTERED ([v1], [v2]) WITH ( PAD_INDEX = OFF, IGNORE_DUP_KEY = OFF, STATISTICS_NORECOMPUTE = OFF, STATISTICS_INCREMENTAL = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON )
+		);
+	`,
+	)
+
+	mustMssqlExec("mssqldef_test", sql)
+
+	out := tu.MustExecute(t, "./mssqldef", mssqlCLIArgs("mssqldef_test", "--export")...)
+	assert.Equal(t, sql+"GO\n", out)
+}
+
+func TestMssqldefHelp(t *testing.T) {
+	_, err := tu.Execute("./mssqldef", "--help")
+	if err != nil {
+		t.Errorf("failed to run --help: %s", err)
+	}
+
+	out, err := tu.Execute("./mssqldef")
+	if err == nil {
+		t.Errorf("no database must be error, but successfully got: %s", out)
+	}
+}
+
+func TestMssqldefConfigIncludesTargetTables(t *testing.T) {
+	resetTestDatabase()
+
+	usersTable := "CREATE TABLE users (id bigint);"
+	users1Table := "CREATE TABLE users_1 (id bigint);"
+	users10Table := "CREATE TABLE users_10 (id bigint);"
+	mustMssqlExec("mssqldef_test", usersTable+users1Table+users10Table)
+
+	tu.WriteFile("schema.sql", usersTable+users1Table)
+	tu.WriteFile("config.yml", "target_tables: |\n  dbo\\.users\n  dbo\\.users_\\d\n")
+
+	apply := tu.MustExecute(t, "./mssqldef", mssqlCLIArgs("mssqldef_test", "--config", "config.yml", "--file", "schema.sql")...)
+	assert.Equal(t, nothingModified, apply)
+}
+
+func TestMssqldefConfigIncludesSkipTables(t *testing.T) {
+	resetTestDatabase()
+
+	usersTable := "CREATE TABLE users (id bigint);"
+	users1Table := "CREATE TABLE users_1 (id bigint);"
+	users10Table := "CREATE TABLE users_10 (id bigint);"
+	mustMssqlExec("mssqldef_test", usersTable+users1Table+users10Table)
+
+	tu.WriteFile("schema.sql", usersTable+users1Table)
+	tu.WriteFile("config.yml", "skip_tables: |\n  dbo\\.users_10\n")
+
+	apply := tu.MustExecute(t, "./mssqldef", mssqlCLIArgs("mssqldef_test", "--config", "config.yml", "--file", "schema.sql")...)
+	assert.Equal(t, nothingModified, apply)
+}
+
+func TestMssqldefConfigInlineSkipTables(t *testing.T) {
+	resetTestDatabase()
+
+	usersTable := "CREATE TABLE users (id bigint);"
+	users1Table := "CREATE TABLE users_1 (id bigint);"
+	users10Table := "CREATE TABLE users_10 (id bigint);"
+	mustMssqlExec("mssqldef_test", usersTable+users1Table+users10Table)
+
+	tu.WriteFile("schema.sql", usersTable+users1Table)
+
+	apply := tu.MustExecute(t, "./mssqldef", mssqlCLIArgs("mssqldef_test", "--config-inline", "skip_tables: dbo\\.users_10", "--file", "schema.sql")...)
+	assert.Equal(t, nothingModified, apply)
+}
+
+func TestMain(m *testing.M) {
+	resetTestDatabase()
+	tu.BuildForTest()
+	status := m.Run()
+	_ = os.Remove("mssqldef")
+	_ = os.Remove("schema.sql")
+	_ = os.Remove("config.yml")
+	os.Exit(status)
+}
+
+func assertApply(t *testing.T, schema string) {
+	t.Helper()
+	tu.WriteFile("schema.sql", schema)
+	tu.MustExecute(t, "./mssqldef", mssqlCLIArgs("mssqldef_test", "--file", "schema.sql")...)
+}
+
+func assertApplyOutput(t *testing.T, schema string, expected string) {
+	t.Helper()
+	actual := assertApplyOutputWithConfig(t, schema, database.GeneratorConfig{EnableDrop: false, LegacyIgnoreQuotes: true})
+	assert.Equal(t, expected, actual)
+}
+
+func assertApplyOutputWithConfig(t *testing.T, desiredSchema string, config database.GeneratorConfig) string {
+	t.Helper()
+
+	db, err := connectDatabase()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	sqlParser := mssql.NewParser()
+	output, err := tu.ApplyWithOutput(db, schema.GeneratorModeMssql, sqlParser, desiredSchema, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return output
+}
+
+func assertApplyOptionsOutput(t *testing.T, schema string, expected string, options ...string) {
+	t.Helper()
+	tu.WriteFile("schema.sql", schema)
+	args := append([]string{}, mssqlCLIArgs("mssqldef_test", "--file", "schema.sql")...)
+	args = append(args, options...)
+
+	actual := tu.MustExecute(t, "./mssqldef", args...)
+	assert.Equal(t, expected, actual)
+}
+
+func resetTestDatabase() {
+	config := getMssqlTestConfig()
+
+	// SQL Server logins are server-wide, not database-specific
+	mustMssqlExec("master", fmt.Sprintf("IF NOT EXISTS (SELECT name FROM sys.server_principals WHERE name = 'mssqldef_user') CREATE LOGIN mssqldef_user WITH PASSWORD = N'%s'", config.userPassword))
+
+	mustMssqlExec("master", "DROP DATABASE IF EXISTS mssqldef_test")
+	mustMssqlExec("master", "CREATE DATABASE mssqldef_test")
+
+	mustMssqlExec("mssqldef_test", "CREATE SCHEMA FOO")
+	mustMssqlExec("mssqldef_test", "CREATE USER mssqldef_user FOR LOGIN mssqldef_user WITH DEFAULT_SCHEMA = FOO")
+	mustMssqlExec("mssqldef_test", "ALTER ROLE db_owner ADD MEMBER mssqldef_user")
+	mustMssqlExec("mssqldef_test", "ALTER AUTHORIZATION ON SCHEMA::FOO TO mssqldef_user")
+}
+
+func connectDatabase() (database.Database, error) {
+	config := getMssqlTestConfig()
+	return mssql.NewDatabase(database.Config{
+		User:     config.adminUser,
+		Password: config.adminPassword,
+		Host:     config.host,
+		Port:     config.port,
+		DbName:   "mssqldef_test",
+	})
+}
+
+func connectDatabaseByUser(user string) (database.Database, error) {
+	config := getMssqlTestConfig()
+	return mssql.NewDatabase(database.Config{
+		User:     user,
+		Password: config.userPassword,
+		Host:     config.host,
+		Port:     config.port,
+		DbName:   "mssqldef_test",
+	})
+}
+
+// mustGetMssqlVersion retrieves the SQL Server marketing year (e.g., "2019", "2022") and panics on error.
+// The mapping is based on SQL Server's internal major version number:
+// - 13 = 2016, 14 = 2017, 15 = 2019, 16 = 2022, 17 = 2025
+func mustGetMssqlVersion() string {
+	config := getMssqlTestConfig()
+	db, err := mssql.NewDatabase(database.Config{
+		User:     config.adminUser,
+		Password: config.adminPassword,
+		Host:     config.host,
+		Port:     config.port,
+		DbName:   "master",
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	var majorVersion int
+	err = db.DB().QueryRow("SELECT CAST(SERVERPROPERTY('ProductMajorVersion') AS INT)").Scan(&majorVersion)
+	if err != nil {
+		panic(err)
+	}
+
+	// Map internal major version to marketing year
+	switch majorVersion {
+	case 13:
+		return "2016"
+	case 14:
+		return "2017"
+	case 15:
+		return "2019"
+	case 16:
+		return "2022"
+	case 17:
+		return "2025"
+	default:
+		panic(fmt.Sprintf("unknown SQL Server major version: %d. Please add a mapping to mustGetMssqlVersion()", majorVersion))
+	}
+}
+
+// mssqlQuery executes a query against the database and returns rows as string
+func mssqlQuery(dbName string, query string) (string, error) {
+	config := getMssqlTestConfig()
+	db, err := mssql.NewDatabase(database.Config{
+		User:     config.adminUser,
+		Password: config.adminPassword,
+		Host:     config.host,
+		Port:     config.port,
+		DbName:   dbName,
+	})
+	if err != nil {
+		return "", err
+	}
+	defer db.Close()
+
+	return tu.QueryRows(db, query)
+}
+
+// mssqlExec executes a statement against the database (doesn't return rows)
+func mssqlExec(dbName string, statement string) error {
+	config := getMssqlTestConfig()
+	db, err := mssql.NewDatabase(database.Config{
+		User:     config.adminUser,
+		Password: config.adminPassword,
+		Host:     config.host,
+		Port:     config.port,
+		DbName:   dbName,
+	})
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	// Split on GO batch separator (MSSQL-specific, not understood by the driver)
+	// GO must be on its own line
+	batches := regexp.MustCompile(`(?mi)^\s*GO\s*$`).Split(statement, -1)
+
+	for _, batch := range batches {
+		batch = strings.TrimSpace(batch)
+		if batch == "" {
+			continue
+		}
+		_, err = db.DB().Exec(batch)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// mustMssqlExec executes a statement against the database and panics on error
+func mustMssqlExec(dbName string, statement string) {
+	if err := mssqlExec(dbName, statement); err != nil {
+		panic(err)
+	}
+}
