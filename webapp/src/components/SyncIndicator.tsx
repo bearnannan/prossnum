@@ -16,10 +16,7 @@ export default function SyncIndicator() {
             <div className="flex items-center gap-2">
                 {isOnline ? (
                     <div className="flex items-center gap-1.5" title="Online">
-                        <div className="relative flex">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                            <div className="absolute inset-0 w-2 h-2 rounded-full bg-emerald-500 animate-ping opacity-75" />
-                        </div>
+                        <div className="status-dot-pulse bg-emerald-500" />
                         <span className="hidden sm:inline text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                             Online
                         </span>

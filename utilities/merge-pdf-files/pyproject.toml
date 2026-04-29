@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "pdf-merger"
+version = "0.1.0"
+description = "A portable PDF Merger desktop application"
+authors = ["Antigravity <antigravity@google.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+PyPDF2 = "3.0.1"
+sentry-sdk = "^1.40.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pyinstaller = "6.19.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

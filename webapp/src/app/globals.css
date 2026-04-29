@@ -620,6 +620,7 @@
   border-color: rgba(59, 130, 246, 0.5);
 }
 
+
 /* ── Pill Badge ── */
 @utility pill-badge {
   display: inline-flex;
@@ -630,4 +631,29 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1.4;
+}
+
+/* ── Status Dot Pulse ── */
+@utility status-dot-pulse {
+  @apply relative flex h-2 w-2 rounded-full;
+  &::after {
+    content: '';
+    @apply absolute inset-0 rounded-full bg-inherit opacity-75 animate-ping;
+  }
+}
+
+/* ── Shimmer Row ── */
+@utility shimmer-row {
+  @apply relative overflow-hidden;
+  &::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent;
+    animation: shimmer-slide 2s infinite;
+  }
+}
+
+@keyframes shimmer-slide {
+  100% {
+    transform: translateX(100%);
+  }
 }

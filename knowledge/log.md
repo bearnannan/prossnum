@@ -48,3 +48,29 @@ A chronological record of Prossnum evolution.
   - Manual Lat/Lon input changes now reflect instantly on the map, and map interactions (clicks/drags) update input fields with 6-decimal precision.
 - **Visual Polish**: 
   - Applied premium glassmorphism tokens to the new map container and updated label typography to match V2.0 standards (`font-black text-[10px] uppercase`).
+
+## [2026-04-28] Merge PDF Utility Integration
+- **Ecosystem Consolidation**: Integrated the `Merge PDF files` utility into the `prossnum/utilities/` directory.
+- **Cleanup**: Removed redundant `agent-frameworks/`, `mcp-servers/`, and `.agent/` directories from the original location to eliminate structural drift.
+- **UI/UX Excellence**: Verified the application of "UI-UX Pro Max" design tokens (Stone 900/Stone 800 with Orange 600 accents).
+- **Core Features**:
+  - Drag & Drop integration via `tkinterdnd2`.
+  - Multi-threaded merge worker for responsive UI.
+  - Metadata and password-based security support.
+- **Documentation**: Updated `workspace_audit.md` to officially track `merge-pdf-files` as a Tier 1 utility.
+- **Knowledge Transfer**: Preserved project history from the original wiki into the master log.
+## [2026-04-28] PDF to JPG Utility Integration
+- **Architectural Cleanup**: Consolidated the `convertPDFtoJPG` utility into `prossnum/utilities/convert-pdf-to-jpg`.
+- **System Integrity**: Purged 30+ redundant framework directories (langgraph, crewAI, rtk, etc.) that were polluting the utility's original root.
+- **Enhanced Capabilities**:
+  - **Batch Processing**: Multi-threaded sequential and parallel conversion with live determinative progress bars.
+  - **Task Scheduler**: Persistent task automation with daemon-thread monitoring and toolbar notification badges.
+  - **Quick Preview**: Real-time thumbnail strip generation with click-to-select synchronization.
+- **Design Alignment**: Standardized on **Stone 900** background with **Orange 600** accents and micro-interactions.
+- **Testing**: Validated via E2E headless conversion tests (`test_batch_e2e.py`).
+
+## [2026-04-29] Final Architectural Consolidation
+- **Root Cleanup**: Consolidated `backend-refs/` and `infra-refs/` into organized subdirectories under `reference/` (`reference/backend/` and `reference/infrastructure/`).
+- **Utility Alignment**: Moved `cliTokenKill` to `utilities/` to match its designated role as an operational tool.
+- **Audit Synchronization**: Updated `workspace_audit.md` to perfectly reflect the physical directory structure and tier classifications.
+- **Ecosystem Integrity**: Validated root directory cleanliness; all project components now adhere to the structured tiers (Core → reference → utilities).

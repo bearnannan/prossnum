@@ -17,7 +17,7 @@ export type TextShimmerProps = {
 
 function TextShimmerComponent({
   children,
-  as: Component = "p",
+  as: Component = "span",
   className,
   duration = 2,
   spread = 2,
@@ -36,8 +36,8 @@ function TextShimmerComponent({
       h4: motion.h4,
       h5: motion.h5,
       h6: motion.h6,
-    }[Component as string] || motion.p
-  ) as typeof motion.p;
+    }[Component as string] || motion.span
+  ) as typeof motion.span;
 
   const dynamicSpread = useMemo(() => {
     return children.length * spread;

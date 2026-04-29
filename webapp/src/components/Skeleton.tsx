@@ -10,29 +10,20 @@ export function Skeleton({
   return (
     <div
       className={cn(
-        "rounded-xl bg-zinc-200/60 dark:bg-zinc-800/60 relative overflow-hidden",
+        "rounded-xl bg-zinc-200/50 dark:bg-zinc-800/50 relative overflow-hidden animate-shimmer",
         className
       )}
       {...props}
-    >
-      <div 
-        className="absolute inset-0"
-        style={{
-          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)',
-          backgroundSize: '200% 100%',
-          animation: 'shimmer 1.8s ease-in-out infinite',
-        }}
-      />
-    </div>
+    />
   );
 }
 
 export function SkeletonLayout({ type }: { type: 'grid' | 'table' | 'chart' }) {
   if (type === 'grid') {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-32 rounded-2xl" style={{ animationDelay: `${i * 0.1}s` }} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Skeleton key={i} className="h-[108px] rounded-2xl" />
         ))}
       </div>
     );
@@ -40,10 +31,13 @@ export function SkeletonLayout({ type }: { type: 'grid' | 'table' | 'chart' }) {
   
   if (type === 'table') {
     return (
-      <div className="space-y-2.5">
-        <Skeleton className="h-10 w-full" />
-        {[1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} className="h-14 w-full" style={{ animationDelay: `${i * 0.08}s` }} />
+      <div className="space-y-3">
+        <div className="flex gap-4 mb-4">
+            <Skeleton className="h-10 w-48 rounded-xl" />
+            <Skeleton className="h-10 w-24 rounded-xl ml-auto" />
+        </div>
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <Skeleton key={i} className="h-16 w-full rounded-xl" />
         ))}
       </div>
     );
@@ -51,15 +45,22 @@ export function SkeletonLayout({ type }: { type: 'grid' | 'table' | 'chart' }) {
 
   if (type === 'chart') {
     return (
-      <div className="h-full w-full flex flex-col gap-4">
-        <div className="flex items-end gap-2 h-full">
-            <Skeleton className="h-[40%] flex-1" style={{ animationDelay: '0.05s' }} />
-            <Skeleton className="h-[70%] flex-1" style={{ animationDelay: '0.1s' }} />
-            <Skeleton className="h-[50%] flex-1" style={{ animationDelay: '0.15s' }} />
-            <Skeleton className="h-[90%] flex-1" style={{ animationDelay: '0.2s' }} />
-            <Skeleton className="h-[60%] flex-1" style={{ animationDelay: '0.25s' }} />
+      <div className="h-full w-full flex flex-col gap-6 p-4">
+        <div className="flex items-end gap-3 h-full px-2">
+            <Skeleton className="h-[30%] flex-1 rounded-t-lg" />
+            <Skeleton className="h-[60%] flex-1 rounded-t-lg" />
+            <Skeleton className="h-[45%] flex-1 rounded-t-lg" />
+            <Skeleton className="h-[80%] flex-1 rounded-t-lg" />
+            <Skeleton className="h-[55%] flex-1 rounded-t-lg" />
+            <Skeleton className="h-[40%] flex-1 rounded-t-lg" />
+            <Skeleton className="h-[75%] flex-1 rounded-t-lg" />
         </div>
-        <Skeleton className="h-4 w-1/2" />
+        <div className="flex justify-between px-2">
+            <Skeleton className="h-3 w-12" />
+            <Skeleton className="h-3 w-12" />
+            <Skeleton className="h-3 w-12" />
+            <Skeleton className="h-3 w-12" />
+        </div>
       </div>
     );
   }

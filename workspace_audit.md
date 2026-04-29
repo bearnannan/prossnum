@@ -20,12 +20,14 @@ This document provides a comprehensive map of the Prossnum ecosystem, detailing 
 |-----------|------|
 | `agent-frameworks/` | **Intelligence Layers** — `GitNexus`, `FossFLOW`, `MemOS`, `langgraph`, `crewAI`, `UltraRAG`, `caveman`, `oh-my-codex`, `Memento-Skills`, `ui-ux-pro-max-skill`, `milvus`, `temporal`. |
 | `mcp-servers/` | **MCP Infrastructure** — `drawio-mcp`, `sentry`. |
-| `utilities/` | **Operational Tools** — `loading-ui`, `ebook-for-education`, `public-apis`, `rbac-manager`, `cliTokenKill`. |
-| `reference/` | **Pattern Libraries** — `next-auth`, `rtk`, `pandas`, `poetry`, `pytest`, `fastapi`, `django`, `flask`, `sqldef`, `dapr`, `vault`, `milvus`, `YourPOS-With-Stripe`. |
+| `utilities/` | **Operational Tools** — `loading-ui`, `ebook-for-education`, `public-apis`, `rbac-manager`, `cliTokenKill`, `merge-pdf-files`, `convert-pdf-to-jpg`. |
+| `reference/` | **Pattern Libraries** — `awesome-agent-skills`, `obsidian-skills`, `skills`, `YourPOS-With-Stripe`. |
+| `reference/backend/` | **Backend Refs** — `django`, `fastapi`, `flask`, `pandas`, `poetry`, `pytest`. |
+| `reference/infrastructure/` | **Infra Refs** — `dapr`, `next-auth`, `rtk`, `sqldef`, `vault`. |
 
 ---
 
-## 3. Formalized Agent Skills (.agent/skills/)
+## 3. Formalized Agent Skills (.agent/skills/skills/)
 These are the central, standardized skills utilized by the agentic ecosystem.
 
 | Skill Name | Role |
@@ -34,6 +36,16 @@ These are the central, standardized skills utilized by the agentic ecosystem.
 | `gitnexus-index-management` | Maintenance of the LadybugDB knowledge graph. |
 | `memento-loop` | Self-evolving reflective process for system stability. |
 | `ui-ux-pro-max` | Design system enforcement and UI excellence. |
+| **Productivity Batch** | **Consolidated Agent Operations** |
+| `caveman` | Ultra-terse, token-efficient communication mode. |
+| `diagnose` | Systematic error and log analysis protocol. |
+| `github-triage` | Streamlined PR and Issue management workflows. |
+| `grill-me` | Pressure testing logic and assumptions. |
+| `improve-codebase-architecture` | Architectural refactoring and design guidance. |
+| `tdd` | Test-Driven Development workflow enforcement. |
+| `to-issues` / `to-prd` | Artifact transformation and requirement drafting. |
+| `write-a-skill` | Self-improvement and capability extension. |
+| `zoom-out` | High-level architectural perspective and summaries. |
 
 ---
 
