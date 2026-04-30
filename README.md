@@ -98,4 +98,4 @@ prossnum/
 
 ---
 
-© 2026 Developed by Prossnum Team. **Technical Documentation v1.5.0**
+© 2026 Developed by Prossnum Team. **Technical Documentation v1.9.0**
