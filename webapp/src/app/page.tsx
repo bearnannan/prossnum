@@ -122,7 +122,7 @@ const itemVariants = {
     filter: "blur(0px)",
     transition: {
       duration: 0.8,
-      ease: [0.16, 1, 0.3, 1], // Consistent premium ease
+      ease: [0.16, 1, 0.3, 1] as const, // Consistent premium ease
     },
   },
 };

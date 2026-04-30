@@ -47,7 +47,7 @@ export function ProgressBar({ value, color = 'blue' }: { value: number; color?: 
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
-          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] as const }}
           className={`h-full rounded-full bg-gradient-to-r ${gradient} relative`}
         >
           {/* Subtle Continuous Shimmer */}

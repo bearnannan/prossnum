@@ -13,7 +13,7 @@ const rowVariants = {
     transition: {
       delay: Math.min(i * 0.04, 0.8),
       duration: 0.7,
-      ease: [0.16, 1, 0.3, 1], // Premium spring-like ease
+      ease: [0.16, 1, 0.3, 1] as const, // Premium spring-like ease
     },
   }),
   exit: { 
@@ -23,7 +23,7 @@ const rowVariants = {
     filter: 'blur(12px)',
     transition: { 
       duration: 0.4,
-      ease: [0.16, 1, 0.3, 1]
+      ease: [0.16, 1, 0.3, 1] as const
     } 
   }
 };

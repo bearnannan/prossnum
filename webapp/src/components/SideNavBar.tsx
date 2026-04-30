@@ -22,7 +22,7 @@ const sidebarVariants = {
         filter: "blur(0px)",
         transition: {
             duration: 1.0,
-            ease: [0.22, 1, 0.36, 1],
+            ease: [0.22, 1, 0.36, 1] as const,
         }
     }
 };
@@ -128,7 +128,7 @@ export default function SideNavBar({
                                     initial={{ height: 0, opacity: 0, filter: 'blur(4px)' }}
                                     animate={{ height: 'auto', opacity: 1, filter: 'blur(0px)' }}
                                     exit={{ height: 0, opacity: 0, filter: 'blur(4px)' }}
-                                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
                                     className="overflow-hidden flex flex-col gap-0.5 ms-8 mt-1 mb-2 pl-3 border-l-2 border-zinc-200/60 dark:border-zinc-700/60"
                                 >
                                     <Magnetic distance={0.1}>
@@ -205,7 +205,7 @@ export default function SideNavBar({
                                     initial={{ height: 0, opacity: 0, filter: 'blur(4px)' }}
                                     animate={{ height: 'auto', opacity: 1, filter: 'blur(0px)' }}
                                     exit={{ height: 0, opacity: 0, filter: 'blur(4px)' }}
-                                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
                                     className="overflow-hidden flex flex-col gap-0.5 ms-8 mt-1 mb-2 pl-3 border-l-2 border-zinc-200/60 dark:border-zinc-700/60"
                                 >
                                     <Magnetic distance={0.1}>

@@ -8,7 +8,7 @@ function AnimatedNumber({ value }: { value: number }) {
     const controls = animate(displayValue, value, {
       duration: 0.8,
       onUpdate: (latest) => setDisplayValue(Math.floor(latest)),
-      ease: [0.16, 1, 0.3, 1]
+      ease: [0.16, 1, 0.3, 1] as const
     });
     return () => controls.stop();
   }, [value]);

@@ -21,7 +21,7 @@ const navVariants = {
     filter: "blur(0px)",
     transition: {
       duration: 1.0,
-      ease: [0.22, 1, 0.36, 1],
+      ease: [0.22, 1, 0.36, 1] as const,
     }
   }
 };
