@@ -224,7 +224,7 @@ export const DashboardTable = memo(function DashboardTable({
                       </>
                     )}
                     <td className="px-5 py-4 border-b border-zinc-100/60 dark:border-zinc-800/60 text-right sticky right-0 z-10 glass-panel-elevated !rounded-none border-none shadow-none bg-white/5 dark:bg-zinc-900/5 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/10 transition-colors duration-300">
-                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+                      <div className="flex justify-end gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all duration-300 translate-x-0 lg:translate-x-2 lg:group-hover:translate-x-0">
                         <button aria-label="Edit item" onClick={() => handleEditClick(item)} className="p-1.5 hover:bg-blue-100/80 dark:hover:bg-blue-900/30 text-blue-600 rounded-lg transition-all duration-200 hover:scale-110 active:scale-95">
                           <span className="material-symbols-outlined text-sm" aria-hidden="true">edit</span>
                         </button>
