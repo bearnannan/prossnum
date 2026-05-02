@@ -74,9 +74,14 @@ A chronological record of Prossnum evolution.
 - **Utility Alignment**: Moved `cliTokenKill` to `utilities/` to match its designated role as an operational tool.
 - **Audit Synchronization**: Updated `workspace_audit.md` to perfectly reflect the physical directory structure and tier classifications.
 - **Ecosystem Integrity**: Validated root directory cleanliness; all project components now adhere to the structured tiers (Core → reference → utilities).
-77: 
-78: ## [2026-05-01] Deployment & Release v1.9.0
-79: - **Build Verification**: Confirmed `webapp` build stability via `npm run build` with Exit Code 0.
-80: - **Version Sync**: Synchronized `webapp/package.json` with technical documentation (`v1.9.0`).
-81: - **GitHub Release**: Tagged the repository with `v1.9.0` and pushed to [bearnannan/prossnum](https://github.com/bearnannan/prossnum.git).
-82: - **Operational Excellence**: Followed the `github_release_process.md` protocol to ensure architectural compounding.
+
+## [2026-05-01] Deployment & Release v1.9.0
+- **Build Verification**: Confirmed `webapp` build stability via `npm run build` with Exit Code 0.
+- **Version Sync**: Synchronized `webapp/package.json` with technical documentation (`v1.9.0`).
+- **GitHub Release**: Tagged the repository with `v1.9.0` and pushed to [bearnannan/prossnum](https://github.com/bearnannan/prossnum.git).
+- **Operational Excellence**: Followed the `github_release_process.md` protocol to ensure architectural compounding.
+
+## [2026-05-01] Release v1.9.1 - Stability & Mobile Accessibility
+- **TypeScript Optimization**: Resolved build failure where `framer-motion` variant `ease` properties were incorrectly typed. Added `as const` to transition arrays to ensure strict tuple typing (`BezierCurve`).
+- **PWA/Mobile Accessibility**: Fixed a critical issue where "Action" buttons (Edit/Delete) were hidden on touch devices due to hover-only (`group-hover`) CSS. Implemented responsive visibility logic (`opacity-100 lg:opacity-0`) to ensure functionality on all screen sizes.
+- **GitHub Sync**: Pushed final release-ready code to `main` branch.
