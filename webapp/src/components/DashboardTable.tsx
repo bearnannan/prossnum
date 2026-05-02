@@ -129,7 +129,7 @@ export const DashboardTable = memo(function DashboardTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100/40 dark:divide-zinc-800/40">
-            <AnimatePresence mode='popLayout' initial={false}>
+            <AnimatePresence initial={false}>
               {sortedData.map((item, idx) => {
                 return (
                   <motion.tr 

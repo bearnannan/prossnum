@@ -249,7 +249,7 @@ function DashboardContent() {
         onClose={() => setIsMobileMenuOpen(false)} 
       />
       
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         <motion.main 
           key={activeCategory}
           initial="hidden"
@@ -291,15 +291,15 @@ function DashboardContent() {
                     <span className="text-[8px] text-emerald-500/60 font-medium leading-none mt-0.5">เชื่อมต่อเรียลไทม์แล้ว</span>
                   </div>
                 </div>
-              <Magnetic distance={0.2}>
-                <button 
-                  onClick={() => { setEditingStation(null); activeCategory === 'client' ? setIsClientModalOpen(true) : setIsStationModalOpen(true); }} 
-                  className="group px-5 py-2.5 rounded-xl font-bold shadow-premium-sm hover:shadow-premium-md transition-all duration-300 flex items-center gap-2 text-white gradient-primary hover:scale-[1.05] active:scale-[0.95]"
-                >
-                  <span className="material-symbols-outlined text-sm group-hover:rotate-90 transition-transform duration-300">add</span>
-                  เพิ่ม{activeCategory === 'client' ? 'งาน' : 'สถานี'}
-                </button>
-              </Magnetic>
+                <Magnetic distance={0.2}>
+                  <button 
+                    onClick={() => { setEditingStation(null); activeCategory === 'client' ? setIsClientModalOpen(true) : setIsStationModalOpen(true); }} 
+                    className="group px-5 py-2.5 rounded-xl font-bold shadow-premium-sm hover:shadow-premium-md transition-all duration-300 flex items-center gap-2 text-white gradient-primary hover:scale-[1.05] active:scale-[0.95]"
+                  >
+                    <span className="material-symbols-outlined text-sm group-hover:rotate-90 transition-transform duration-300">add</span>
+                    เพิ่ม{activeCategory === 'client' ? 'งาน' : 'สถานี'}
+                  </button>
+                </Magnetic>
               </div>
             </div>
           </motion.header>
@@ -332,7 +332,6 @@ function DashboardContent() {
 
         </motion.main>
       </AnimatePresence>
-
 
       {/* ════════════ EXPORT MODAL ════════════ */}
       <ExportModal

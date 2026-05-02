@@ -53,8 +53,8 @@ const STATUS_CONFIG: Record<StatusKey, { color: string; label: string; bg: strin
 };
 
 // ─── Pulsating Marker Icon with Ripple Effect ───────────────────────────────
-function createTacticalIcon(color: string, status: StatusKey, recentlyUpdated: boolean = false) {
-    const isPulsing = status === 'in_progress' || recentlyUpdated;
+function createTacticalIcon(color: string, status: StatusKey, recentlyUpdated: boolean = false, isSelected: boolean = false) {
+    const isPulsing = status === 'in_progress' || recentlyUpdated || isSelected;
     const ringOpacity = status === 'completed' ? 0.6 : 0.8;
     
     const pulseAnimation = isPulsing ? `
@@ -73,9 +73,15 @@ function createTacticalIcon(color: string, status: StatusKey, recentlyUpdated: b
                 0% { r: 8; opacity: 1; stroke-width: 4; }
                 100% { r: 40; opacity: 0; stroke-width: 1; }
             }
+            @keyframes selected-glow {
+                0% { filter: drop-shadow(0 0 4px ${color}); transform: scale(1); }
+                50% { filter: drop-shadow(0 0 12px ${color}); transform: scale(1.15); }
+                100% { filter: drop-shadow(0 0 4px ${color}); transform: scale(1); }
+            }
             .pulse-ring { animation: tactical-pulse 2.5s ease-out infinite; }
             .pulse-ring-2 { animation: tactical-pulse-2 2.5s ease-out infinite 0.8s; }
             .ripple-ring { animation: tactical-ripple 1.5s cubic-bezier(0, 0.2, 0.8, 1) infinite; }
+            .selected-marker { animation: selected-glow 2s ease-in-out infinite; }
         </style>
         <circle class="pulse-ring" cx="20" cy="20" r="14" fill="none" stroke="${color}" stroke-width="2" opacity="0.6"/>
         <circle class="pulse-ring-2" cx="20" cy="20" r="14" fill="none" stroke="${color}" stroke-width="1.5" opacity="0.4"/>
@@ -83,12 +89,12 @@ function createTacticalIcon(color: string, status: StatusKey, recentlyUpdated: b
     ` : '';
 
     const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" class="${isSelected ? 'selected-marker' : ''}">
             ${pulseAnimation}
             <!-- Outer glow -->
-            <circle cx="20" cy="20" r="12" fill="${color}" opacity="0.15"/>
+            <circle cx="20" cy="20" r="12" fill="${color}" opacity="${isSelected ? 0.3 : 0.15}"/>
             <!-- Main circle -->
-            <circle cx="20" cy="20" r="8" fill="${color}" opacity="${ringOpacity}" stroke="rgba(255,255,255,0.9)" stroke-width="2.5"/>
+            <circle cx="20" cy="20" r="8" fill="${color}" opacity="${ringOpacity}" stroke="${isSelected ? '#fff' : 'rgba(255,255,255,0.9)'}" stroke-width="${isSelected ? 3.5 : 2.5}"/>
             <!-- Inner dot -->
             <circle cx="20" cy="20" r="3" fill="white" opacity="0.95"/>
             ${status === 'completed' ? `
@@ -251,6 +257,8 @@ interface MapViewProps {
     category?: 'station' | 'client';
     isPicker?: boolean;
     onPositionChange?: (lat: number, lon: number) => void;
+    onSelect?: (asset: any) => void;
+    activeAssetId?: string;
     tactical?: boolean;
 }
 
@@ -259,6 +267,8 @@ const MapView = React.memo(function MapView({
     category = 'station', 
     isPicker = false,
     onPositionChange,
+    onSelect,
+    activeAssetId,
     tactical = false
 }: MapViewProps) {
     const [mounted, setMounted] = React.useState(false);
@@ -311,63 +321,49 @@ const MapView = React.memo(function MapView({
 
                 const status = getStatus(station, category);
                 const cfg = STATUS_CONFIG[status];
-                const overall = Math.round(getOverallProgress(station, category));
+                const isSelected = activeAssetId === station.id;
                 
                 // Determine if record was updated in the last 15 seconds
                 const updatedAt = station.updated_at ? new Date(station.updated_at).getTime() : 0;
                 const isRecent = (Date.now() - updatedAt) < 15000;
                 
-                const icon = createTacticalIcon(cfg.color, status, isRecent);
-
-                const popupContent = `
-                    <div style="font-family:'Inter',sans-serif;min-width:220px;padding:4px 0">
-                        <div style="font-size:14px;font-weight:800;color:#18181b;margin-bottom:2px;letter-spacing:-0.01em">
-                            ${station.stationName || 'Unknown Station'}
-                        </div>
-                        <div style="font-size:11px;color:#71717a;margin-bottom:10px;font-weight:500">
-                            จ.${station.province || 'กาญจนบุรี'} อ.${station.district} &nbsp;·&nbsp; ${category === 'client' ? 'Client System' : `Type ${(station as StationData).type}`}
-                        </div>
-                        <div style="display:inline-flex;align-items:center;gap:6px;background:${cfg.bg};color:${cfg.color};
-                            font-size:10px;font-weight:700;padding:4px 12px;border-radius:9999px;margin-bottom:12px;letter-spacing:0.02em">
-                            <svg width="6" height="6" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" fill="${cfg.color}"/></svg>
-                            ${cfg.label}
-                        </div>
-                        ${category === 'client' ? `
-                            ${progressBarHtml('ระบบไฟฟ้า', parseFloat((station as ClientSystemData).electricProgress?.toString() || "0") || 0, '#6366F1')}
-                            ${progressBarHtml('ระบบกราวด์', parseFloat((station as ClientSystemData).groundProgress?.toString() || "0") || 0, '#10B981')}
-                            ${progressBarHtml('สาย Feeder', parseFloat((station as ClientSystemData).feederProgress?.toString() || "0") || 0, '#06B6D4')}
-                        ` : `
-                            ${progressBarHtml('ความคืบหน้าฐานราก', parseFloat((station as StationData).foundationProgress?.toString() || "0") || 0, '#6366F1')}
-                            ${progressBarHtml('ติดตั้งเสา', parseFloat((station as StationData).poleInstallationProgress?.toString() || "0") || 0, '#8B5CF6')}
-                        `}
-                        <div style="margin-top:10px;padding-top:8px;border-top:1px solid #f4f4f5;
-                            display:flex;align-items:center;justify-content:space-between">
-                            <span style="font-size:10px;color:#a1a1aa;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Overall</span>
-                            <span style="font-size:18px;font-weight:900;color:#18181b;letter-spacing:-0.02em">${overall}%</span>
-                        </div>
-                    </div>
-                `;
+                const icon = createTacticalIcon(cfg.color, status, isRecent, isSelected);
 
                 return (
                     <Marker 
-                        key={idx} 
+                        key={station.id || idx} 
                         position={[lat, lon]} 
                         icon={icon}
                         draggable={isPicker}
-                        eventHandlers={isPicker ? {
+                        eventHandlers={{
+                            click: () => {
+                                if (onSelect) onSelect(station);
+                            },
                             dragend: (e) => {
+                                if (!isPicker) return;
                                 const marker = e.target;
                                 const position = marker.getLatLng();
                                 if (onPositionChange) onPositionChange(position.lat, position.lng);
                             },
-                        } : undefined}
+                        }}
                     >
-                        <Popup
-                            maxWidth={260}
-                            className="station-popup"
-                        >
-                            <div dangerouslySetInnerHTML={{ __html: popupContent }} />
-                        </Popup>
+                        {!tactical && (
+                            <Popup
+                                maxWidth={260}
+                                className="station-popup"
+                            >
+                                <div dangerouslySetInnerHTML={{ __html: `
+                                    <div style="font-family:'Inter',sans-serif;min-width:220px;padding:4px 0">
+                                        <div style="font-size:14px;font-weight:800;color:#18181b;margin-bottom:2px;letter-spacing:-0.01em">
+                                            ${station.stationName || 'Unknown Station'}
+                                        </div>
+                                        <div style="font-size:11px;color:#71717a;margin-bottom:10px;font-weight:500">
+                                            จ.${station.province || 'กาญจนบุรี'} อ.${station.district}
+                                        </div>
+                                    </div>
+                                ` }} />
+                            </Popup>
+                        )}
                     </Marker>
                 );
             })}

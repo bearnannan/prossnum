@@ -32,7 +32,7 @@ export default function SyncIndicator() {
             </div>
 
             {/* Offline Queue Sync Section */}
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
                 {pendingCount > 0 && (
                     <motion.div
                         initial={{ opacity: 0, x: 20, width: 0 }}

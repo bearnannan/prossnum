@@ -29,6 +29,7 @@ interface SupabaseStationRow {
     start_date: string | null;
     end_date: string | null;
     remark: string | null;
+    updated_at: string;
 }
 
 interface SupabaseClientRow {
@@ -63,6 +64,7 @@ interface SupabaseClientRow {
     meter_installed: boolean;
     pea_user_no: string | null;
     meter_no: string | null;
+    updated_at: string;
 }
 
 // ── Exported data interfaces (TS 5.3: strict literal unions) ──────────────
@@ -81,6 +83,7 @@ export interface StationData {
     startDate?: string;
     endDate?: string;
     remark?: string;
+    updated_at?: string;
 }
 
 export interface ClientSystemData {
@@ -115,6 +118,7 @@ export interface ClientSystemData {
     meterInstalled?: boolean;
     peaUserNo?: string;
     meterNo?: string;
+    updated_at?: string;
 }
 
 // ── Mappers ────────────────────────────────────────────────────────────────
@@ -134,6 +138,7 @@ function mapStation(item: SupabaseStationRow): StationData {
         startDate: item.start_date ?? undefined,
         endDate: item.end_date ?? undefined,
         remark: item.remark ?? undefined,
+        updated_at: item.updated_at,
     };
 }
 
@@ -170,6 +175,7 @@ function mapClient(item: SupabaseClientRow): ClientSystemData {
         meterInstalled: item.meter_installed,
         peaUserNo: item.pea_user_no ?? "",
         meterNo: item.meter_no ?? "",
+        updated_at: item.updated_at,
     };
 }
 

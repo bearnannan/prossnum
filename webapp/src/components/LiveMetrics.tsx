@@ -22,39 +22,39 @@ export const LiveMetrics = ({ stations, clients }: { stations: any[], clients: a
   }, [stations, clients]);
 
   return (
-    <div className="flex flex-wrap gap-4 p-4">
+    <div className="flex flex-wrap gap-3">
       {stats.map((stat, i) => (
         <motion.div
           key={stat.label}
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.1 }}
-          className="flex-1 min-w-[200px] glass-panel p-4 flex items-center gap-4 relative overflow-hidden"
+          transition={{ delay: i * 0.05 }}
+          className="flex-1 min-w-[140px] p-4 bg-zinc-900/40 rounded-2xl border border-zinc-800/30 relative overflow-hidden group hover:border-zinc-700/50 transition-colors"
         >
-          <div className={`p-3 rounded-xl bg-zinc-800/50 ${stat.color}`}>
-             <span className="material-symbols-outlined text-2xl">{stat.icon}</span>
-          </div>
-          <div>
-            <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider">{stat.label}</div>
-            <div className="text-2xl font-bold text-white tracking-tight">
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={stat.value}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  className="inline-block"
-                >
-                  {stat.value}
-                </motion.span>
-              </AnimatePresence>
+          <div className="flex flex-col gap-3 relative z-10">
+            <div className={`w-8 h-8 rounded-lg bg-zinc-800/80 flex items-center justify-center ${stat.color} shadow-lg shadow-black/20`}>
+               <span className="material-symbols-outlined text-lg">{stat.icon}</span>
+            </div>
+            <div>
+              <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-1">{stat.label}</div>
+              <div className="text-xl font-black text-white tracking-tighter">
+                <AnimatePresence>
+                  <motion.span
+                    key={stat.value}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.1 }}
+                    className="inline-block"
+                  >
+                    {stat.value}
+                  </motion.span>
+                </AnimatePresence>
+              </div>
             </div>
           </div>
-          <motion.div
-            animate={{ opacity: [0.1, 0.3, 0.1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className={`absolute -right-2 -bottom-2 w-16 h-16 rounded-full blur-2xl ${stat.color.replace('text-', 'bg-')}/20`}
-          />
+          
+          {/* Subtle Glow Background */}
+          <div className={`absolute -right-4 -top-4 w-16 h-16 rounded-full blur-3xl opacity-10 ${stat.color.replace('text-', 'bg-')} group-hover:opacity-20 transition-opacity`} />
         </motion.div>
       ))}
     </div>
