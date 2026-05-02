@@ -7,6 +7,7 @@ import useSWR from "swr";
 import { supabase } from "@/lib/supabase";
 import { addMutation, getQueueForDataset, OfflineMutation } from "@/lib/offline-sync";
 import { useToast } from "@/components/Toast";
+import { useRealtime } from "@/hooks/useRealtime";
 import { get, set } from "idb-keyval";
 import { SWRConfig } from "swr";
 import { PremiumDashboardSkeleton } from "@/components/Skeleton";
@@ -175,18 +176,9 @@ function DashboardContent() {
     showToast(msg, 'success');
   };
 
-  useEffect(() => {
-    const channelName = `realtime-${activeCategory}`;
-    const tableName = activeCategory === 'station' ? 'stations' : 'client_systems';
-    const channel = supabase
-      .channel(channelName)
-      .on('postgres_changes', { event: '*', schema: 'public', table: tableName }, (payload) => {
-        mutate();
-        showToast(`ข้อมูล ${tableName} มีการอัปเดตใหม่`, 'info');
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [activeCategory, mutate]);
+  // ─── Real-time Updates ───
+  useRealtime({ table: 'stations', dataset: 'station', enableToast: activeCategory === 'station' });
+  useRealtime({ table: 'client_systems', dataset: 'client', enableToast: activeCategory === 'client' });
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/login" });
@@ -285,6 +277,20 @@ function DashboardContent() {
                   {activeCategory === 'client' ? "ติดตามความคืบหน้าการติดตั้งระบบ" : "ติดตามงานโครงสร้างพื้นฐานและฐานราก"}
                 </p>
               </div>
+
+              <div className="flex flex-wrap items-center gap-4">
+                {/* Live Status Indicator */}
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/20">
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest leading-none">Live Connect</span>
+                    <span className="text-[8px] text-emerald-500/60 font-medium leading-none mt-0.5">เชื่อมต่อเรียลไทม์แล้ว</span>
+                  </div>
+                </div>
               <Magnetic distance={0.2}>
                 <button 
                   onClick={() => { setEditingStation(null); activeCategory === 'client' ? setIsClientModalOpen(true) : setIsStationModalOpen(true); }} 
@@ -294,6 +300,7 @@ function DashboardContent() {
                   เพิ่ม{activeCategory === 'client' ? 'งาน' : 'สถานี'}
                 </button>
               </Magnetic>
+              </div>
             </div>
           </motion.header>
 
@@ -347,7 +354,6 @@ function DashboardContent() {
     </motion.div>
   );
 }
-
 
 // Simplified persistent cache provider for SWR using idb-keyval
 const idbCacheProvider = () => {

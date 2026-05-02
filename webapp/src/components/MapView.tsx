@@ -53,8 +53,8 @@ const STATUS_CONFIG: Record<StatusKey, { color: string; label: string; bg: strin
 };
 
 // ─── Pulsating Marker Icon with Ripple Effect ───────────────────────────────
-function createTacticalIcon(color: string, status: StatusKey) {
-    const isPulsing = status === 'in_progress';
+function createTacticalIcon(color: string, status: StatusKey, recentlyUpdated: boolean = false) {
+    const isPulsing = status === 'in_progress' || recentlyUpdated;
     const ringOpacity = status === 'completed' ? 0.6 : 0.8;
     
     const pulseAnimation = isPulsing ? `
@@ -69,11 +69,17 @@ function createTacticalIcon(color: string, status: StatusKey) {
                 50% { r: 18; opacity: 0.1; }
                 100% { r: 24; opacity: 0; }
             }
+            @keyframes tactical-ripple {
+                0% { r: 8; opacity: 1; stroke-width: 4; }
+                100% { r: 40; opacity: 0; stroke-width: 1; }
+            }
             .pulse-ring { animation: tactical-pulse 2.5s ease-out infinite; }
             .pulse-ring-2 { animation: tactical-pulse-2 2.5s ease-out infinite 0.8s; }
+            .ripple-ring { animation: tactical-ripple 1.5s cubic-bezier(0, 0.2, 0.8, 1) infinite; }
         </style>
         <circle class="pulse-ring" cx="20" cy="20" r="14" fill="none" stroke="${color}" stroke-width="2" opacity="0.6"/>
         <circle class="pulse-ring-2" cx="20" cy="20" r="14" fill="none" stroke="${color}" stroke-width="1.5" opacity="0.4"/>
+        ${recentlyUpdated ? `<circle class="ripple-ring" cx="20" cy="20" r="8" fill="none" stroke="${color}" opacity="0.8"/>` : ''}
     ` : '';
 
     const svg = `
@@ -245,13 +251,15 @@ interface MapViewProps {
     category?: 'station' | 'client';
     isPicker?: boolean;
     onPositionChange?: (lat: number, lon: number) => void;
+    tactical?: boolean;
 }
 
 const MapView = React.memo(function MapView({ 
     data, 
     category = 'station', 
     isPicker = false,
-    onPositionChange 
+    onPositionChange,
+    tactical = false
 }: MapViewProps) {
     const [mounted, setMounted] = React.useState(false);
 
@@ -270,13 +278,16 @@ const MapView = React.memo(function MapView({
             center={defaultCenter}
             zoom={7}
             scrollWheelZoom={true}
-            className="h-full w-full rounded-xl z-0"
-            style={{ background: '#f8fafc' }}
+            className={`h-full w-full rounded-xl z-0 ${tactical ? 'dark-map' : ''}`}
+            style={{ background: tactical ? '#0d0b12' : '#f8fafc' }}
         >
-            {/* Minimal Light Theme — CARTO Positron (clean grey basemap) */}
+            {/* Tactical Theme — CARTO Dark Matter vs Light Theme — CARTO Positron */}
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-                url="https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
+                url={tactical 
+                    ? "https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png"
+                    : "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
+                }
                 maxZoom={19}
                 subdomains="abcd"
             />
@@ -301,7 +312,12 @@ const MapView = React.memo(function MapView({
                 const status = getStatus(station, category);
                 const cfg = STATUS_CONFIG[status];
                 const overall = Math.round(getOverallProgress(station, category));
-                const icon = createTacticalIcon(cfg.color, status);
+                
+                // Determine if record was updated in the last 15 seconds
+                const updatedAt = station.updated_at ? new Date(station.updated_at).getTime() : 0;
+                const isRecent = (Date.now() - updatedAt) < 15000;
+                
+                const icon = createTacticalIcon(cfg.color, status, isRecent);
 
                 const popupContent = `
                     <div style="font-family:'Inter',sans-serif;min-width:220px;padding:4px 0">
