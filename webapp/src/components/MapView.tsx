@@ -1,22 +1,25 @@
-"use client";
-
-import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import 'leaflet-defaulticon-compatibility';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
+import { StationData, ClientSystemData } from '@/app/api/dashboard-data/route';
+
+type MapDataItem = StationData | ClientSystemData;
 
 // ─── Helper: compute overall progress for a station ────────────────────────
-function getOverallProgress(station: any, category: 'station' | 'client' = 'station'): number {
+function getOverallProgress(station: MapDataItem, category: 'station' | 'client' = 'station'): number {
     if (category === 'client') {
-        const ep = parseFloat(station.electricProgress) || 0;
-        const gp = parseFloat(station.groundProgress) || 0;
-        const fp = parseFloat(station.feederProgress) || 0;
+        const s = station as ClientSystemData;
+        const ep = parseFloat(s.electricProgress?.toString() || "0") || 0;
+        const gp = parseFloat(s.groundProgress?.toString() || "0") || 0;
+        const fp = parseFloat(s.feederProgress?.toString() || "0") || 0;
         return (ep + gp + fp) / 3;
     } else {
-        const fp = parseFloat(station.foundationProgress) || 0;
-        const pp = parseFloat(station.poleInstallationProgress) || 0;
+        const s = station as StationData;
+        const fp = parseFloat(s.foundationProgress?.toString() || "0") || 0;
+        const pp = parseFloat(s.poleInstallationProgress?.toString() || "0") || 0;
         return (fp + pp) / 2;
     }
 }
@@ -24,17 +27,19 @@ function getOverallProgress(station: any, category: 'station' | 'client' = 'stat
 // ─── Status logic ────────────────────────────────────────────────────────────
 type StatusKey = 'not_started' | 'in_progress' | 'completed';
 
-function getStatus(station: any, category: 'station' | 'client' = 'station'): StatusKey {
+function getStatus(station: MapDataItem, category: 'station' | 'client' = 'station'): StatusKey {
     if (category === 'client') {
-        const ep = parseFloat(station.electricProgress) || 0;
-        const gp = parseFloat(station.groundProgress) || 0;
-        const fp = parseFloat(station.feederProgress) || 0;
+        const s = station as ClientSystemData;
+        const ep = parseFloat(s.electricProgress?.toString() || "0") || 0;
+        const gp = parseFloat(s.groundProgress?.toString() || "0") || 0;
+        const fp = parseFloat(s.feederProgress?.toString() || "0") || 0;
         if (ep === 100 && gp === 100 && fp === 100) return 'completed';
         if (ep === 0 && gp === 0 && fp === 0) return 'not_started';
         return 'in_progress';
     } else {
-        const fp = parseFloat(station.foundationProgress) || 0;
-        const pp = parseFloat(station.poleInstallationProgress) || 0;
+        const s = station as StationData;
+        const fp = parseFloat(s.foundationProgress?.toString() || "0") || 0;
+        const pp = parseFloat(s.poleInstallationProgress?.toString() || "0") || 0;
         if (fp === 100 && pp === 100) return 'completed';
         if (fp === 0 && pp === 0) return 'not_started';
         return 'in_progress';
@@ -48,7 +53,7 @@ const STATUS_CONFIG: Record<StatusKey, { color: string; label: string; bg: strin
 };
 
 // ─── Pulsating Marker Icon with Ripple Effect ───────────────────────────────
-function createTacticalIcon(color: string, status: StatusKey, progress: number) {
+function createTacticalIcon(color: string, status: StatusKey) {
     const isPulsing = status === 'in_progress';
     const ringOpacity = status === 'completed' ? 0.6 : 0.8;
     
@@ -96,7 +101,7 @@ function createTacticalIcon(color: string, status: StatusKey, progress: number) 
 }
 
 // ─── Map Click Handler ──────────────────────────────────────────────────────
-function MapClickHandler({ onClick }: { onClick: (e: any) => void }) {
+function MapClickHandler({ onClick }: { onClick: (e: L.LeafletMouseEvent) => void }) {
     useMapEvents({
         click: onClick,
     });
@@ -130,11 +135,11 @@ function progressBarHtml(label: string, value: number, color: string): string {
 
 
 // ─── Auto-fit bounds to show all stations ────────────────────────────────────
-function FitBounds({ data }: { data: any[] }) {
+function FitBounds({ data }: { data: MapDataItem[] }) {
     const map = useMap();
     useEffect(() => {
         const validPoints = data
-            .map(s => [parseFloat(s.lat), parseFloat(s.lon)] as [number, number])
+            .map(s => [parseFloat(s.lat.toString()), parseFloat(s.lon.toString())] as [number, number])
             .filter(([lat, lon]) => !isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0);
         if (validPoints.length > 0) {
             const bounds = L.latLngBounds(validPoints);
@@ -236,7 +241,7 @@ function TacticalStyles() {
 
 // ─── Main Tactical MapView ────────────────────────────────────────────────────
 interface MapViewProps {
-    data: any[];
+    data: MapDataItem[];
     category?: 'station' | 'client';
     isPicker?: boolean;
     onPositionChange?: (lat: number, lon: number) => void;
@@ -261,9 +266,7 @@ const MapView = React.memo(function MapView({
     }
 
     return (
-        // @ts-ignore
         <MapContainer
-            // @ts-ignore
             center={defaultCenter}
             zoom={7}
             scrollWheelZoom={true}
@@ -271,9 +274,7 @@ const MapView = React.memo(function MapView({
             style={{ background: '#f8fafc' }}
         >
             {/* Minimal Light Theme — CARTO Positron (clean grey basemap) */}
-            {/* @ts-ignore */}
             <TileLayer
-                // @ts-ignore
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
                 url="https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
                 maxZoom={19}
@@ -287,20 +288,20 @@ const MapView = React.memo(function MapView({
                 <MapClickHandler onClick={(e) => onPositionChange(e.latlng.lat, e.latlng.lng)} />
             )}
             {isPicker && data.length > 0 && (
-                <MapCentering center={[parseFloat(data[0].lat) || 0, parseFloat(data[0].lon) || 0]} />
+                <MapCentering center={[parseFloat(data[0].lat?.toString() || "0"), parseFloat(data[0].lon?.toString() || "0")]} />
             )}
 
 
             {/* Markers */}
             {data.map((station, idx) => {
-                const lat = parseFloat(station.lat);
-                const lon = parseFloat(station.lon);
+                const lat = parseFloat(station.lat.toString());
+                const lon = parseFloat(station.lon.toString());
                 if (isNaN(lat) || isNaN(lon) || (lat === 0 && lon === 0)) return null;
 
                 const status = getStatus(station, category);
                 const cfg = STATUS_CONFIG[status];
                 const overall = Math.round(getOverallProgress(station, category));
-                const icon = createTacticalIcon(cfg.color, status, overall);
+                const icon = createTacticalIcon(cfg.color, status);
 
                 const popupContent = `
                     <div style="font-family:'Inter',sans-serif;min-width:220px;padding:4px 0">
@@ -308,7 +309,7 @@ const MapView = React.memo(function MapView({
                             ${station.stationName || 'Unknown Station'}
                         </div>
                         <div style="font-size:11px;color:#71717a;margin-bottom:10px;font-weight:500">
-                            จ.${station.province || 'กาญจนบุรี'} อ.${station.district} &nbsp;·&nbsp; ${category === 'client' ? 'Client System' : `Type ${station.type}`}
+                            จ.${station.province || 'กาญจนบุรี'} อ.${station.district} &nbsp;·&nbsp; ${category === 'client' ? 'Client System' : `Type ${(station as StationData).type}`}
                         </div>
                         <div style="display:inline-flex;align-items:center;gap:6px;background:${cfg.bg};color:${cfg.color};
                             font-size:10px;font-weight:700;padding:4px 12px;border-radius:9999px;margin-bottom:12px;letter-spacing:0.02em">
@@ -316,12 +317,12 @@ const MapView = React.memo(function MapView({
                             ${cfg.label}
                         </div>
                         ${category === 'client' ? `
-                            ${progressBarHtml('ระบบไฟฟ้า', parseFloat(station.electricProgress) || 0, '#6366F1')}
-                            ${progressBarHtml('ระบบกราวด์', parseFloat(station.groundProgress) || 0, '#10B981')}
-                            ${progressBarHtml('สาย Feeder', parseFloat(station.feederProgress) || 0, '#06B6D4')}
+                            ${progressBarHtml('ระบบไฟฟ้า', parseFloat((station as ClientSystemData).electricProgress?.toString() || "0") || 0, '#6366F1')}
+                            ${progressBarHtml('ระบบกราวด์', parseFloat((station as ClientSystemData).groundProgress?.toString() || "0") || 0, '#10B981')}
+                            ${progressBarHtml('สาย Feeder', parseFloat((station as ClientSystemData).feederProgress?.toString() || "0") || 0, '#06B6D4')}
                         ` : `
-                            ${progressBarHtml('ความคืบหน้าฐานราก', parseFloat(station.foundationProgress) || 0, '#6366F1')}
-                            ${progressBarHtml('ติดตั้งเสา', parseFloat(station.poleInstallationProgress) || 0, '#8B5CF6')}
+                            ${progressBarHtml('ความคืบหน้าฐานราก', parseFloat((station as StationData).foundationProgress?.toString() || "0") || 0, '#6366F1')}
+                            ${progressBarHtml('ติดตั้งเสา', parseFloat((station as StationData).poleInstallationProgress?.toString() || "0") || 0, '#8B5CF6')}
                         `}
                         <div style="margin-top:10px;padding-top:8px;border-top:1px solid #f4f4f5;
                             display:flex;align-items:center;justify-content:space-between">
@@ -332,7 +333,6 @@ const MapView = React.memo(function MapView({
                 `;
 
                 return (
-                    // @ts-ignore
                     <Marker 
                         key={idx} 
                         position={[lat, lon]} 
@@ -346,9 +346,7 @@ const MapView = React.memo(function MapView({
                             },
                         } : undefined}
                     >
-                        {/* @ts-ignore */}
                         <Popup
-                            // @ts-ignore
                             maxWidth={260}
                             className="station-popup"
                         >

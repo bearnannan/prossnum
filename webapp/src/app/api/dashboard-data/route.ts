@@ -3,10 +3,10 @@ import { supabase } from "@/lib/supabase";
 import { auth } from "@/auth";
 import { logAction } from "@/lib/audit";
 
-// ── TS 5.3: Discriminated union for sheet routing ──────────────────────────
-type SheetType = "station" | "client";
+// ── TS 5.3: Discriminated union for dataset routing ────────────────────────
+type DatasetType = "station" | "client";
 
-function parseSheetType(raw: string | null): SheetType {
+function parseDatasetType(raw: string | null): DatasetType {
     switch (raw) {
         case "client": return "client";
         default:       return "station";
@@ -180,10 +180,10 @@ export async function GET(req: Request) {
 
     try {
         const { searchParams } = new URL(req.url);
-        const sheetType = parseSheetType(searchParams.get("sheet"));
+        const datasetType = parseDatasetType(searchParams.get("dataset"));
 
         // TS 5.3: Switch-case narrowing — compiler knows exact type in each branch
-        switch (sheetType) {
+        switch (datasetType) {
             case "client": {
                 const { data, error } = await supabase
                     .from("client_systems")
@@ -206,7 +206,7 @@ export async function GET(req: Request) {
     } catch (error: unknown) {
         // TS 5.3: error: unknown — must narrow before accessing .message
         const message = error instanceof Error ? error.message : "Unknown error";
-        console.error("Error in GET /api/sheet-data:", error);
+        console.error("Error in GET /api/dashboard-data:", error);
         return NextResponse.json({ error: "Failed to fetch data from Supabase", details: message }, { status: 500 });
     }
 }
@@ -217,10 +217,10 @@ export async function POST(req: Request) {
 
     try {
         const { searchParams } = new URL(req.url);
-        const sheetType = parseSheetType(searchParams.get("sheet"));
+        const datasetType = parseDatasetType(searchParams.get("dataset"));
         const body = await req.json() as Record<string, unknown>;
 
-        switch (sheetType) {
+        switch (datasetType) {
             case "client": {
                 const data = body as unknown as ClientSystemData;
                 const { data: dataInsert, error } = await supabase.from("client_systems").insert([{
@@ -303,7 +303,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Unknown error";
-        console.error("Error in POST /api/sheet-data:", error);
+        console.error("Error in POST /api/dashboard-data:", error);
         return NextResponse.json({ error: "Failed to insert data into Supabase", details: message }, { status: 500 });
     }
 }
@@ -314,14 +314,14 @@ export async function PUT(req: Request) {
 
     try {
         const { searchParams } = new URL(req.url);
-        const sheetType = parseSheetType(searchParams.get("sheet"));
+        const datasetType = parseDatasetType(searchParams.get("dataset"));
         const body = await req.json() as Record<string, unknown>;
 
         if (!body.id) {
             return NextResponse.json({ error: "Missing ID for update operation" }, { status: 400 });
         }
 
-        switch (sheetType) {
+        switch (datasetType) {
             case "client": {
                 const data = body as unknown as ClientSystemData;
                 const { error } = await supabase.from("client_systems").update({
@@ -400,7 +400,7 @@ export async function PUT(req: Request) {
         return NextResponse.json({ success: true });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Unknown error";
-        console.error("Error in PUT /api/sheet-data:", error);
+        console.error("Error in PUT /api/dashboard-data:", error);
         return NextResponse.json({ error: "Failed to update data in Supabase", details: message }, { status: 500 });
     }
 }
@@ -411,14 +411,14 @@ export async function DELETE(req: Request) {
 
     try {
         const { searchParams } = new URL(req.url);
-        const sheetType = parseSheetType(searchParams.get("sheet"));
+        const datasetType = parseDatasetType(searchParams.get("dataset"));
         const body = await req.json() as { id?: string };
 
         if (!body.id) {
             return NextResponse.json({ error: "Missing ID for delete operation" }, { status: 400 });
         }
 
-        const tableName = sheetType === "client" ? "client_systems" : "stations";
+        const tableName = datasetType === "client" ? "client_systems" : "stations";
         const { error } = await supabase.from(tableName).delete().eq("id", body.id);
         if (error) throw error;
 
@@ -433,7 +433,7 @@ export async function DELETE(req: Request) {
         return NextResponse.json({ success: true, message: "Record deleted successfully" });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : "Unknown error";
-        console.error("Error in DELETE /api/sheet-data:", error);
+        console.error("Error in DELETE /api/dashboard-data:", error);
         return NextResponse.json({ error: "Failed to delete data from Supabase", details: message }, { status: 500 });
     }
 }

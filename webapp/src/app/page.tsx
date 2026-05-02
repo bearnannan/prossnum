@@ -4,19 +4,16 @@ import { useRef, useState, useMemo, useEffect, Suspense, useTransition, useDefer
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import useSWR from "swr";
-import { StationData, ClientSystemData } from "./api/sheet-data/route";
 import { supabase } from "@/lib/supabase";
-import { addMutation, getQueueForSheet, OfflineMutation } from "@/lib/offline-sync";
+import { addMutation, getQueueForDataset, OfflineMutation } from "@/lib/offline-sync";
 import { useToast } from "@/components/Toast";
-import { get, set, del } from "idb-keyval";
+import { get, set } from "idb-keyval";
 import { SWRConfig } from "swr";
-import { Skeleton, SkeletonLayout, PremiumDashboardSkeleton } from "@/components/Skeleton";
-import { OrbitRing } from "@/components/loading-ui/OrbitRing";
+import { PremiumDashboardSkeleton } from "@/components/Skeleton";
 import { TextShimmer } from "@/components/loading-ui/TextShimmer";
-import { CometSpinner } from "@/components/loading-ui/CometSpinner";
 import TopNavBar from '@/components/TopNavBar';
 import SideNavBar from '@/components/SideNavBar';
-import { useExport, formatDateDisplay } from '@/hooks/useExport';
+import { useExport } from '@/hooks/useExport';
 import { useDashboard } from '@/hooks/useDashboard';
 import { StatGrid } from '@/components/StatGrid';
 import { DashboardCharts } from '@/components/DashboardCharts';
@@ -35,71 +32,6 @@ const ClientSystemModal = dynamic(() => import('@/components/ClientSystemModal')
 const fetcher = (url: string) => fetch(url, { cache: 'no-store' }).then(res => {
   if (!res.ok) throw new Error("Failed to fetch data");
   return res.json();
-});
-
-const MapView = dynamic(() => import('@/components/MapView'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-full w-full flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-800/50 rounded-xl gap-3">
-      <OrbitRing className="size-8 text-blue-500/50" />
-      <TextShimmer className="text-sm font-medium" duration={1.5}>
-        Initializing Spatial Engine...
-      </TextShimmer>
-    </div>
-  )
-});
-
-const ProgressChart = dynamic(() => import('@/components/ProgressChart'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-full w-full p-6 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
-      <div className="h-full w-full flex flex-col items-center justify-center relative">
-        <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
-          <Skeleton className="h-full w-full" />
-        </div>
-        <CometSpinner className="size-10 text-emerald-500/40 mb-3" />
-        <TextShimmer className="text-xs font-semibold uppercase tracking-wider text-zinc-400" duration={2}>
-          Analyzing Metrics...
-        </TextShimmer>
-      </div>
-    </div>
-  )
-});
-
-const DistrictProgressChart = dynamic(() => import('@/components/DistrictProgressChart'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-full w-full p-6 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
-      <div className="h-full w-full flex flex-col items-center justify-center relative">
-        <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
-          <Skeleton className="h-full w-full" />
-        </div>
-        <CometSpinner className="size-10 text-amber-500/40 mb-3" />
-        <TextShimmer className="text-xs font-semibold uppercase tracking-wider text-zinc-400" duration={2}>
-          Aggregating Districts...
-        </TextShimmer>
-      </div>
-    </div>
-  )
-});
-
-// ExportBentoReport is now imported dynamically at export-time only (see handleExportPDF/JPEG)
-
-const ComparisonChart = dynamic(() => import('@/components/ComparisonChart'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-full w-full p-6 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
-      <div className="h-full w-full flex flex-col items-center justify-center relative">
-        <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
-          <Skeleton className="h-full w-full" />
-        </div>
-        <CometSpinner className="size-10 text-indigo-500/40 mb-3" />
-        <TextShimmer className="text-xs font-semibold uppercase tracking-wider text-zinc-400" duration={2}>
-          Generating Comparison...
-        </TextShimmer>
-      </div>
-    </div>
-  )
 });
 
 const containerVariants = {
@@ -133,7 +65,7 @@ function DashboardContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const deferredSearchTerm = useDeferredValue(searchTerm);
   const [chartTab, setChartTab] = useState<'average' | 'comparison'>('average');
-  const { data: responseData, error: swrError, isLoading: swrIsLoading, mutate } = useSWR(`/api/sheet-data?sheet=${activeCategory}`, fetcher, {
+  const { data: responseData, error: swrError, isLoading: swrIsLoading, mutate } = useSWR(`/api/dashboard-data?dataset=${activeCategory}`, fetcher, {
     dedupingInterval: 60000,
     keepPreviousData: true,
   });
@@ -143,7 +75,7 @@ function DashboardContent() {
   // Fetch pending mutations to merge them into the UI
   useEffect(() => {
     const fetchQueue = async () => {
-      const queue = await getQueueForSheet(activeCategory);
+      const queue = await getQueueForDataset(activeCategory);
       setPendingMutations(queue);
     };
     fetchQueue();
@@ -273,14 +205,14 @@ function DashboardContent() {
         await addMutation({
           method: "DELETE",
           payload: { id: item.id },
-          sheet: activeCategory as "station" | "client"
+          dataset: activeCategory as "station" | "client"
         });
         showToast("ลบข้อมูลแบบออฟไลน์สำเร็จ จะซิงค์เมื่อออนไลน์", "info");
         await mutate(); // Refresh UI to remove the item optimistically
         return;
       }
 
-      const res = await fetch(`/api/sheet-data?sheet=${activeCategory}`, {
+      const res = await fetch(`/api/dashboard-data?dataset=${activeCategory}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: item.id }),

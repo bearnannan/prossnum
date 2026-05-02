@@ -85,3 +85,6 @@ A chronological record of Prossnum evolution.
 - **TypeScript Optimization**: Resolved build failure where `framer-motion` variant `ease` properties were incorrectly typed. Added `as const` to transition arrays to ensure strict tuple typing (`BezierCurve`).
 - **PWA/Mobile Accessibility**: Fixed a critical issue where "Action" buttons (Edit/Delete) were hidden on touch devices due to hover-only (`group-hover`) CSS. Implemented responsive visibility logic (`opacity-100 lg:opacity-0`) to ensure functionality on all screen sizes.
 - **GitHub Sync**: Pushed final release-ready code to `main` branch.
+
+## [2026-05-03] Architecture Update - Supabase Migration
+- **Backend Infrastructure**: Officially deprecated Google Sheets as a data backend. The application is now strictly reliant on Supabase for data storage, synchronization, and Realtime subscriptions. Any future API routes or features must interact exclusively with Supabase.

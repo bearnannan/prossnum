@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { addMutation } from "@/lib/offline-sync";
 import { useToast } from "@/components/Toast";
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
-import { StationData } from "@/app/api/sheet-data/route";
+import { StationData } from "@/app/api/dashboard-data/route";
 
 interface StationModalProps {
     isOpen: boolean;
@@ -91,7 +91,7 @@ export default function StationModal({
         setIsSubmitting(true);
         try {
             const method = isEditing ? "PUT" : "POST";
-            const payload = isEditing
+            const dataToSave = isEditing
                 ? { ...formData, id: editingStation!.id }
                 : formData;
 
@@ -99,8 +99,8 @@ export default function StationModal({
             if (!navigator.onLine) {
                 await addMutation({ 
                     method, 
-                    payload, 
-                    sheet: "station" 
+                    payload: dataToSave, 
+                    dataset: "station" 
                 });
                 
                 showToast("บันทึกข้อมูลแบบออฟไลน์สำเร็จ ระบบจะซิงค์เมื่อเชื่อมต่อเน็ตได้", "info");
@@ -109,10 +109,10 @@ export default function StationModal({
                 return;
             }
 
-            const res = await fetch("/api/sheet-data", {
+            const res = await fetch("/api/dashboard-data", {
                 method,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                body: JSON.stringify(dataToSave),
             });
 
             if (!res.ok) {

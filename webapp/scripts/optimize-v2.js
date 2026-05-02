@@ -41,7 +41,7 @@ s(1, 16, [
   'import { useRouter } from "next/navigation";',
   'import dynamic from "next/dynamic";',
   'import useSWR from "swr";',
-  'import { StationData, ClientSystemData } from "./api/sheet-data/route";',
+  'import { StationData, ClientSystemData } from "./api/dashboard-data/route";',
   'import { supabase } from "@/lib/supabase";',
   'import { useToast } from "@/components/Toast";',
   'import { Skeleton, SkeletonLayout } from "@/components/Skeleton";',

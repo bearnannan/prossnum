@@ -5,7 +5,7 @@ export interface OfflineMutation {
     method: "POST" | "PUT" | "DELETE";
     payload: any;
     timestamp: number;
-    sheet: "station" | "client";
+    dataset: "station" | "client";
 }
 
 const STORAGE_KEY = "offline-mutations";
@@ -33,11 +33,11 @@ export async function getQueue(): Promise<OfflineMutation[]> {
 }
 
 /**
- * Retrieves pending mutations for a specific sheet.
+ * Retrieves pending mutations for a specific dataset.
  */
-export async function getQueueForSheet(sheet: "station" | "client"): Promise<OfflineMutation[]> {
+export async function getQueueForDataset(dataset: "station" | "client"): Promise<OfflineMutation[]> {
     const queue = await getQueue();
-    return queue.filter(m => m.sheet === sheet);
+    return queue.filter(m => m.dataset === dataset);
 }
 
 /**
@@ -58,7 +58,7 @@ export async function processSync() {
 
     for (const mutation of queue) {
         try {
-            const url = mutation.sheet === "client" ? "/api/sheet-data?sheet=client" : "/api/sheet-data";
+            const url = mutation.dataset === "client" ? "/api/dashboard-data?dataset=client" : "/api/dashboard-data";
             
             const response = await fetch(url, {
                 method: mutation.method,

@@ -8,7 +8,7 @@ export interface OfflineMutation {
     id: string;
     method: "POST" | "PUT" | "DELETE";
     payload: any;
-    sheet?: string;
+    dataset?: string;
     timestamp: number;
 }
 
@@ -26,7 +26,7 @@ export default function OfflineSyncManager() {
                 const queue: OfflineMutation[] = (await get("offline-mutations")) || [];
                 if (queue.length > 0) {
                     for (const mutation of queue) {
-                        const url = mutation.sheet ? `/api/sheet-data?sheet=${mutation.sheet}` : "/api/sheet-data";
+                        const url = mutation.dataset ? `/api/dashboard-data?dataset=${mutation.dataset}` : "/api/dashboard-data";
                         await fetch(url, {
                             method: mutation.method,
                             headers: { "Content-Type": "application/json" },
@@ -34,7 +34,7 @@ export default function OfflineSyncManager() {
                         });
                     }
                     await set("offline-mutations", []);
-                    await mutate("/api/sheet-data");
+                    await mutate("/api/dashboard-data");
                     alert("Offline drafts have been successfully synced!");
                 }
             } catch (err) {

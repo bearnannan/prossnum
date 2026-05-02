@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import useSWR from "swr";
-import { StationData } from "@/app/api/sheet-data/route";
+import { StationData } from "@/app/api/dashboard-data/route";
 import { createRoot } from "react-dom/client";
 import { Skeleton } from "@/components/Skeleton";
 
@@ -18,7 +18,7 @@ import ExportBentoReportRaw from "@/components/ExportBentoReport";
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function ReportPage() {
-    const { data: responseData, isLoading: swrIsLoading } = useSWR("/api/sheet-data", fetcher, {
+    const { data: responseData, isLoading: swrIsLoading } = useSWR("/api/dashboard-data", fetcher, {
         dedupingInterval: 60000,
         keepPreviousData: true,
     });

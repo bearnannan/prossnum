@@ -13,13 +13,49 @@ import {
 } from "recharts";
 
 import React from 'react';
+import { StationData, ClientSystemData } from '@/app/api/dashboard-data/route';
 
-export default React.memo(function ComparisonChart({ data, category = 'station' }: { data: any[], category?: string }) {
+type ChartDataItem = StationData | ClientSystemData;
+
+// ─── Custom Tooltip moved outside to avoid re-creation during render ────────
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        const row = payload[0].payload;
+        return (
+            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-zinc-100 dark:border-zinc-700 p-3 text-sm min-w-[190px]">
+                <p className="font-bold text-zinc-800 dark:text-white mb-1">{label}</p>
+                <p className="text-xs text-zinc-400 mb-2">{row.count} สถานี</p>
+                <div className="space-y-1.5">
+                    {payload.map((entry: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: entry.fill }} />
+                                <span className="text-zinc-600 dark:text-zinc-300 text-xs">{entry.name}</span>
+                            </div>
+                            <span className="font-semibold text-zinc-800 dark:text-white">{entry.value}%</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
+export default React.memo(function ComparisonChart({ 
+    data, 
+    category = 'station' 
+}: { 
+    data: ChartDataItem[], 
+    category?: string 
+}) {
     const [mounted, setMounted] = React.useState(false);
 
     React.useEffect(() => {
-        setMounted(true);
+        setMounted(() => true);
     }, []);
+
+    const isClient = category === 'client';
 
     // Group by district
     const districtStats: Record<string, { val1Sum: number; val2Sum: number; val3Sum?: number; count: number }> = {};
@@ -30,13 +66,15 @@ export default React.memo(function ComparisonChart({ data, category = 'station' 
             districtStats[dist] = { val1Sum: 0, val2Sum: 0, val3Sum: 0, count: 0 };
         }
         
-        if (category === 'client') {
-            districtStats[dist].val1Sum += parseFloat(d.electricProgress as any) || 0;
-            districtStats[dist].val2Sum += parseFloat(d.groundProgress as any) || 0;
-            districtStats[dist].val3Sum = (districtStats[dist].val3Sum || 0) + (parseFloat(d.feederProgress as any) || 0);
+        if (isClient) {
+            const s = d as ClientSystemData;
+            districtStats[dist].val1Sum += parseFloat(s.electricProgress?.toString() || "0") || 0;
+            districtStats[dist].val2Sum += parseFloat(s.groundProgress?.toString() || "0") || 0;
+            districtStats[dist].val3Sum = (districtStats[dist].val3Sum || 0) + (parseFloat(s.feederProgress?.toString() || "0") || 0);
         } else {
-            districtStats[dist].val1Sum += parseFloat(d.foundationProgress as any) || 0;
-            districtStats[dist].val2Sum += parseFloat(d.poleInstallationProgress as any) || 0;
+            const s = d as StationData;
+            districtStats[dist].val1Sum += parseFloat(s.foundationProgress?.toString() || "0") || 0;
+            districtStats[dist].val2Sum += parseFloat(s.poleInstallationProgress?.toString() || "0") || 0;
         }
         districtStats[dist].count += 1;
     });
@@ -47,7 +85,7 @@ export default React.memo(function ComparisonChart({ data, category = 'station' 
             const val1 = Math.round(s.val1Sum / s.count);
             const val2 = Math.round(s.val2Sum / s.count);
             
-            if (category === 'client') {
+            if (isClient) {
                 const val3 = Math.round((s.val3Sum || 0) / s.count);
                 return {
                     name: district,
@@ -67,8 +105,8 @@ export default React.memo(function ComparisonChart({ data, category = 'station' 
             };
         })
         .sort((a: any, b: any) => {
-            const valA = category === 'client' ? a.electric : a.foundation;
-            const valB = category === 'client' ? b.electric : b.foundation;
+            const valA = isClient ? a.electric : a.foundation;
+            const valB = isClient ? b.electric : b.foundation;
             return valB - valA;
         });
 
@@ -79,30 +117,6 @@ export default React.memo(function ComparisonChart({ data, category = 'station' 
             </div>
         );
     }
-
-    const CustomTooltip = ({ active, payload, label }: any) => {
-        if (active && payload && payload.length) {
-            const row = payload[0].payload;
-            return (
-                <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-zinc-100 dark:border-zinc-700 p-3 text-sm min-w-[190px]">
-                    <p className="font-bold text-zinc-800 dark:text-white mb-1">{label}</p>
-                    <p className="text-xs text-zinc-400 mb-2">{row.count} สถานี</p>
-                    <div className="space-y-1.5">
-                        {payload.map((entry: any, i: number) => (
-                            <div key={i} className="flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-1.5">
-                                    <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: entry.fill }} />
-                                    <span className="text-zinc-600 dark:text-zinc-300 text-xs">{entry.name}</span>
-                                </div>
-                                <span className="font-semibold text-zinc-800 dark:text-white">{entry.value}%</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
-        return null;
-    };
 
     // Determine bar size based on number of districts
     const barSize = chartData.length <= 5 ? 24 : chartData.length <= 10 ? 16 : 12;
@@ -141,7 +155,7 @@ export default React.memo(function ComparisonChart({ data, category = 'station' 
                         wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
                     />
                     <ReferenceLine y={100} stroke="#E5E7EB" strokeDasharray="4 4" strokeWidth={1.5} />
-                    {category === 'station' ? (
+                    {!isClient ? (
                         <>
                             <Bar
                                 dataKey="foundation"

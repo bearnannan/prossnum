@@ -22,7 +22,7 @@ export function ActivityFeed() {
   });
 
   useEffect(() => {
-    setMounted(true);
+    setMounted(() => true);
   }, []);
 
   const logs: AuditLog[] = response?.data || [];

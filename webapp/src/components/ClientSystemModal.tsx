@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { addMutation } from "@/lib/offline-sync";
 import { useToast } from "@/components/Toast";
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
-import { ClientSystemData } from "@/app/api/sheet-data/route";
+import { ClientSystemData } from "@/app/api/dashboard-data/route";
 
 interface ClientSystemModalProps {
     isOpen: boolean;
@@ -147,7 +147,7 @@ export default function ClientSystemModal({
                 await addMutation({ 
                     method, 
                     payload, 
-                    sheet: "client" 
+                    dataset: "client" 
                 });
                 
                 showToast("บันทึกข้อมูลแบบออฟไลน์สำเร็จ ระบบจะซิงค์เมื่อเชื่อมต่อเน็ตได้", "info");
@@ -156,7 +156,7 @@ export default function ClientSystemModal({
                 return;
             }
 
-            const res = await fetch("/api/sheet-data?sheet=client", {
+            const res = await fetch("/api/dashboard-data?dataset=client", {
                 method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),

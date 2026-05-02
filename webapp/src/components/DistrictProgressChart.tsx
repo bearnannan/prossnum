@@ -12,12 +12,46 @@ import {
 } from 'recharts';
 
 import React from 'react';
+import { StationData, ClientSystemData } from '@/app/api/dashboard-data/route';
 
-export default React.memo(function DistrictProgressChart({ data, category = 'station' }: { data: any[], category?: string }) {
+type ChartDataItem = StationData | ClientSystemData;
+
+// ─── Custom Tooltip moved outside to avoid re-creation during render ────────
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        const rowData = payload[0].payload;
+        return (
+            <div className="bg-zinc-50 dark:bg-zinc-900/90 backdrop-blur-md p-3 rounded-xl shadow-2xl border border-zinc-200 dark:border-zinc-800 text-sm animate-in fade-in zoom-in duration-200">
+                <p className="font-bold text-zinc-900 dark:text-zinc-100 mb-1">อำเภอ: {label}</p>
+                <p className="text-zinc-500 dark:text-zinc-400 mb-2 text-[10px] uppercase tracking-wider font-semibold">จาก {rowData.count} สถานี</p>
+                <div className="space-y-1.5">
+                    {payload.map((entry: any, index: number) => (
+                        <div key={`item-${index}`} className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full shadow-[0_0_8px_var(--color)]" style={{ backgroundColor: entry.color, '--color': entry.color } as React.CSSProperties} />
+                                <span className="text-zinc-600 dark:text-zinc-400 text-xs">{entry.name}</span>
+                            </div>
+                            <span className="font-bold text-zinc-900 dark:text-zinc-100 text-xs">{entry.value}%</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
+export default React.memo(function DistrictProgressChart({ 
+    data, 
+    category = 'station' 
+}: { 
+    data: ChartDataItem[], 
+    category?: string 
+}) {
     const [mounted, setMounted] = React.useState(false);
 
     React.useEffect(() => {
-        setMounted(true);
+        setMounted(() => true);
     }, []);
 
     const isClient = category === 'client';
@@ -39,14 +73,16 @@ export default React.memo(function DistrictProgressChart({ data, category = 'sta
         }
         
         if (isClient) {
-            districtStats[dist].electricSum += (parseFloat(d.electricProgress) || 0);
-            districtStats[dist].groundSum += (parseFloat(d.groundProgress) || 0);
-            districtStats[dist].feederSum += (parseFloat(d.feederProgress) || 0);
-            districtStats[dist].towerSum += (parseFloat(d.towerProgress) || 0);
-            districtStats[dist].radioSum += (parseFloat(d.radioProgress) || 0);
+            const s = d as ClientSystemData;
+            districtStats[dist].electricSum += (parseFloat(s.electricProgress?.toString() || "0") || 0);
+            districtStats[dist].groundSum += (parseFloat(s.groundProgress?.toString() || "0") || 0);
+            districtStats[dist].feederSum += (parseFloat(s.feederProgress?.toString() || "0") || 0);
+            districtStats[dist].towerSum += (parseFloat(s.towerProgress?.toString() || "0") || 0);
+            districtStats[dist].radioSum += (parseFloat(s.radioProgress?.toString() || "0") || 0);
         } else {
-            districtStats[dist].foundationSum += (parseFloat(d.foundationProgress) || 0);
-            districtStats[dist].poleSum += (parseFloat(d.poleInstallationProgress) || 0);
+            const s = d as StationData;
+            districtStats[dist].foundationSum += (parseFloat(s.foundationProgress?.toString() || "0") || 0);
+            districtStats[dist].poleSum += (parseFloat(s.poleInstallationProgress?.toString() || "0") || 0);
         }
         districtStats[dist].count += 1;
     });
@@ -81,31 +117,6 @@ export default React.memo(function DistrictProgressChart({ data, category = 'sta
             {!mounted ? "กำลังเตรียมข้อมูล..." : "ไม่มีข้อมูลสำหรับแสดงแผนภูมิ"}
         </div>;
     }
-
-    // Custom Tooltip
-    const CustomTooltip = ({ active, payload, label }: any) => {
-        if (active && payload && payload.length) {
-            const rowData = payload[0].payload;
-            return (
-                <div className="bg-zinc-50 dark:bg-zinc-900/90 backdrop-blur-md p-3 rounded-xl shadow-2xl border border-zinc-200 dark:border-zinc-800 text-sm animate-in fade-in zoom-in duration-200">
-                    <p className="font-bold text-zinc-900 dark:text-zinc-100 mb-1">อำเภอ: {label}</p>
-                    <p className="text-zinc-500 dark:text-zinc-400 mb-2 text-[10px] uppercase tracking-wider font-semibold">จาก {rowData.count} สถานี</p>
-                    <div className="space-y-1.5">
-                        {payload.map((entry: any, index: number) => (
-                            <div key={`item-${index}`} className="flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full shadow-[0_0_8px_var(--color)]" style={{ backgroundColor: entry.color, '--color': entry.color } as any} />
-                                    <span className="text-zinc-600 dark:text-zinc-400 text-xs">{entry.name}</span>
-                                </div>
-                                <span className="font-bold text-zinc-900 dark:text-zinc-100 text-xs">{entry.value}%</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
-        return null;
-    };
 
     return (
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
