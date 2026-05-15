@@ -1,0 +1,3 @@
+[submodule "SocratiCode"]
+	path = SocratiCode
+	url = https://github.com/giancarloerra/SocratiCode.git
