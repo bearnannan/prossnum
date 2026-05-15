@@ -99,3 +99,16 @@ prossnum/
 ---
 
 © 2026 Developed by Prossnum Team. **Technical Documentation v1.9.0**
+
+---
+
+## Persistent Skills Bootstrap
+
+This repository includes a persistent skills bootstrap flow for Super-Agent initialization.
+
+- Registry file: `scripts/global-skills-registry.json`
+- Bootstrap script: `scripts/bootstrap-global-skills.ps1`
+- Run bootstrap: `npm run skills:bootstrap`
+- Run bootstrap and update existing repos: `npm run skills:bootstrap:update`
+
+The bootstrap script verifies each registry path and clones missing repositories automatically.

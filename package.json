@@ -3,6 +3,9 @@
     "dev": "npm --prefix webapp run dev",
     "build": "powershell -Command \"npm --prefix webapp run build | Tee-Object -FilePath webapp/memento_build.log\"",
     "start": "npm --prefix webapp run start",
+    "skills:bootstrap": "powershell -ExecutionPolicy Bypass -File ./scripts/bootstrap-global-skills.ps1",
+    "skills:bootstrap:adopt": "powershell -ExecutionPolicy Bypass -File ./scripts/bootstrap-global-skills.ps1 -AdoptExisting -UpdateExisting",
+    "skills:bootstrap:update": "powershell -ExecutionPolicy Bypass -File ./scripts/bootstrap-global-skills.ps1 -UpdateExisting",
     "memento:watch": "set PYTHONIOENCODING=utf-8 && d:/APP/prossnum/Memento-Skills/.venv/Scripts/python.exe d:/APP/prossnum/Memento-Skills/memento_watch.py",
     "memento:doctor": "set PYTHONIOENCODING=utf-8 && d:/APP/prossnum/Memento-Skills/.venv/Scripts/python.exe d:/APP/prossnum/Memento-Skills/cli/main.py doctor"
   },
