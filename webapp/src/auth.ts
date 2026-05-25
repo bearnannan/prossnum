@@ -34,10 +34,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           : readString(token.lineUserId);
 
       if (lineUserId) token.lineUserId = lineUserId;
+
+      // Extract email and name, merging from token, user, and profile
+      const email = readString(user?.email) || readString(profile?.email) || readString(token.email) || null;
+      const name = readString(user?.name) || readString(profile?.name) || readString(token.name) || null;
+
+      if (email) token.email = email;
+      if (name) token.name = name;
+
       token.role = resolveLineRole({
-        id: readString(token.lineUserId) || readString(token.sub),
-        email: typeof token.email === "string" ? token.email : null,
-        name: typeof token.name === "string" ? token.name : null,
+        id: lineUserId || readString(token.sub),
+        email,
+        name,
       });
       return token;
     },
