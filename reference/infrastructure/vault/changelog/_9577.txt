@@ -1,3 +1,0 @@
-```release-note:improvement
-ui/secrets: Updated filters on secret engines list to sort by path, engine type and version
-```

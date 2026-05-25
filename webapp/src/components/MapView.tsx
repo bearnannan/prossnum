@@ -8,22 +8,6 @@ import { StationData, ClientSystemData } from '@/app/api/dashboard-data/route';
 
 type MapDataItem = StationData | ClientSystemData;
 
-// ─── Helper: compute overall progress for a station ────────────────────────
-function getOverallProgress(station: MapDataItem, category: 'station' | 'client' = 'station'): number {
-    if (category === 'client') {
-        const s = station as ClientSystemData;
-        const ep = parseFloat(s.electricProgress?.toString() || "0") || 0;
-        const gp = parseFloat(s.groundProgress?.toString() || "0") || 0;
-        const fp = parseFloat(s.feederProgress?.toString() || "0") || 0;
-        return (ep + gp + fp) / 3;
-    } else {
-        const s = station as StationData;
-        const fp = parseFloat(s.foundationProgress?.toString() || "0") || 0;
-        const pp = parseFloat(s.poleInstallationProgress?.toString() || "0") || 0;
-        return (fp + pp) / 2;
-    }
-}
-
 // ─── Status logic ────────────────────────────────────────────────────────────
 type StatusKey = 'not_started' | 'in_progress' | 'completed';
 
@@ -131,21 +115,6 @@ function MapCentering({ center }: { center: [number, number] }) {
     return null;
 }
 
-// ─── Progress Bar component (popup HTML) ─────────────────────────────────────
-function progressBarHtml(label: string, value: number, color: string): string {
-    return `
-        <div style="margin-bottom:6px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:2px">
-                <span>${label}</span><span style="font-weight:600;color:#111">${value}%</span>
-            </div>
-            <div style="background:#F3F4F6;border-radius:9999px;height:6px;overflow:hidden">
-                <div style="background:${color};height:100%;width:${value}%;border-radius:9999px;transition:width 0.3s"></div>
-            </div>
-        </div>
-    `;
-}
-
-
 // ─── Auto-fit bounds to show all stations ────────────────────────────────────
 function FitBounds({ data }: { data: MapDataItem[] }) {
     const map = useMap();
@@ -162,13 +131,25 @@ function FitBounds({ data }: { data: MapDataItem[] }) {
 }
 
 // ─── Tactical Legend ──────────────────────────────────────────────────────────
-function TacticalLegend() {
+function TacticalLegend({ tactical = false }: { tactical?: boolean }) {
     const map = useMap();
     useEffect(() => {
         const legend = new (L.Control.extend({
             onAdd() {
                 const div = L.DomUtil.create('div');
-                div.style.cssText = `
+                div.style.cssText = tactical ? `
+                    background: rgba(18, 18, 26, 0.85);
+                    backdrop-filter: blur(12px);
+                    -webkit-backdrop-filter: blur(12px);
+                    padding: 12px 16px;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    font-family: 'Inter', sans-serif;
+                    font-size: 11px;
+                    line-height: 2;
+                    min-width: 150px;
+                ` : `
                     background: rgba(255,255,255,0.92);
                     backdrop-filter: blur(12px);
                     -webkit-backdrop-filter: blur(12px);
@@ -182,11 +163,11 @@ function TacticalLegend() {
                     min-width: 150px;
                 `;
                 div.innerHTML = `
-                    <div style="font-weight:800;color:#18181b;margin-bottom:6px;font-size:10px;text-transform:uppercase;letter-spacing:0.1em">
+                    <div style="font-weight:800;color:${tactical ? '#e2e8f0' : '#18181b'};margin-bottom:6px;font-size:10px;text-transform:uppercase;letter-spacing:0.1em">
                         สถานะสถานี
                     </div>
                     ${Object.entries(STATUS_CONFIG).map(([key, cfg]) => `
-                        <div style="display:flex;align-items:center;gap:8px;color:#3f3f46;font-weight:500">
+                        <div style="display:flex;align-items:center;gap:8px;color:${tactical ? '#94a3b8' : '#3f3f46'};font-weight:500">
                             <div style="position:relative;width:16px;height:16px;display:flex;align-items:center;justify-content:center">
                                 ${key === 'in_progress' ? `
                                     <div style="position:absolute;width:14px;height:14px;border-radius:50%;border:1.5px solid ${cfg.color};opacity:0.4;animation:tactical-legend-pulse 2s ease-out infinite"></div>
@@ -213,15 +194,18 @@ function TacticalLegend() {
         }))({ position: 'bottomleft' });
         legend.addTo(map);
         return () => { legend.remove(); };
-    }, [map]);
+    }, [map, tactical]);
     return null;
 }
 
 // ─── Inject global tactical marker styles ─────────────────────────────────────
-function TacticalStyles() {
+function TacticalStyles({ tactical = false }: { tactical?: boolean }) {
     useEffect(() => {
         const styleId = 'tactical-map-styles';
-        if (document.getElementById(styleId)) return;
+        const existing = document.getElementById(styleId);
+        if (existing) {
+            existing.remove();
+        }
         
         const style = document.createElement('style');
         style.id = styleId;
@@ -232,10 +216,13 @@ function TacticalStyles() {
             }
             .leaflet-popup-content-wrapper {
                 border-radius: 16px !important;
-                box-shadow: 0 4px 16px rgba(0,0,0,0.1), 0 12px 32px rgba(0,0,0,0.06) !important;
-                border: 1px solid rgba(0,0,0,0.04) !important;
+                background: ${tactical ? 'rgba(18, 18, 26, 0.95)' : 'white'} !important;
+                color: ${tactical ? '#e2e8f0' : '#18181b'} !important;
+                box-shadow: ${tactical ? '0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)' : '0 4px 16px rgba(0,0,0,0.1), 0 12px 32px rgba(0,0,0,0.06)'} !important;
+                border: 1px solid ${tactical ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.04)'} !important;
             }
             .leaflet-popup-tip {
+                background: ${tactical ? 'rgba(18, 18, 26, 0.95)' : 'white'} !important;
                 box-shadow: none !important;
             }
             .leaflet-container {
@@ -247,7 +234,7 @@ function TacticalStyles() {
             const el = document.getElementById(styleId);
             if (el) el.remove();
         };
-    }, []);
+    }, [tactical]);
     return null;
 }
 
@@ -257,7 +244,7 @@ interface MapViewProps {
     category?: 'station' | 'client';
     isPicker?: boolean;
     onPositionChange?: (lat: number, lon: number) => void;
-    onSelect?: (asset: any) => void;
+    onSelect?: (asset: MapDataItem) => void;
     activeAssetId?: string;
     tactical?: boolean;
 }
@@ -302,9 +289,11 @@ const MapView = React.memo(function MapView({
                 subdomains="abcd"
             />
 
-            <TacticalStyles />
+
+
+            <TacticalStyles tactical={tactical} />
             {!isPicker && <FitBounds data={data} />}
-            {!isPicker && <TacticalLegend />}
+            {!isPicker && <TacticalLegend tactical={tactical} />}
             {isPicker && onPositionChange && (
                 <MapClickHandler onClick={(e) => onPositionChange(e.latlng.lat, e.latlng.lng)} />
             )}
@@ -325,6 +314,7 @@ const MapView = React.memo(function MapView({
                 
                 // Determine if record was updated in the last 15 seconds
                 const updatedAt = station.updated_at ? new Date(station.updated_at).getTime() : 0;
+                // eslint-disable-next-line react-hooks/purity
                 const isRecent = (Date.now() - updatedAt) < 15000;
                 
                 const icon = createTacticalIcon(cfg.color, status, isRecent, isSelected);
@@ -347,23 +337,21 @@ const MapView = React.memo(function MapView({
                             },
                         }}
                     >
-                        {!tactical && (
-                            <Popup
-                                maxWidth={260}
-                                className="station-popup"
-                            >
-                                <div dangerouslySetInnerHTML={{ __html: `
-                                    <div style="font-family:'Inter',sans-serif;min-width:220px;padding:4px 0">
-                                        <div style="font-size:14px;font-weight:800;color:#18181b;margin-bottom:2px;letter-spacing:-0.01em">
-                                            ${station.stationName || 'Unknown Station'}
-                                        </div>
-                                        <div style="font-size:11px;color:#71717a;margin-bottom:10px;font-weight:500">
-                                            จ.${station.province || 'กาญจนบุรี'} อ.${station.district}
-                                        </div>
+                        <Popup
+                            maxWidth={260}
+                            className="station-popup"
+                        >
+                            <div dangerouslySetInnerHTML={{ __html: `
+                                <div style="font-family:'Inter',sans-serif;min-width:220px;padding:4px 0">
+                                    <div style="font-size:14px;font-weight:800;color:${tactical ? '#e2e8f0' : '#18181b'};margin-bottom:2px;letter-spacing:-0.01em">
+                                        ${station.stationName || 'Unknown Station'}
                                     </div>
-                                ` }} />
-                            </Popup>
-                        )}
+                                    <div style="font-size:11px;color:${tactical ? '#94a3b8' : '#71717a'};margin-bottom:10px;font-weight:500">
+                                        จ.${station.province || 'กาญจนบุรี'} อ.${station.district}
+                                    </div>
+                                </div>
+                            ` }} />
+                        </Popup>
                     </Marker>
                 );
             })}

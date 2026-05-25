@@ -48,3 +48,9 @@ yarn-error.log*
 /webapp/public/workbox-*.js
 /webapp/public/sw.js.map
 /webapp/public/workbox-*.js.map
+
+# local scratch / debug tools
+scratch-*.log
+scratch-*.png
+*.log
+

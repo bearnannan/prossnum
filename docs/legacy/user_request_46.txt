@@ -1,9 +1,0 @@
-﻿<USER_REQUEST>
-ถ้ามีการแก้ไข Latitude (lat) Longitude (lon)
-
-<div><label class="block text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wide">Latitude (lat)</label><input step="any" placeholder="14.xxxx" class="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30" type="number" value="14.486867" name="lat"></div>
-
-<div><label class="block text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mb-1 uppercase tracking-wide">Longitude (lon)</label><input step="any" placeholder="99.xxxx" class="w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-sm bg-white dark:bg-zinc-800 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30" type="number" value="99.695016" name="lon"></div>
-
-
-<truncated 41345 bytes>

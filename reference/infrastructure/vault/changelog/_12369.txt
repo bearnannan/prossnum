@@ -1,3 +1,0 @@
-```release-note:improvement
-**Sidebar UI improvement**: Add top navbar, update sidebar navigation structure, and update page headers.
-```

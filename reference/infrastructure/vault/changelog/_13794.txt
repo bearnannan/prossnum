@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Fix secrets table pagination when switching page sizes. 
-```

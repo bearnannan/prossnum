@@ -1,8 +1,12 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Magnetic } from "./motion/Magnetic";
+import { cn } from "@/lib/utils";
+import type { AppRole } from "@/lib/rbac";
 
 interface SideNavBarProps {
     activeCategory: 'station' | 'client';
@@ -27,7 +31,6 @@ const sidebarVariants = {
     }
 };
 
-
 export default function SideNavBar({ 
     activeCategory, 
     onCategoryChange, 
@@ -37,6 +40,31 @@ export default function SideNavBar({
     isOpen, 
     onClose 
 }: SideNavBarProps) {
+    const [mounted, setMounted] = React.useState(false);
+    const [role, setRole] = React.useState<AppRole>("user");
+    const pathname = usePathname();
+    const isIncidentsActive = pathname.startsWith("/incidents") || pathname.startsWith("/mission-control");
+    const isNotificationOpsActive = pathname.startsWith("/notification-ops");
+    const isActivityLogsActive = pathname.startsWith("/activity-logs");
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    React.useEffect(() => {
+        let isMounted = true;
+        fetch("/api/auth/user", { cache: "no-store" })
+            .then((response) => response.json())
+            .then((json) => {
+                if (isMounted && (json.user?.role === "admin" || json.user?.role === "user")) {
+                    setRole(json.user.role);
+                }
+            })
+            .catch(() => undefined);
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
     return (
         <>
             {/* Mobile Overlay */}
@@ -46,7 +74,7 @@ export default function SideNavBar({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
                         onClick={onClose}
                     />
                 )}
@@ -54,37 +82,41 @@ export default function SideNavBar({
             
             <motion.aside 
                 variants={sidebarVariants}
-
-                className={`fixed left-0 top-0 lg:top-16 h-full lg:h-[calc(100vh-64px)] w-[280px] flex-col pt-6 px-4 gap-2 z-50 transition-transform duration-300 lg:translate-x-0 ${
+                initial="hidden"
+                animate="visible"
+                className={`fixed left-0 top-0 lg:top-16 h-full lg:h-[calc(100vh-64px)] w-[280px] flex-col pt-6 px-4 gap-2 z-50 transition-transform duration-300 lg:translate-x-0 bg-grid ${
                     isOpen ? 'translate-x-0' : '-translate-x-full'
                 } lg:flex`}
                 style={{
-                    background: 'rgba(250, 250, 252, 0.85)',
-                    backdropFilter: 'blur(20px) saturate(1.4)',
-                    WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
-                    borderRight: '1px solid rgba(0, 0, 0, 0.04)',
+                    background: "rgba(10, 10, 15, 0.60)",
+                    backdropFilter: "blur(16px)",
+                    borderRight: "1px solid rgba(0, 240, 255, 0.10)",
+                    boxShadow: "inset -10px 0 20px rgba(0,0,0,0.3), 0 0 20px rgba(0,240,255,0.03)",
                 }}
             >
+                {/* Lightning line top */}
+                <div className="lightning-line mb-4 opacity-50" />
+
                 {/* Mobile Close */}
                 <div className="lg:hidden flex justify-end mb-4">
                     <Magnetic distance={0.2}>
-                        <button onClick={onClose} className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-xl transition-all duration-200">
+                        <button onClick={onClose} className="p-2 text-zinc-400 hover:text-neon-cyan hover:bg-neon-cyan/10 rounded-xl transition-all duration-200">
                             <span className="material-symbols-outlined">close</span>
                         </button>
                     </Magnetic>
                 </div>
 
                 {/* Brand Section */}
-                <div className="mb-8 px-4">
-                    <h2 className="text-zinc-900 dark:text-white font-extrabold text-lg tracking-tight" style={{ fontFamily: 'var(--font-headline)' }}>
-                        ProssNum
+                <div className="mb-6 px-4">
+                    <h2 className="text-white font-extrabold text-lg tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                        NEXUS IMS
                     </h2>
-                    <p className="text-zinc-400 dark:text-zinc-500 text-[11px] font-semibold tracking-wide uppercase mt-0.5">Infrastructure Management</p>
+                    <p className="text-neon-cyan/70 text-[9px] font-bold tracking-widest uppercase mt-0.5">INFRASTRUCTURE MGMT</p>
                 </div>
 
                 {/* Section Label */}
                 <div className="px-4 mb-2">
-                    <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.15em]">ข้อมูลหลัก</span>
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em]">ข้อมูลหลัก</span>
                 </div>
             
                 <nav className="flex-1 flex flex-col gap-1 overflow-y-auto pr-2 scrollbar-thin">
@@ -93,31 +125,25 @@ export default function SideNavBar({
                         <Magnetic distance={0.15}>
                             <button 
                                 onClick={() => onCategoryChange('station')}
-                                className={`group flex items-center gap-3 px-4 py-3 font-bold rounded-xl transition-all duration-300 relative w-full ${
+                                className={cn(
+                                    "group flex items-center gap-3 px-4 py-3 font-bold rounded-xl transition-all duration-300 relative w-full",
                                     activeCategory === 'station' 
-                                    ? 'text-blue-700 dark:text-blue-300' 
-                                    : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 hover:text-zinc-700 dark:hover:text-zinc-200'
-                                }`}
-                            >
-                                {activeCategory === 'station' && (
-                                    <motion.div 
-                                        layoutId="nav-active-bg"
-                                        className="absolute inset-0 bg-blue-50/80 dark:bg-blue-900/20 rounded-xl z-0"
-                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                    />
+                                    ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20' 
+                                    : 'text-slate-400 hover:bg-neon-cyan/5 hover:text-neon-cyan/80'
                                 )}
+                                style={activeCategory === 'station' ? { 
+                                    boxShadow: "0 0 12px rgba(0,240,255,0.1), inset 0 0 8px rgba(0,240,255,0.05)",
+                                    textShadow: "0 0 4px rgba(0,240,255,0.3)"
+                                } : {}}
+                            >
                                 <span className={`material-symbols-outlined text-[20px] transition-all duration-300 relative z-10 ${
-                                    activeCategory === 'station' ? 'text-blue-600 scale-110' : 'text-zinc-400 group-hover:text-zinc-600'
+                                    activeCategory === 'station' ? 'text-neon-cyan scale-110' : 'text-zinc-400 group-hover:text-neon-cyan'
                                 }`} style={activeCategory === 'station' ? { fontVariationSettings: "'FILL' 1" } : {}}>
                                     cell_tower
                                 </span>
                                 <span className="text-sm relative z-10">ข้อมูลสถานี</span>
                                 {activeCategory === 'station' && (
-                                    <motion.span 
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] z-10"
-                                    />
+                                    <span className="absolute right-2 w-1 h-4 rounded-full bg-neon-cyan shadow-[0_0_6px_#00f0ff] z-10" />
                                 )}
                             </button>
                         </Magnetic>
@@ -129,32 +155,34 @@ export default function SideNavBar({
                                     animate={{ height: 'auto', opacity: 1, filter: 'blur(0px)' }}
                                     exit={{ height: 0, opacity: 0, filter: 'blur(4px)' }}
                                     transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
-                                    className="overflow-hidden flex flex-col gap-0.5 ms-8 mt-1 mb-2 pl-3 border-l-2 border-zinc-200/60 dark:border-zinc-700/60"
+                                    className="overflow-hidden flex flex-col gap-0.5 ms-8 mt-1 mb-2 pl-3 border-l-2 border-neon-cyan/25"
                                 >
                                     <Magnetic distance={0.1}>
                                         <button 
                                             onClick={() => onProvinceChange('All')}
-                                            className={`text-left px-3 py-1.5 text-[11px] rounded-lg font-bold transition-all duration-200 w-full ${
+                                            className={cn(
+                                                "text-left px-3 py-1.5 text-[11px] rounded-lg font-bold transition-all duration-200 w-full",
                                                 selectedProvince === 'All' 
-                                                ? 'text-blue-600 bg-blue-50/60 dark:bg-blue-900/20 dark:text-blue-400' 
-                                                : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/30'
-                                            }`}
+                                                ? 'text-neon-cyan bg-neon-cyan/10 border border-neon-cyan/20' 
+                                                : 'text-zinc-400 hover:text-neon-cyan/80 hover:bg-neon-cyan/5'
+                                            )}
                                         >
                                             ทั้งหมด
                                         </button>
                                     </Magnetic>
-                                    {provinces.map((p, idx) => (
+                                    {mounted && provinces.map((p, idx) => (
                                         <Magnetic key={p} distance={0.1}>
                                             <motion.button 
                                                 initial={{ x: -10, opacity: 0 }}
                                                 animate={{ x: 0, opacity: 1 }}
                                                 transition={{ delay: idx * 0.03 + 0.1 }}
                                                 onClick={() => onProvinceChange(p)}
-                                                className={`text-left px-3 py-1.5 text-[11px] rounded-lg font-bold transition-all duration-200 w-full ${
+                                                className={cn(
+                                                    "text-left px-3 py-1.5 text-[11px] rounded-lg font-bold transition-all duration-200 w-full",
                                                     selectedProvince === p 
-                                                    ? 'text-blue-600 bg-blue-50/60 dark:bg-blue-900/20 dark:text-blue-400' 
-                                                    : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/30'
-                                                }`}
+                                                    ? 'text-neon-cyan bg-neon-cyan/10 border border-neon-cyan/20' 
+                                                    : 'text-zinc-400 hover:text-neon-cyan/80 hover:bg-neon-cyan/5'
+                                                )}
                                             >
                                                 {p}
                                             </motion.button>
@@ -170,31 +198,25 @@ export default function SideNavBar({
                         <Magnetic distance={0.15}>
                             <button 
                                 onClick={() => onCategoryChange('client')}
-                                className={`group flex items-center gap-3 px-4 py-3 font-bold rounded-xl transition-all duration-300 relative w-full ${
+                                className={cn(
+                                    "group flex items-center gap-3 px-4 py-3 font-bold rounded-xl transition-all duration-300 relative w-full",
                                     activeCategory === 'client' 
-                                    ? 'text-blue-700 dark:text-blue-300' 
-                                    : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 hover:text-zinc-700 dark:hover:text-zinc-200'
-                                }`}
-                            >
-                                {activeCategory === 'client' && (
-                                    <motion.div 
-                                        layoutId="nav-active-bg"
-                                        className="absolute inset-0 bg-blue-50/80 dark:bg-blue-900/20 rounded-xl z-0"
-                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                    />
+                                    ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20' 
+                                    : 'text-slate-400 hover:bg-neon-cyan/5 hover:text-neon-cyan/80'
                                 )}
+                                style={activeCategory === 'client' ? { 
+                                    boxShadow: "0 0 12px rgba(0,240,255,0.1), inset 0 0 8px rgba(0,240,255,0.05)",
+                                    textShadow: "0 0 4px rgba(0,240,255,0.3)"
+                                } : {}}
+                            >
                                 <span className={`material-symbols-outlined text-[20px] transition-all duration-300 relative z-10 ${
-                                    activeCategory === 'client' ? 'text-blue-600 scale-110' : 'text-zinc-400 group-hover:text-zinc-600'
+                                    activeCategory === 'client' ? 'text-neon-cyan scale-110' : 'text-zinc-400 group-hover:text-neon-cyan'
                                 }`} style={activeCategory === 'client' ? { fontVariationSettings: "'FILL' 1" } : {}}>
                                     router
                                 </span>
                                 <span className="text-sm relative z-10">ระบบลูกข่าย</span>
                                 {activeCategory === 'client' && (
-                                    <motion.span 
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] z-10"
-                                    />
+                                    <span className="absolute right-2 w-1 h-4 rounded-full bg-neon-cyan shadow-[0_0_6px_#00f0ff] z-10" />
                                 )}
                             </button>
                         </Magnetic>
@@ -206,71 +228,165 @@ export default function SideNavBar({
                                     animate={{ height: 'auto', opacity: 1, filter: 'blur(0px)' }}
                                     exit={{ height: 0, opacity: 0, filter: 'blur(4px)' }}
                                     transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
-                                    className="overflow-hidden flex flex-col gap-0.5 ms-8 mt-1 mb-2 pl-3 border-l-2 border-zinc-200/60 dark:border-zinc-700/60"
+                                    className="overflow-hidden flex flex-col gap-0.5 ms-8 mt-1 mb-2 pl-3 border-l-2 border-neon-cyan/25"
                                 >
                                     <Magnetic distance={0.1}>
                                         <button 
                                             onClick={() => onProvinceChange('All')}
-                                            className={`text-left px-3 py-1.5 text-[11px] rounded-lg font-bold transition-all duration-200 w-full ${
+                                            className={cn(
+                                                "text-left px-3 py-1.5 text-[11px] rounded-lg font-bold transition-all duration-200 w-full",
                                                 selectedProvince === 'All' 
-                                                ? 'text-blue-600 bg-blue-50/60 dark:bg-blue-900/20 dark:text-blue-400' 
-                                                : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/30'
-                                            }`}
+                                                ? 'text-neon-cyan bg-neon-cyan/10 border border-neon-cyan/20' 
+                                                : 'text-zinc-400 hover:text-neon-cyan/80 hover:bg-neon-cyan/5'
+                                            )}
                                         >
                                             ทั้งหมด
                                         </button>
                                     </Magnetic>
-                                    {provinces.map((p, idx) => (
+                                    {mounted && provinces.map((p, idx) => (
                                         <Magnetic key={p} distance={0.1}>
                                             <motion.button 
                                                 initial={{ x: -10, opacity: 0 }}
                                                 animate={{ x: 0, opacity: 1 }}
                                                 transition={{ delay: idx * 0.03 + 0.1 }}
                                                 onClick={() => onProvinceChange(p)}
-                                                className={`text-left px-3 py-1.5 text-[11px] rounded-lg font-bold transition-all duration-200 w-full ${
+                                                className={cn(
+                                                    "text-left px-3 py-1.5 text-[11px] rounded-lg font-bold transition-all duration-200 w-full",
                                                     selectedProvince === p 
-                                                    ? 'text-blue-600 bg-blue-50/60 dark:bg-blue-900/20 dark:text-blue-400' 
-                                                    : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/30'
-                                                }`}
+                                                    ? 'text-neon-cyan bg-neon-cyan/10 border border-neon-cyan/20' 
+                                                    : 'text-zinc-400 hover:text-neon-cyan/80 hover:bg-neon-cyan/5'
+                                                )}
                                             >
                                                 {p}
                                             </motion.button>
                                         </Magnetic>
                                     ))}
                                 </motion.div>
-
                             )}
                         </AnimatePresence>
                     </div>
 
                     {/* Divider */}
-                    <div className="mx-4 my-3 h-px bg-gradient-to-r from-transparent via-zinc-200 dark:via-zinc-700 to-transparent"></div>
+                    <div className="mx-4 my-3 h-px bg-gradient-to-r from-transparent via-neon-cyan/30 to-transparent"></div>
 
-                    {/* Section Label */}
+                    {/* Incidents */}
                     <div className="px-4 mb-1">
-                        <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.15em]">รายงาน</span>
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em]">ปฏิบัติการ</span>
                     </div>
 
                     <Magnetic distance={0.15}>
-                        <a className="group flex items-center gap-3 text-zinc-500 dark:text-zinc-400 px-4 py-3 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 transition-all duration-200 rounded-xl font-semibold hover:text-zinc-700 dark:hover:text-zinc-200 w-full" href="/report">
-                            <span className="material-symbols-outlined text-[20px] text-zinc-400 group-hover:text-zinc-600 transition-colors duration-200">assessment</span>
+                        <Link
+                            href="/mission-control"
+                            className={cn(
+                                "group flex items-center gap-3 px-4 py-3 font-bold rounded-xl transition-all duration-300 relative w-full",
+                                isIncidentsActive
+                                    ? "bg-neon-magenta/10 text-neon-magenta border border-neon-magenta/25"
+                                    : "text-slate-400 hover:bg-neon-magenta/5 hover:text-neon-magenta/80"
+                            )}
+                            style={isIncidentsActive ? {
+                                boxShadow: "0 0 12px rgba(255,0,160,0.12), inset 0 0 8px rgba(255,0,160,0.05)",
+                                textShadow: "0 0 4px rgba(255,0,160,0.3)"
+                            } : {}}
+                        >
+                            <span className={`material-symbols-outlined text-[20px] transition-all duration-300 ${
+                                isIncidentsActive ? "text-neon-magenta scale-110" : "text-zinc-400 group-hover:text-neon-magenta"
+                            }`} style={isIncidentsActive ? { fontVariationSettings: "'FILL' 1" } : {}}>
+                                report
+                            </span>
+                            <span className="text-sm">Incidents</span>
+                            {isIncidentsActive && (
+                                <span className="absolute right-2 w-1 h-4 rounded-full bg-neon-magenta shadow-[0_0_6px_#ff00a0]" />
+                            )}
+                        </Link>
+                    </Magnetic>
+
+                    {role === "admin" && (
+                    <>
+                    <Magnetic distance={0.15}>
+                        <Link
+                            href="/notification-ops"
+                            className={cn(
+                                "group flex items-center gap-3 px-4 py-3 font-bold rounded-xl transition-all duration-300 relative w-full",
+                                isNotificationOpsActive
+                                    ? "bg-neon-yellow/10 text-neon-yellow border border-neon-yellow/25"
+                                    : "text-slate-400 hover:bg-neon-yellow/5 hover:text-neon-yellow/80"
+                            )}
+                            style={isNotificationOpsActive ? {
+                                boxShadow: "0 0 12px rgba(240,232,0,0.12), inset 0 0 8px rgba(240,232,0,0.05)",
+                                textShadow: "0 0 4px rgba(240,232,0,0.3)"
+                            } : {}}
+                        >
+                            <span className={`material-symbols-outlined text-[20px] transition-all duration-300 ${
+                                isNotificationOpsActive ? "text-neon-yellow scale-110" : "text-zinc-400 group-hover:text-neon-yellow"
+                            }`} style={isNotificationOpsActive ? { fontVariationSettings: "'FILL' 1" } : {}}>
+                                notifications_active
+                            </span>
+                            <span className="text-sm">Notification Ops</span>
+                            {isNotificationOpsActive && (
+                                <span className="absolute right-2 w-1 h-4 rounded-full bg-neon-yellow shadow-[0_0_6px_#f0e800]" />
+                            )}
+                        </Link>
+                    </Magnetic>
+
+                    <Magnetic distance={0.15}>
+                        <Link
+                            href="/activity-logs"
+                            className={cn(
+                                "group flex items-center gap-3 px-4 py-3 font-bold rounded-xl transition-all duration-300 relative w-full",
+                                isActivityLogsActive
+                                    ? "bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/25"
+                                    : "text-slate-400 hover:bg-neon-cyan/5 hover:text-neon-cyan/80"
+                            )}
+                            style={isActivityLogsActive ? {
+                                boxShadow: "0 0 12px rgba(0,240,255,0.12), inset 0 0 8px rgba(0,240,255,0.05)",
+                                textShadow: "0 0 4px rgba(0,240,255,0.3)"
+                            } : {}}
+                        >
+                            <span className={`material-symbols-outlined text-[20px] transition-all duration-300 ${
+                                isActivityLogsActive ? "text-neon-cyan scale-110" : "text-zinc-400 group-hover:text-neon-cyan"
+                            }`} style={isActivityLogsActive ? { fontVariationSettings: "'FILL' 1" } : {}}>
+                                manage_search
+                            </span>
+                            <span className="text-sm">Activity Logs</span>
+                            {isActivityLogsActive && (
+                                <span className="absolute right-2 w-1 h-4 rounded-full bg-neon-cyan shadow-[0_0_6px_#00f0ff]" />
+                            )}
+                        </Link>
+                    </Magnetic>
+
+                    </>
+                    )}
+
+                    <div className="mx-4 my-3 h-px bg-gradient-to-r from-transparent via-neon-cyan/30 to-transparent"></div>
+
+                    {/* Section Label */}
+                    <div className="px-4 mb-1">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em]">รายงาน</span>
+                    </div>
+
+                    <Magnetic distance={0.15}>
+                        <a className="group flex items-center gap-3 text-slate-400 px-4 py-3 hover:bg-neon-cyan/5 hover:text-neon-cyan/80 transition-all duration-200 rounded-xl font-semibold w-full" href="/report">
+                            <span className="material-symbols-outlined text-[20px] text-zinc-400 group-hover:text-neon-cyan transition-colors duration-200">assessment</span>
                             <span className="text-sm">Reports</span>
                         </a>
                     </Magnetic>
                 </nav>
             
                 {/* Footer */}
-                <div className="pt-4 border-t border-zinc-200/50 dark:border-zinc-800 mb-20 space-y-1">
+                <div className="pt-4 border-t border-dark-border mb-20 space-y-1">
                     <Magnetic distance={0.15}>
-                        <a className="group flex items-center gap-3 text-zinc-400 dark:text-zinc-500 px-4 py-2.5 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 transition-all duration-200 rounded-xl font-medium hover:text-zinc-600 dark:hover:text-zinc-300 w-full" href="#">
+                        <a className="group flex items-center gap-3 text-zinc-500 px-4 py-2.5 hover:bg-neon-cyan/5 hover:text-neon-cyan/80 transition-all duration-200 rounded-xl font-medium w-full" href="#">
                             <span className="material-symbols-outlined text-[18px]">help</span>
                             <span className="text-xs">Help Center</span>
                         </a>
                     </Magnetic>
                     <div className="px-4 py-2">
-                        <span className="text-[9px] font-bold text-zinc-300 dark:text-zinc-700 tracking-widest uppercase">ProssNum © 2026</span>
+                        <span className="text-[9px] font-bold text-zinc-700 tracking-widest uppercase" style={{ textShadow: "0 0 4px rgba(255,255,255,0.02)" }}>ProssNum © 2026</span>
                     </div>
                 </div>
+
+                {/* Bottom lightning line */}
+                <div className="mt-auto lightning-line opacity-30" />
             </motion.aside>
         </>
     );

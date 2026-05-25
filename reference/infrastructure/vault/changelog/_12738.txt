@@ -1,3 +1,0 @@
-```release-note:bug
-identity: Repair the integrity of duplicate and/or dangling entity aliases.
-```

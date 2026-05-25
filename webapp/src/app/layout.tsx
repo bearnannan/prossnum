@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import OfflineSyncManager from "@/components/OfflineSyncManager";
+import ActivityTracker from "@/components/ActivityTracker";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th">
+    <html lang="th" className="dark">
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" crossOrigin="anonymous" />
@@ -42,6 +44,9 @@ export default function RootLayout({
       >
         <SessionProvider>
           <ToastProvider>
+            <Suspense fallback={null}>
+              <ActivityTracker />
+            </Suspense>
             <OfflineSyncManager />
             {children}
           </ToastProvider>

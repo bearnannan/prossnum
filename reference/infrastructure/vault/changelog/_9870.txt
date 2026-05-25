@@ -1,3 +1,0 @@
-```release-note:bug
-auth: fixed panic when suppling integer as a lease_id in renewal.
-```

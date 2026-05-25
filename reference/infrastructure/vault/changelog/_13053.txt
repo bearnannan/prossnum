@@ -1,3 +1,0 @@
-```release-note:improvement
-core/identity: Add two new fields to the alias API, external_id and issuer. These fields do not inherently do anything meaningful, and are part of a future feature.
-```

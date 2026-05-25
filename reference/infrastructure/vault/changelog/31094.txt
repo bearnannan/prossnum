@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Revert camelizing of parameters returned from `sys/internal/ui/mounts` so mount paths match serve value
-```

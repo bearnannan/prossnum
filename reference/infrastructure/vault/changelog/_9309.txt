@@ -1,3 +1,0 @@
-```release-note:feature
-**UI: Secret Engine Tune Support**: Add support for updating secret engine mount configuration via the Tune endpoint
-```

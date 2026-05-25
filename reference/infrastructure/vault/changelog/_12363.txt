@@ -1,3 +1,0 @@
-```release-note:feature
-**Vault Agent: ACME protocol support**: Add support to natively support Public CA ACME workflows
-```

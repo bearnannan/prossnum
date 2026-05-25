@@ -1,3 +1,0 @@
-```release-note: improvement
-transit: Exclude the partial wrapping key path from the transit/keys LIST operation.
-```

@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Fix selecting multiple namespaces in the namespace picker when the path contains matching nodes
-```

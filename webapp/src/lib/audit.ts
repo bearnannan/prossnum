@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { logActivity } from "@/lib/activity-logger";
 
 export type AuditAction = "CREATE" | "UPDATE" | "DELETE";
 
@@ -17,22 +17,19 @@ export async function logAction({
   recordId: string;
   payload?: any;
 }) {
-  try {
-    const { error } = await supabase.from("audit_logs").insert([
-      {
-        user_id: userId,
-        user_name: userName,
-        action,
-        table_name: tableName,
-        record_id: recordId,
-        payload,
-      },
-    ]);
-
-    if (error) {
-      console.error("Failed to write audit log:", error);
-    }
-  } catch (err) {
-    console.error("Audit logging exception:", err);
-  }
+  await logActivity({
+    eventType: "mission_control",
+    eventName: `dashboard_${action.toLowerCase()}`,
+    userId,
+    userName,
+    userSource: "dashboard_data_api",
+    targetType: tableName,
+    targetId: recordId,
+    metadata: {
+      action,
+      tableName,
+      recordId,
+      payload: payload || null,
+    },
+  });
 }

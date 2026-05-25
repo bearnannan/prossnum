@@ -1,3 +1,0 @@
-```release-note:change
-activity: provided value for `end_time` in `sys/internal/counters/activity` is now capped at the end of the last completed month.
-```

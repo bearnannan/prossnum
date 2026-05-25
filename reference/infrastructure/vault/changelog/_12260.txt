@@ -1,3 +1,0 @@
-```release-note:bug
-secrets/pki: fix panic during acme account creation with malformed protected field.
-``

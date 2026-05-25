@@ -1,3 +1,0 @@
-```release-note: improvement
-core: Updated code and documentation to support FIPS 140-3 compliant algorithms.
-```

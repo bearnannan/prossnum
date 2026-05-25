@@ -1,3 +1,0 @@
-```release-note:bug
-core: interpret all new rotation manager rotation_schedules as UTC to avoid inadvertent use of tz-local
-```

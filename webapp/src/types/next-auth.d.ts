@@ -1,0 +1,18 @@
+import type { DefaultSession } from "next-auth";
+import type { AppRole } from "@/lib/rbac";
+
+declare module "next-auth" {
+  interface Session {
+    user: DefaultSession["user"] & {
+      id?: string;
+      role?: AppRole;
+    };
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    lineUserId?: string;
+    role?: AppRole;
+  }
+}

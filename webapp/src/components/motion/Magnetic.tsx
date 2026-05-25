@@ -4,6 +4,7 @@ import React, { useRef, useState } from "react";
 import { motion, useSpring, useMotionValue } from "framer-motion";
 
 export function Magnetic({ children, distance = 0.5 }: { children: React.ReactNode, distance?: number }) {
+  const [mounted, setMounted] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -11,6 +12,10 @@ export function Magnetic({ children, distance = 0.5 }: { children: React.ReactNo
   const springConfig = { damping: 20, stiffness: 120, mass: 0.5 };
   const springX = useSpring(x, springConfig);
   const springY = useSpring(y, springConfig);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!ref.current) return;
@@ -31,6 +36,14 @@ export function Magnetic({ children, distance = 0.5 }: { children: React.ReactNo
     x.set(0);
     y.set(0);
   };
+
+  if (!mounted) {
+    return (
+      <div className="inline-block">
+        {children}
+      </div>
+    );
+  }
 
   return (
     <motion.div

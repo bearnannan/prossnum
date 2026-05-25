@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Fix kv v2 overview page from erroring if a user does not have access to the /subkeys endpoint and the policy check fails.
-```

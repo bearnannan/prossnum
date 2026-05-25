@@ -1,3 +1,0 @@
-```release-note:bug
-core: Fix string contains check in Identity APIs to be case-insensitive.
-```

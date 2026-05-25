@@ -1,9 +1,0 @@
-# unconventional files
-/blueprints/*/files/
-
-# compiled output
-/dist/
-/vault-reporting/
-
-# addons
-/.node_modules.ember-try/

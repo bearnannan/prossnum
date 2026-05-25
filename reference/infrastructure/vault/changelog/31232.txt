@@ -1,3 +1,0 @@
-```release-note:improvement
-secrets/pki: Add the digest OID when logging SCEP digest mismatch errors.
-```

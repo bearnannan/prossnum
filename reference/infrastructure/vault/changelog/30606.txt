@@ -1,3 +1,0 @@
-```release-note:bug
-secrets/database: Treat all rotation_schedule values as UTC to ensure consistent behavior.
-```

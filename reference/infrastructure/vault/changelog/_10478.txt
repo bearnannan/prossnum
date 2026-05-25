@@ -1,3 +1,0 @@
-```release-note:bug
-secrets/pki: Return error when issuing/signing certs whose NotAfter is before NotBefore or whose validity period isn't contained by the CA's.
-```

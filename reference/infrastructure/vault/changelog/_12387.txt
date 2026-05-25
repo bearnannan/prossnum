@@ -1,3 +1,0 @@
-```release-note:feature
-**UI Authentication methods intro**: Onboarding intro which provides feature context to users.
-```

@@ -1,3 +1,0 @@
-```release-note:improvement
-sdk/rotation: Prevent rotation attempts on read-only storage
-```

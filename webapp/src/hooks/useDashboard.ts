@@ -1,7 +1,23 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
+
+export interface DashboardItem {
+  id?: string | number;
+  province?: string;
+  district?: string;
+  stationName?: string;
+  startDate?: string;
+  endDate?: string;
+  remark?: string;
+  electricProgress?: string | number;
+  groundProgress?: string | number;
+  feederProgress?: string | number;
+  foundationProgress?: string | number;
+  poleInstallationProgress?: string | number;
+  [key: string]: unknown;
+}
 
 export function useDashboard(
-  data: any[], 
+  data: DashboardItem[], 
   activeCategory: 'station' | 'client', 
   searchTerm: string,
   setSearchTerm: React.Dispatch<React.SetStateAction<string>>,
@@ -14,9 +30,11 @@ export function useDashboard(
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [selectedProvince, setSelectedProvince] = useState("All");
 
-  useEffect(() => {
+  const [prevCategory, setPrevCategory] = useState(activeCategory);
+  if (activeCategory !== prevCategory) {
+    setPrevCategory(activeCategory);
     setSelectedProvince("All");
-  }, [activeCategory]);
+  }
 
   const provinces = useMemo(() => Array.from(new Set(data.map(d => d.province).filter(Boolean))) as string[], [data]);
   const districts = useMemo(() => Array.from(new Set(data.map(d => d.district).filter(Boolean))) as string[], [data]);
@@ -37,8 +55,8 @@ export function useDashboard(
 
   const sortedData = useMemo(() => [...filteredData].sort((a, b) => {
     if (!sortConfig) return 0;
-    const aVal = a[sortConfig.key] ?? "";
-    const bVal = b[sortConfig.key] ?? "";
+    const aVal = String(a[sortConfig.key] ?? "");
+    const bVal = String(b[sortConfig.key] ?? "");
     return sortConfig.direction === "asc" ? (aVal < bVal ? -1 : 1) : (aVal > bVal ? -1 : 1);
   }), [filteredData, sortConfig]);
 
@@ -48,8 +66,8 @@ export function useDashboard(
 
   const overallProgress = filteredData.length > 0 ? Math.round(filteredData.reduce((acc, d) => {
     const p = activeCategory === 'client' 
-      ? (parseFloat(d.electricProgress || 0) + parseFloat(d.groundProgress || 0) + parseFloat(d.feederProgress || 0)) / 3
-      : (parseFloat(d.foundationProgress || 0) + parseFloat(d.poleInstallationProgress || 0)) / 2;
+      ? (parseFloat(String(d.electricProgress || 0)) + parseFloat(String(d.groundProgress || 0)) + parseFloat(String(d.feederProgress || 0))) / 3
+      : (parseFloat(String(d.foundationProgress || 0)) + parseFloat(String(d.poleInstallationProgress || 0))) / 2;
     return acc + p;
   }, 0) / filteredData.length) : 0;
 

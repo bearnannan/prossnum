@@ -1,3 +1,0 @@
-```release-note:improvement
-license utilization reporting: Added consumption billing metrics.
-```

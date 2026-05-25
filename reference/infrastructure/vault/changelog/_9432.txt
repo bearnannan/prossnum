@@ -1,3 +1,0 @@
-```release-note:improvement
-secrets/database: Add root rotation support for Snowflake database secrets engines using key-pair credentials.
-```

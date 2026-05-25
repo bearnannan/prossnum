@@ -74,7 +74,16 @@ Finalize every task by updating the `log.md` and `index.md`. Create a Walkthroug
 
 ---
 
-## 5. Skill Priority Matrix
+## 5. LINE Quota & Incident Fallback Standards
+
+If you modify or refactor the incident reporting or push notification modules:
+- **Zero-Restart Switcher**: Always query Supabase settings `line_backup_token`, `line_backup_group_id`, and `fallback_email_to` dynamically via `getIncidentConfigAsync()` inside any route handler. Never hardcode token backups or trigger server restarts.
+- **Microsoft 365 SMTP baseline**: Keep baseline SMTP values (`smtp.office365.com` and `587`) as default parameters inside `src/lib/incidents/config.ts`.
+- **Resilient Fallbacks**: Never let the email fallback service crash or fail silently if credentials are blank. Ensure the `nodemailer` logger prints the visually highlighted mock status directly to the console in local testing.
+
+---
+
+## 6. Skill Priority Matrix
 
 1. **`GitNexus`**: Primary for codebase intelligence, impact analysis, and knowledge-graph context.
 2. **`ui-ux-pro-max-skill`**: Primary for UI quality and design-system adherence.

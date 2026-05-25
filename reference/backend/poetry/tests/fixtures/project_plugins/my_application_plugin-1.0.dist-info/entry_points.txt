@@ -1,2 +1,0 @@
-[poetry.application.plugin]
-my-command=my_application_plugin.plugins:MyApplicationPlugin

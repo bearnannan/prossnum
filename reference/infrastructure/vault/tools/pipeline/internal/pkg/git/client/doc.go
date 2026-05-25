@@ -1,5 +1,0 @@
-// Copyright IBM Corp. 2016, 2025
-// SPDX-License-Identifier: BUSL-1.1
-
-// Package client is a Go module that wraps the `git` CLI client.
-package client

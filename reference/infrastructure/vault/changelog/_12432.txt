@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Display errors consistently across the application and show API messages where available.
-```

@@ -1,3 +1,0 @@
-```release-note:feature
-**Template Integration for PublicPKICA**: Vault Agent templates are now automatically re-rendered when a PKI external CA certificate is issued or renewed.
-```

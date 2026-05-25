@@ -1,3 +1,0 @@
-```release-note:bug
-core (enterprise): fix a bug where issuing a token in a namespace used root auth configuration instead of namespace auth configuration
-```

@@ -1,3 +1,0 @@
-```release-note:improvement
-ui/activity: Display total instead of new monthly clients for HCP managed clusters
-```

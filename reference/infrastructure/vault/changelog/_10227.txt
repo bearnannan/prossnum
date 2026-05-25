@@ -1,3 +1,0 @@
-```release-note:change
-ui/secrets: Secrets engines url paths renamed from '/secrets' to '/secrets-engines'
-```

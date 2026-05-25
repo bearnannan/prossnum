@@ -1,3 +1,0 @@
-```release-note:feature
-**UI: Hashi-Built External Plugin Support**: Support external plugin version updates via the GUI.
-```

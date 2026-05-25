@@ -1,3 +1,0 @@
-```release-note:bug
-secrets-sync (enterprise): Fix issue where sync store deletion could be attempted when sync is disabled.
-```

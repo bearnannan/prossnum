@@ -1,3 +1,0 @@
-```release-note:bugfix
-secrets/pki: When signing a CSR with a role which has keyType "any", set signature length as configured.
-```

@@ -1,3 +1,0 @@
-```release-note:security
-core: require a nonce when cancelling a rekey operation that was initiated within the last 10 minutes.
-```

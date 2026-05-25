@@ -1,3 +1,0 @@
-```release-note:improvement
-config/listener: logs warnings on invalid x-forwarded-for configurations.
-```

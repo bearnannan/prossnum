@@ -1,3 +1,0 @@
-```release-note:feature
-**UI: Hashi-Built External Plugin Support**: Recognize and support Hashi-built plugins when run as external binaries
-```

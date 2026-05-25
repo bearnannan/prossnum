@@ -13,21 +13,37 @@ import {
 } from 'recharts';
 import React, { useState } from 'react';
 
+const NEON = {
+  cyan: "#00F0FF",
+  green: "#00FF88",
+  yellow: "#F0E800",
+  magenta: "#FF00A0",
+  purple: "#B829DD",
+  orange: "#FF7B00",
+};
+
 // Custom Tooltip for enhanced information
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
         return (
-            <div className="bg-white p-3 rounded-lg shadow-lg border border-zinc-100 text-sm">
-                <p className="font-semibold text-zinc-800 mb-1">{data.name}</p>
-                <p className="text-zinc-600 mb-1"><span className="font-medium text-zinc-500">อ.:</span> {data.district}</p>
-                <p className="text-zinc-600 mb-2"><span className="font-medium text-zinc-500">Type:</span> {data.type}</p>
-                {payload.map((entry: any, index: number) => (
-                    <div key={`item-${index}`} className="flex items-center gap-2 text-xs">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                        <span className="text-zinc-700">{entry.name}: <span className="font-semibold">{entry.value}%</span></span>
-                    </div>
-                ))}
+            <div className="bg-[#12121A]/95 backdrop-blur-md p-3.5 rounded-xl shadow-[0_15px_30px_rgba(0,0,0,0.6),_0_0_15px_rgba(0,240,255,0.08)] border border-[rgba(0,240,255,0.20)] text-xs">
+                <p className="font-black text-white mb-2 uppercase tracking-wider text-sm" style={{ textShadow: "0 0 8px rgba(255,255,255,0.15)" }}>{data.name}</p>
+                <div className="space-y-1 text-slate-400 mb-2 border-b border-white/5 pb-2">
+                    <p><span className="font-bold text-slate-500 uppercase">อำเภอ:</span> {data.district}</p>
+                    <p><span className="font-bold text-slate-500 uppercase">ประเภท:</span> {data.type}</p>
+                </div>
+                <div className="space-y-1.5">
+                    {payload.map((entry: any, index: number) => (
+                        <div key={`item-${index}`} className="flex items-center justify-between gap-6">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color, boxShadow: `0 0 6px ${entry.color}` }} />
+                                <span className="text-slate-300 font-bold">{entry.name}</span>
+                            </div>
+                            <span className="font-mono font-black" style={{ color: entry.color }}>{entry.value}%</span>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }
@@ -98,7 +114,7 @@ export default React.memo(function ProgressChart({ data, category = 'station' }:
     };
 
     if (chartData.length === 0) {
-        return <div className="flex items-center justify-center h-full text-gray-500">No data available for chart</div>;
+        return <div className="flex items-center justify-center h-full text-slate-500 font-bold uppercase tracking-wider">ไม่มีข้อมูลสถานี</div>;
     }
 
     return (
@@ -106,13 +122,13 @@ export default React.memo(function ProgressChart({ data, category = 'station' }:
             {(left !== 'dataMin' || right !== 'dataMax') && (
                 <button
                     onClick={zoomOut}
-                    className="absolute top-0 right-0 z-10 bg-white border border-zinc-200 text-zinc-600 px-3 py-1 rounded text-xs shadow-sm hover:bg-zinc-50"
+                    className="absolute top-0 right-0 z-10 bg-dark-surface/80 border border-neon-cyan/35 text-neon-cyan px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider shadow-[0_0_12px_rgba(0,240,255,0.2)] hover:bg-neon-cyan/15 hover:shadow-[0_0_18px_rgba(0,240,255,0.4)] transition-all duration-200"
                 >
                     Zoom Out
                 </button>
             )}
-            <p className="text-xs text-zinc-400 absolute top-0 left-0">Drag horizontally to zoom in</p>
-            <ResponsiveContainer width="100%" height="90%">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 absolute top-0 left-0">Drag horizontally to zoom in</p>
+            <ResponsiveContainer width="100%" height="90%" minWidth={0} minHeight={0}>
                 <BarChart
                     data={chartData}
                     margin={{ top: 25, right: 10, left: -20, bottom: 80 }}
@@ -120,13 +136,13 @@ export default React.memo(function ProgressChart({ data, category = 'station' }:
                     onMouseMove={(e) => refAreaLeft && e && setRefAreaRight(e.activeLabel || '')}
                     onMouseUp={zoom}
                 >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255, 255, 255, 0.06)" />
                     <XAxis
                         dataKey="name"
                         domain={[left, right]}
                         type="category"
                         allowDataOverflow
-                        tick={{ fill: '#6B7280', fontSize: 9 }}
+                        tick={{ fill: '#94A3B8', fontSize: 9, fontWeight: 700 }}
                         angle={-60}
                         textAnchor="end"
                         interval={0}
@@ -139,31 +155,34 @@ export default React.memo(function ProgressChart({ data, category = 'station' }:
                         allowDataOverflow
                         domain={[0, 100]}
                         type="number"
-                        tick={{ fill: '#6B7280', fontSize: 12 }}
+                        tick={{ fill: '#64748B', fontSize: 10, fontWeight: 700 }}
                         axisLine={false}
                         tickLine={false}
                         tickFormatter={(value) => `${value}%`}
                     />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0, 240, 255, 0.03)' }} />
+                    <Legend 
+                        iconType="circle" 
+                        wrapperStyle={{ fontSize: '11px', fontWeight: 800, color: '#E2E8F0', paddingTop: '10px' }}
+                    />
                     
                     {!isClient ? (
                         <>
-                            <Bar dataKey="foundation" name="ฐานราก" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={20} />
-                            <Bar dataKey="pole" name="ติดตั้งเสา" fill="#10B981" radius={[4, 4, 0, 0]} barSize={20} />
+                            <Bar dataKey="foundation" name="งานฐานราก" fill={NEON.cyan} radius={[4, 4, 0, 0]} barSize={20} isAnimationActive={false} />
+                            <Bar dataKey="pole" name="ติดตั้งเสา" fill={NEON.green} radius={[4, 4, 0, 0]} barSize={20} isAnimationActive={false} />
                         </>
                     ) : (
                         <>
-                            <Bar dataKey="electric" name="ระบบไฟฟ้า" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={12} />
-                            <Bar dataKey="ground" name="ระบบกราวด์" fill="#10B981" radius={[4, 4, 0, 0]} barSize={12} />
-                            <Bar dataKey="feeder" name="สาย Feeder" fill="#F59E0B" radius={[4, 4, 0, 0]} barSize={12} />
-                            <Bar dataKey="tower" name="อุปกรณ์บนเสา" fill="#8B5CF6" radius={[4, 4, 0, 0]} barSize={12} />
-                            <Bar dataKey="radio" name="เครื่องวิทยุ" fill="#EC4899" radius={[4, 4, 0, 0]} barSize={12} />
+                            <Bar dataKey="electric" name="ระบบไฟฟ้า" fill={NEON.cyan} radius={[4, 4, 0, 0]} barSize={12} isAnimationActive={false} />
+                            <Bar dataKey="ground" name="ระบบกราวด์" fill={NEON.green} radius={[4, 4, 0, 0]} barSize={12} isAnimationActive={false} />
+                            <Bar dataKey="feeder" name="สาย Feeder" fill={NEON.yellow} radius={[4, 4, 0, 0]} barSize={12} isAnimationActive={false} />
+                            <Bar dataKey="tower" name="อุปกรณ์บนเสา (Yagi)" fill={NEON.purple} radius={[4, 4, 0, 0]} barSize={12} isAnimationActive={false} />
+                            <Bar dataKey="radio" name="เครื่องวิทยุ" fill={NEON.magenta} radius={[4, 4, 0, 0]} barSize={12} isAnimationActive={false} />
                         </>
                     )}
 
                     {refAreaLeft && refAreaRight ? (
-                        <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#8884d8" fillOpacity={0.3} />
+                        <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} fill="#00f0ff" fillOpacity={0.15} />
                     ) : null}
                 </BarChart>
             </ResponsiveContainer>

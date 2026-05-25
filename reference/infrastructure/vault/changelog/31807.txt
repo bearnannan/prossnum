@@ -1,3 +1,0 @@
-```release-note:bug
-ui: fix renew token button rendering for denied renew-self.
-```

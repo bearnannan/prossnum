@@ -1,3 +1,0 @@
-```release-note:bug
-core/metrics: Add service name prefix for core HA metrics to avoid duplicate, zero-value metrics.
-```

@@ -41,3 +41,11 @@ This project is indexed by GitNexus as **webapp** (1042 symbols, 1513 relationsh
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
+
+## 🤖 Incidents Quota & SMTP Fallback Guide
+The dynamic bot switcher and Microsoft 365 SMTP fallback modules are fully operational:
+- **Core Files:** `config.ts`, `email-client.ts`, `line-client.ts` in `src/lib/incidents/`.
+- **API Routes:** `/api/settings` and `/api/incidents/[id]/resend`.
+- **UI Elements:** Settings administration card and glowing retry buttons on `/incidents`.
+- **Impact Analysis Rules:** Before editing the `sendLineNotification` or configuration dynamic modules, run `gitnexus_impact` to assess call flow impacts across webhook handlers and manual retry routes.
+

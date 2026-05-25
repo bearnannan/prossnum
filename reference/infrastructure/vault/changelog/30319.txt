@@ -1,3 +1,0 @@
-```release-note:improvement
-secrets/pki: Add Delta (Freshest) CRL support to AIA information (both mount-level and issuer configured)
-```

@@ -1,3 +1,0 @@
-```release-note:bug
-replication (enterprise): fix rare panic due to race when enabling a secondary with Consul storage.
-```

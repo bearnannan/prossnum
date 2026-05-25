@@ -1,3 +1,0 @@
-```release-note:improvement
-ui/database: Adding password input field for creating a static role
-```

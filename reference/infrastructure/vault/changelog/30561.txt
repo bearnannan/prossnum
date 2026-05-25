@@ -1,3 +1,0 @@
-```release-note:deprecation
-api: Deprecated the `/sys/internal/counters/tokens` endpoint. Attempting to call this endpoint will return a 403 "unsupported path" exception. 
-```

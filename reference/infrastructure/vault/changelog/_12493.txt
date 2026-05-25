@@ -1,3 +1,0 @@
-```release-note:change
-ui: Remove ability to bulk delete secrets engines from the list view.
-```

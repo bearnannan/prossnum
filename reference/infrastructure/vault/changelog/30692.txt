@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Add 'Refresh list' button to the namespace list page.
-```

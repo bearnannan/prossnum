@@ -1,3 +1,0 @@
-```release-note:improvement
-secrets/pki (enterprise): When the common_criteria_mode feature flag is enabled, NotBefore will always be treated as zero.
-```

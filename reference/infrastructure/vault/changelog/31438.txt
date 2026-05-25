@@ -1,3 +1,0 @@
-```release-note:bug
-auth/cert: Recover from partially populated caches of trusted certificates if one or more certificates fails to load.
-```

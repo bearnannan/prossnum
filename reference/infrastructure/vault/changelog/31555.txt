@@ -1,3 +1,0 @@
-```release-note:bug
-sys/mounts: enable unsetting allowed_response_headers
-```

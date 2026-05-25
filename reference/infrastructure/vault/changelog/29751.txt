@@ -1,3 +1,0 @@
-```release-note:feature
-**UI Secrets Engines**: TOTP secrets engine is now supported.
-```

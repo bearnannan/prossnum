@@ -1,3 +1,0 @@
-```release-note:change
-policies: change list comparison to allowed_parameters and denied_parameters from "exact match" to "contains all"
-```

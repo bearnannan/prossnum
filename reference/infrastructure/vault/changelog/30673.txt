@@ -1,3 +1,0 @@
-```release-note:improvement
-plugins: Support registration of CE plugins with extracted artifact directory.
-```

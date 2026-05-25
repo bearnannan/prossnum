@@ -21,17 +21,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         const rowData = payload[0].payload;
         return (
-            <div className="bg-zinc-50 dark:bg-zinc-900/90 backdrop-blur-md p-3 rounded-xl shadow-2xl border border-zinc-200 dark:border-zinc-800 text-sm animate-in fade-in zoom-in duration-200">
-                <p className="font-bold text-zinc-900 dark:text-zinc-100 mb-1">อำเภอ: {label}</p>
-                <p className="text-zinc-500 dark:text-zinc-400 mb-2 text-[10px] uppercase tracking-wider font-semibold">จาก {rowData.count} สถานี</p>
+            <div className="bg-dark-elevated/95 backdrop-blur-md p-3 rounded-xl border border-dark-border text-sm shadow-[0_0_20px_rgba(0,240,255,0.08)] animate-in fade-in zoom-in duration-200">
+                <p className="font-bold text-slate-100 mb-1">อำเภอ: {label}</p>
+                <p className="text-slate-400 mb-2 text-[10px] uppercase tracking-wider font-semibold">จาก {rowData.count} สถานี</p>
                 <div className="space-y-1.5">
                     {payload.map((entry: any, index: number) => (
                         <div key={`item-${index}`} className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full shadow-[0_0_8px_var(--color)]" style={{ backgroundColor: entry.color, '--color': entry.color } as React.CSSProperties} />
-                                <span className="text-zinc-600 dark:text-zinc-400 text-xs">{entry.name}</span>
+                                <span className="text-slate-300 text-xs">{entry.name}</span>
                             </div>
-                            <span className="font-bold text-zinc-900 dark:text-zinc-100 text-xs">{entry.value}%</span>
+                            <span className="font-bold text-slate-100 text-xs">{entry.value}%</span>
                         </div>
                     ))}
                 </div>
@@ -119,17 +119,17 @@ export default React.memo(function DistrictProgressChart({
     }
 
     return (
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+        <ResponsiveContainer width="100%" height={380} minWidth={0} minHeight={0}>
             <BarChart
                 data={chartData}
                 layout="vertical"
                 margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
             >
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255, 255, 255, 0.08)" />
                 <XAxis
                     type="number"
                     domain={[0, 100]}
-                    tick={{ fill: '#6B7280', fontSize: 12 }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(value) => `${value}%`}
@@ -137,25 +137,25 @@ export default React.memo(function DistrictProgressChart({
                 <YAxis
                     dataKey="name"
                     type="category"
-                    tick={{ fill: '#4B5563', fontSize: 10, fontWeight: 500 }}
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 500 }}
                     axisLine={false}
                     tickLine={false}
                     width={70}
                 />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F3F4F6' }} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255, 255, 255, 0.03)' }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px', color: '#94a3b8' }} />
                 {!isClient ? (
                     <>
-                        <Bar dataKey="foundation" name="เฉลี่ยฐานราก" fill="#3B82F6" radius={[0, 4, 4, 0]} barSize={16} />
-                        <Bar dataKey="pole" name="เฉลี่ยติดตั้งเสา" fill="#10B981" radius={[0, 4, 4, 0]} barSize={16} />
+                        <Bar dataKey="foundation" name="เฉลี่ยฐานราก" fill="#00f0ff" radius={[0, 4, 4, 0]} barSize={16} />
+                        <Bar dataKey="pole" name="เฉลี่ยติดตั้งเสา" fill="#00ff88" radius={[0, 4, 4, 0]} barSize={16} />
                     </>
                 ) : (
                     <>
-                        <Bar dataKey="electric" name="เฉลี่ยระบบไฟฟ้า" fill="#3B82F6" radius={[0, 4, 4, 0]} barSize={10} />
-                        <Bar dataKey="ground" name="เฉลี่ยระบบกราวด์" fill="#10B981" radius={[0, 4, 4, 0]} barSize={10} />
-                        <Bar dataKey="feeder" name="เฉลี่ยสาย Feeder" fill="#F59E0B" radius={[0, 4, 4, 0]} barSize={10} />
-                        <Bar dataKey="tower" name="อุปกรณ์บนเสา" fill="#8B5CF6" radius={[0, 4, 4, 0]} barSize={10} />
-                        <Bar dataKey="radio" name="เครื่องวิทยุ" fill="#EC4899" radius={[0, 4, 4, 0]} barSize={10} />
+                        <Bar dataKey="electric" name="เฉลี่ยระบบไฟฟ้า" fill="#00f0ff" radius={[0, 4, 4, 0]} barSize={10} />
+                        <Bar dataKey="ground" name="เฉลี่ยระบบกราวด์" fill="#00ff88" radius={[0, 4, 4, 0]} barSize={10} />
+                        <Bar dataKey="feeder" name="เฉลี่ยสาย Feeder" fill="#f0e800" radius={[0, 4, 4, 0]} barSize={10} />
+                        <Bar dataKey="tower" name="อุปกรณ์บนเสา" fill="#b829dd" radius={[0, 4, 4, 0]} barSize={10} />
+                        <Bar dataKey="radio" name="เครื่องวิทยุ" fill="#ff00a0" radius={[0, 4, 4, 0]} barSize={10} />
                     </>
                 )}
             </BarChart>

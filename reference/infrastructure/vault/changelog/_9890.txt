@@ -1,3 +1,0 @@
-```release-note:improvement
-ui/activity (enterprise): Reduce requests to the activity export API by only fetching new data when the dashboard initially loads or is manually refreshed.
-```

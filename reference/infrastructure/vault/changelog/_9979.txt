@@ -1,3 +1,0 @@
-```release-note:bug
-auth/spiffe: Address an issue updating a role with overlapping workload_id_pattern values it previously contained.
-```

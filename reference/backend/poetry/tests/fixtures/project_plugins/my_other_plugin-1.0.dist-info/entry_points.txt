@@ -1,2 +1,0 @@
-[poetry.plugin]
-other-plugin=my_application_plugin.plugins:MyOtherPlugin

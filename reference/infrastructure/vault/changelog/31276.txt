@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Fix regression in 1.20.0 to properly set namespace context for capabilities checks
-```

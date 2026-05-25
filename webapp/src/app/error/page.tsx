@@ -2,11 +2,22 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { logClientActivity } from "@/lib/client-activity";
 
 function ErrorContent() {
     const searchParams = useSearchParams();
     const error = searchParams.get("error");
+
+    useEffect(() => {
+        if (!error) return;
+        logClientActivity({
+            eventType: "failed_auth",
+            eventName: "auth_error_page_viewed",
+            targetType: "auth",
+            targetLabel: error,
+        });
+    }, [error]);
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC] p-4 font-sans dark:bg-zinc-950">

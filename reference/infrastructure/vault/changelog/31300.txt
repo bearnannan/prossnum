@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Include user's root namespace in the namespace picker if it's a namespace other than the actual root ("")
-```

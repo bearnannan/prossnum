@@ -1,3 +1,0 @@
-```release-note:bug
-ui: remove unnecessary 'credential type' form input when generating AWS secrets
-```

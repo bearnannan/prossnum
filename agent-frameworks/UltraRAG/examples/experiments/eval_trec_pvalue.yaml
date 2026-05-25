@@ -1,9 +1,0 @@
-# Trec Significant Demo
-
-# MCP Server
-servers:
-  evaluation: servers/evaluation
-
-# MCP Client Pipeline
-pipeline:
-- evaluation.evaluate_trec_pvalue

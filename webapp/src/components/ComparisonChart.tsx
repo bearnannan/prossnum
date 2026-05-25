@@ -22,17 +22,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         const row = payload[0].payload;
         return (
-            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-zinc-100 dark:border-zinc-700 p-3 text-sm min-w-[190px]">
-                <p className="font-bold text-zinc-800 dark:text-white mb-1">{label}</p>
-                <p className="text-xs text-zinc-400 mb-2">{row.count} สถานี</p>
+            <div className="bg-dark-elevated/95 backdrop-blur-md rounded-xl border border-dark-border p-3 text-sm min-w-[190px] shadow-[0_0_20px_rgba(0,240,255,0.08)]">
+                <p className="font-bold text-slate-100 mb-1">{label}</p>
+                <p className="text-xs text-slate-400 mb-2">{row.count} สถานี</p>
                 <div className="space-y-1.5">
                     {payload.map((entry: any, i: number) => (
                         <div key={i} className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: entry.fill }} />
-                                <span className="text-zinc-600 dark:text-zinc-300 text-xs">{entry.name}</span>
+                                <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: entry.color }} />
+                                <span className="text-slate-300 text-xs">{entry.name}</span>
                             </div>
-                            <span className="font-semibold text-zinc-800 dark:text-white">{entry.value}%</span>
+                            <span className="font-semibold text-slate-100">{entry.value}%</span>
                         </div>
                     ))}
                 </div>
@@ -120,19 +120,18 @@ export default React.memo(function ComparisonChart({
 
     // Determine bar size based on number of districts
     const barSize = chartData.length <= 5 ? 24 : chartData.length <= 10 ? 16 : 12;
-    const chartHeight = Math.max(300, chartData.length * 70);
 
     return (
-        <div className="w-full overflow-y-auto" style={{ height: "100%" }}>
-            <ResponsiveContainer width="100%" height={chartHeight} minWidth={0} minHeight={0}>
+        <div className="w-full h-full relative">
+            <ResponsiveContainer width="100%" height={380} minWidth={0} minHeight={0}>
                 <BarChart
                     data={chartData}
                     margin={{ top: 10, right: 24, left: 10, bottom: 10 }}
                 >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" strokeOpacity={0.6} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.08)" />
                     <XAxis
                         dataKey="name"
-                        tick={{ fill: "#6B7280", fontSize: 11 }}
+                        tick={{ fill: "#94a3b8", fontSize: 11 }}
                         axisLine={false}
                         tickLine={false}
                         interval={0}
@@ -142,32 +141,32 @@ export default React.memo(function ComparisonChart({
                     />
                     <YAxis
                         domain={[0, 100]}
-                        tick={{ fill: "#6B7280", fontSize: 11 }}
+                        tick={{ fill: "#94a3b8", fontSize: 11 }}
                         axisLine={false}
                         tickLine={false}
                         tickFormatter={(v) => `${v}%`}
                         width={40}
                     />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "#F9FAFB", opacity: 0.6 }} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255, 255, 255, 0.03)", opacity: 0.6 }} />
                     <Legend
                         iconType="square"
                         iconSize={10}
-                        wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
+                        wrapperStyle={{ fontSize: "12px", paddingTop: "12px", color: "#94a3b8" }}
                     />
-                    <ReferenceLine y={100} stroke="#E5E7EB" strokeDasharray="4 4" strokeWidth={1.5} />
+                    <ReferenceLine y={100} stroke="rgba(255, 255, 255, 0.15)" strokeDasharray="4 4" strokeWidth={1.5} />
                     {!isClient ? (
                         <>
                             <Bar
                                 dataKey="foundation"
                                 name="ฐานราก"
-                                fill="#6366F1"
+                                fill="#00f0ff"
                                 radius={[6, 6, 0, 0]}
                                 barSize={barSize}
                             />
                             <Bar
                                 dataKey="pole"
                                 name="ติดตั้งเสา"
-                                fill="#06B6D4"
+                                fill="#00ff88"
                                 radius={[6, 6, 0, 0]}
                                 barSize={barSize}
                             />
@@ -177,21 +176,21 @@ export default React.memo(function ComparisonChart({
                             <Bar
                                 dataKey="electric"
                                 name="ไฟฟ้า"
-                                fill="#6366F1"
+                                fill="#00f0ff"
                                 radius={[4, 4, 0, 0]}
                                 barSize={barSize}
                             />
                             <Bar
                                 dataKey="ground"
                                 name="กราวด์"
-                                fill="#06B6D4"
+                                fill="#00ff88"
                                 radius={[4, 4, 0, 0]}
                                 barSize={barSize}
                             />
                             <Bar
                                 dataKey="feeder"
                                 name="Feeder"
-                                fill="#10B981"
+                                fill="#f0e800"
                                 radius={[4, 4, 0, 0]}
                                 barSize={barSize}
                             />

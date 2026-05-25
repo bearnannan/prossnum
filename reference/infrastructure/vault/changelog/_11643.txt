@@ -1,3 +1,0 @@
-```release-note:bug
-ui: Reverts Kubernetes CA Certificate auth method configuration form field type to file selector 
-```

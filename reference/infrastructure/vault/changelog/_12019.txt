@@ -1,3 +1,0 @@
-```release-note:bug
-secrets/pki (enterprise): Fix SCEP related digest errors when requests contained compound octet strings 
-```

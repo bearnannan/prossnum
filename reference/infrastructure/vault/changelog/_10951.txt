@@ -1,3 +1,0 @@
-```release-note:bug
-secret-sync (enterprise): Improved unsync error handling by treating cases where the destination no longer exists as successful.
-```

@@ -1,3 +1,0 @@
-```release-note:bug
-identity/mfa: revert cache entry change from #31217 and document cache entry values
-```

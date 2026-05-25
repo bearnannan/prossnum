@@ -1,3 +1,0 @@
-```release-note:improvement
-auth/cert: test non-CA cert equality on login matching instead of individual fields.
-```

@@ -1,3 +1,0 @@
-```release-note:bug
-secrets/database: respect the escaping/disable_escaping state when using self-managed static roles
-```

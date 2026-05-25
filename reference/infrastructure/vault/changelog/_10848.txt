@@ -1,3 +1,0 @@
-```release-note:bug
-http: skip JSON limit parsing on cluster listener
-```

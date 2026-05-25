@@ -1,3 +1,0 @@
-```release-note:security
-ui: disable scarf analytics for ui builds
-```

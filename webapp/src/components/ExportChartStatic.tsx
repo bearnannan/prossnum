@@ -44,7 +44,7 @@ export default function ExportChartStatic({ data, category = 'station', width = 
 
     if (chartData.length === 0) {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width, height, color: '#9CA3AF' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width, height, color: '#64748B', background: 'rgba(10,10,15,0.65)', borderRadius: '14px' }}>
                 ไม่มีข้อมูล
             </div>
         );
@@ -57,17 +57,17 @@ export default function ExportChartStatic({ data, category = 'station', width = 
 
     return (
         // Fixed-dimension wrapper — NO ResponsiveContainer (doesn't work off-screen)
-        <div style={{ width, height, overflow: 'hidden' }}>
+        <div style={{ width, height, overflow: 'hidden', background: 'rgba(10,10,15,0.45)', borderRadius: '14px' }}>
             <BarChart
                 width={width}
                 height={height}
                 data={chartData}
                 margin={{ top: 8, right: 16, left: 0, bottom: 80 }}
             >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,240,255,0.16)" />
                 <XAxis
                     dataKey="name"
-                    tick={{ fill: '#374151', fontSize: 9, fontFamily: 'Sarabun, sans-serif' }}
+                    tick={{ fill: '#94A3B8', fontSize: 9, fontFamily: 'Sarabun, sans-serif' }}
                     angle={-50}
                     textAnchor="end"
                     interval={0}
@@ -78,28 +78,28 @@ export default function ExportChartStatic({ data, category = 'station', width = 
                 />
                 <YAxis
                     domain={[0, 100]}
-                    tick={{ fill: '#6B7280', fontSize: 10 }}
+                    tick={{ fill: '#64748B', fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `${v}%`}
                 />
                 <Legend
                     iconType="circle"
-                    wrapperStyle={{ fontSize: '11px', fontFamily: 'Sarabun, sans-serif', paddingTop: '4px' }}
+                    wrapperStyle={{ fontSize: '11px', fontFamily: 'Sarabun, sans-serif', paddingTop: '4px', color: '#CBD5E1' }}
                 />
                 
                 {!isClient ? (
                     <>
-                        <Bar dataKey="foundation" name="ฐานราก" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={barSize} isAnimationActive={false} />
-                        <Bar dataKey="pole" name="ติดตั้งเสา" fill="#10B981" radius={[4, 4, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="foundation" name="ฐานราก" fill="#00F0FF" radius={[4, 4, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="pole" name="ติดตั้งเสา" fill="#00FF88" radius={[4, 4, 0, 0]} barSize={barSize} isAnimationActive={false} />
                     </>
                 ) : (
                     <>
-                        <Bar dataKey="electric" name="ระบบไฟฟ้า" fill="#3B82F6" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
-                        <Bar dataKey="ground" name="ระบบกราวด์" fill="#10B981" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
-                        <Bar dataKey="feeder" name="สาย Feeder" fill="#F59E0B" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
-                        <Bar dataKey="tower" name="อุปกรณ์บนเสา (Yagi)" fill="#8B5CF6" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
-                        <Bar dataKey="radio" name="เครื่องวิทยุ" fill="#EC4899" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="electric" name="ระบบไฟฟ้า" fill="#00F0FF" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="ground" name="ระบบกราวด์" fill="#00FF88" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="feeder" name="สาย Feeder" fill="#F0E800" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="tower" name="อุปกรณ์บนเสา (Yagi)" fill="#B829DD" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
+                        <Bar dataKey="radio" name="เครื่องวิทยุ" fill="#FF00A0" radius={[2, 2, 0, 0]} barSize={barSize} isAnimationActive={false} />
                     </>
                 )}
             </BarChart>

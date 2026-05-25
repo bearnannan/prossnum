@@ -1,3 +1,0 @@
-```release-note:change
-core: Require sudo capability for `sys/mounts/auth/<path>/tune`, matching `sys/auth/<path>/tune`.
-```

@@ -1,3 +1,0 @@
-```release-note:deprecation
-core: deprecate duplicate attributes in HCL configuration files and policy definitions
-```

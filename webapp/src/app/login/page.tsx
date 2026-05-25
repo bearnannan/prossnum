@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import { logClientActivity } from "@/lib/client-activity";
 
 export default function LoginPage() {
     const [district, setDistrict] = useState("");
@@ -13,6 +14,58 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isLineLoading, setIsLineLoading] = useState(false);
     const router = useRouter();
+
+    // Auto-login if credentials were submitted in query params before JS hydration
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            const authError = params.get("error");
+            if (authError) {
+                logClientActivity({
+                    eventType: "failed_auth",
+                    eventName: "line_oauth_failed",
+                    targetType: "auth_provider",
+                    targetLabel: "line",
+                    metadata: {
+                        error: authError,
+                        errorDescription: params.get("error_description"),
+                    },
+                });
+            }
+            const urlDistrict = params.get("district");
+            const urlPin = params.get("pin");
+            if (urlDistrict && urlPin) {
+                setDistrict(urlDistrict);
+                setPin(urlPin);
+                
+                const autoLogin = async () => {
+                    setError("");
+                    setIsLoading(true);
+                    try {
+                        const res = await fetch("/api/auth", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ district: urlDistrict, pin: urlPin }),
+                        });
+
+                        if (!res.ok) {
+                            const data = await res.json();
+                            throw new Error(data.error || "Invalid PIN");
+                        }
+
+                        // Redirect to home and refresh session
+                        router.push("/");
+                        router.refresh();
+                    } catch (err: any) {
+                        setError(err.message);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                };
+                autoLogin();
+            }
+        }
+    }, [router]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,53 +98,21 @@ export default function LoginPage() {
     const pinStrength = Math.min(4, pin.length);
 
     return (
-        <div className="min-h-screen flex flex-col relative overflow-hidden">
-            {/* ═══ Animated Gradient Background ═══ */}
+    <div className="min-h-screen flex flex-col relative overflow-hidden login-page">
+            {/* ═══ Neon Orbs ═══ */}
+            <div className="login-orb login-orb-1" />
+            <div className="login-orb login-orb-2" />
+            <div className="login-orb login-orb-3" />
+
+            {/* ═══ Subtle Cyan Grid ═══ */}
             <div 
-                className="fixed inset-0 z-0"
+                className="fixed inset-0 z-[1] pointer-events-none"
                 style={{
-                    background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #1e3a5f 50%, #0f172a 75%, #1a1033 100%)',
-                    backgroundSize: '400% 400%',
-                    animation: 'gradientShift 15s ease infinite',
+                    backgroundImage: 
+                        'linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px)',
+                    backgroundSize: '40px 40px',
                 }}
             />
-
-            {/* ═══ Subtle Grid Overlay ═══ */}
-            <div 
-                className="fixed inset-0 z-[1] opacity-[0.03]"
-                style={{
-                    backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.5) 1px, transparent 0)',
-                    backgroundSize: '32px 32px',
-                }}
-            />
-
-            {/* ═══ Floating Particles ═══ */}
-            <div className="fixed inset-0 z-[2] pointer-events-none overflow-hidden">
-                {/* Blob 1 — top-right */}
-                <div 
-                    className="absolute -top-20 -right-20 w-[400px] h-[400px] rounded-full opacity-[0.07]"
-                    style={{
-                        background: 'radial-gradient(circle, #3b82f6, transparent 70%)',
-                        animation: 'float 8s ease-in-out infinite',
-                    }}
-                />
-                {/* Blob 2 — bottom-left */}
-                <div 
-                    className="absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full opacity-[0.06]"
-                    style={{
-                        background: 'radial-gradient(circle, #8b5cf6, transparent 70%)',
-                        animation: 'float 10s ease-in-out infinite 2s',
-                    }}
-                />
-                {/* Blob 3 — center */}
-                <div 
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-[0.04]"
-                    style={{
-                        background: 'radial-gradient(circle, #06b6d4, transparent 70%)',
-                        animation: 'float 12s ease-in-out infinite 4s',
-                    }}
-                />
-            </div>
 
             {/* ═══ Main Content ═══ */}
             <main className="flex-grow flex items-center justify-center px-4 py-12 relative z-10">
@@ -101,36 +122,38 @@ export default function LoginPage() {
                 >
                     {/* ═══ Auth Card ═══ */}
                     <div 
-                        className="rounded-[28px] overflow-hidden"
-                        style={{
-                            background: 'rgba(255, 255, 255, 0.08)',
-                            backdropFilter: 'blur(40px) saturate(1.5)',
-                            WebkitBackdropFilter: 'blur(40px) saturate(1.5)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 32px 64px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-                        }}
+                        className="login-card rounded-[24px] overflow-hidden geo-corner"
                     >
                         {/* ── Branding Header ── */}
                         <div className="p-8 pb-2 text-center">
+                            {/* Hexagon Logo — neon cyan */}
                             <div 
-                                className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 shadow-premium-md gradient-primary animate-float"
-                                style={{ animationDuration: '4s' }}
+                                className="inline-flex items-center justify-center w-16 h-16 rounded-xl mb-6 animate-float shadow-[0_0_20px_rgba(0,240,255,0.3)]"
+                                style={{ 
+                                    background: 'linear-gradient(135deg, rgba(0,240,255,0.15), rgba(0,240,255,0.3))',
+                                    border: '1px solid rgba(0,240,255,0.35)',
+                                    animationDuration: '4s' 
+                                }}
                             >
-                                <span className="material-symbols-outlined text-white text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                    architecture
-                                </span>
+                                <svg width="28" height="28" viewBox="0 0 40 44" fill="none">
+                                    <polygon points="20,2 38,12 38,32 20,42 2,32 2,12"
+                                        stroke="#00f0ff" strokeWidth="2" fill="rgba(0,240,255,0.1)" 
+                                        style={{ filter: "drop-shadow(0 0 4px rgba(0,240,255,0.6))" }} />
+                                    <circle cx="20" cy="22" r="4" fill="#00f0ff" 
+                                        style={{ filter: "drop-shadow(0 0 6px rgba(0,240,255,0.8))" }} />
+                                </svg>
                             </div>
                             <h1 
-                                className="text-2xl font-extrabold tracking-tight text-white mb-1"
+                                className="text-2xl font-extrabold tracking-wider text-white mb-1 neon-text-cyan"
                                 style={{ 
-                                    fontFamily: 'var(--font-headline)',
+                                    fontFamily: 'var(--font-display)',
                                     animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.1s both',
                                 }}
                             >
-                                ProssNum
+                                PROSSNUM
                             </h1>
                             <p 
-                                className="text-sm text-white/40 font-medium"
+                                className="text-xs text-slate-400 font-bold tracking-widest uppercase"
                                 style={{ animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.15s both' }}
                             >
                                 Infrastructure Progress Dashboard
@@ -162,10 +185,10 @@ export default function LoginPage() {
                                     style={{ animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.2s both' }}
                                 >
                                     <label htmlFor="district" className="text-[11px] font-bold text-white/40 uppercase tracking-[0.15em] ml-1">
-                                        District / อำเภอ
+                                        Username / Email / District
                                     </label>
                                     <div className="relative group">
-                                        <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 text-lg group-focus-within:text-blue-400 transition-colors duration-200">
+                                        <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-lg group-focus-within:text-neon-cyan transition-colors duration-200">
                                             location_on
                                         </span>
                                         <input
@@ -173,24 +196,24 @@ export default function LoginPage() {
                                             name="district"
                                             type="text"
                                             required
-                                            placeholder="เลือกอำเภอของคุณ"
+                                            placeholder="admin"
                                             value={district}
                                             onChange={(e) => setDistrict(e.target.value)}
                                             autoComplete="username"
-                                            className="w-full rounded-xl pl-11 pr-4 py-3.5 text-sm font-medium text-white placeholder:text-white/20 outline-none transition-all duration-300"
+                                            className="w-full rounded-xl pl-11 pr-4 py-3.5 text-sm font-medium text-white placeholder:text-slate-600 outline-none transition-all duration-300"
                                             style={{
-                                                background: 'rgba(255, 255, 255, 0.06)',
-                                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                                background: 'rgba(10, 10, 15, 0.60)',
+                                                border: '1px solid rgba(0, 240, 255, 0.20)',
                                             }}
                                             onFocus={(e) => {
-                                                e.target.style.borderColor = 'rgba(59, 130, 246, 0.4)';
-                                                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                                                e.target.style.background = 'rgba(255, 255, 255, 0.08)';
+                                                e.target.style.borderColor = 'rgba(0, 240, 255, 0.50)';
+                                                e.target.style.boxShadow = '0 0 0 3px rgba(0, 240, 255, 0.10)';
+                                                e.target.style.background = 'rgba(10, 10, 15, 0.80)';
                                             }}
                                             onBlur={(e) => {
-                                                e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                                                e.target.style.borderColor = 'rgba(0, 240, 255, 0.20)';
                                                 e.target.style.boxShadow = 'none';
-                                                e.target.style.background = 'rgba(255, 255, 255, 0.06)';
+                                                e.target.style.background = 'rgba(10, 10, 15, 0.60)';
                                             }}
                                         />
                                     </div>
@@ -202,10 +225,10 @@ export default function LoginPage() {
                                     style={{ animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.25s both' }}
                                 >
                                     <label htmlFor="pin" className="text-[11px] font-bold text-white/40 uppercase tracking-[0.15em] ml-1">
-                                        PIN Code
+                                        Password / PIN
                                     </label>
                                     <div className="relative group">
-                                        <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 text-lg group-focus-within:text-blue-400 transition-colors duration-200">
+                                        <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-lg group-focus-within:text-neon-cyan transition-colors duration-200">
                                             lock
                                         </span>
                                         <input
@@ -217,20 +240,20 @@ export default function LoginPage() {
                                             value={pin}
                                             onChange={(e) => setPin(e.target.value)}
                                             autoComplete="current-password"
-                                            className="w-full rounded-xl pl-11 pr-12 py-3.5 text-sm font-medium text-white placeholder:text-white/20 outline-none transition-all duration-300"
+                                            className="w-full rounded-xl pl-11 pr-12 py-3.5 text-sm font-medium text-white placeholder:text-slate-600 outline-none transition-all duration-300"
                                             style={{
-                                                background: 'rgba(255, 255, 255, 0.06)',
-                                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                                background: 'rgba(10, 10, 15, 0.60)',
+                                                border: '1px solid rgba(0, 240, 255, 0.20)',
                                             }}
                                             onFocus={(e) => {
-                                                e.target.style.borderColor = 'rgba(59, 130, 246, 0.4)';
-                                                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                                                e.target.style.background = 'rgba(255, 255, 255, 0.08)';
+                                                e.target.style.borderColor = 'rgba(0, 240, 255, 0.50)';
+                                                e.target.style.boxShadow = '0 0 0 3px rgba(0, 240, 255, 0.10)';
+                                                e.target.style.background = 'rgba(10, 10, 15, 0.80)';
                                             }}
                                             onBlur={(e) => {
-                                                e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                                                e.target.style.borderColor = 'rgba(0, 240, 255, 0.20)';
                                                 e.target.style.boxShadow = 'none';
-                                                e.target.style.background = 'rgba(255, 255, 255, 0.06)';
+                                                e.target.style.background = 'rgba(10, 10, 15, 0.60)';
                                             }}
                                         />
                                         <button 
@@ -253,9 +276,14 @@ export default function LoginPage() {
                                                     style={{
                                                         background: i < pinStrength 
                                                             ? pinStrength <= 2 
-                                                                ? 'rgba(245, 158, 11, 0.6)' 
-                                                                : 'rgba(16, 185, 129, 0.6)'
-                                                            : 'rgba(255, 255, 255, 0.06)',
+                                                                ? 'rgba(240, 232, 0, 0.7)' 
+                                                                : 'rgba(0, 255, 136, 0.7)'
+                                                            : 'rgba(0, 240, 255, 0.08)',
+                                                        boxShadow: i < pinStrength
+                                                            ? pinStrength <= 2
+                                                                ? '0 0 6px rgba(240, 232, 0, 0.4)'
+                                                                : '0 0 6px rgba(0, 255, 136, 0.4)'
+                                                            : 'none',
                                                     }}
                                                 />
                                             ))}
@@ -272,15 +300,18 @@ export default function LoginPage() {
                                         <input id="remember" name="remember" type="checkbox" className="h-3.5 w-3.5 rounded border-white/20 bg-white/5 accent-blue-500" />
                                         <label htmlFor="remember" className="text-xs text-white/35 font-medium">Remember me</label>
                                     </div>
-                                    <a href="#" className="text-xs font-semibold text-blue-400/70 hover:text-blue-400 transition-colors duration-200">Forgot PIN?</a>
+                                    <a href="#" className="text-xs font-semibold text-neon-cyan/50 hover:text-neon-cyan transition-colors duration-200">Forgot PIN?</a>
                                 </div>
 
                                 {/* Submit Button */}
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="w-full py-3.5 rounded-xl font-bold shadow-premium-md transition-all duration-300 flex items-center justify-center gap-2.5 disabled:opacity-50 hover:scale-[1.01] active:scale-[0.98] hover:shadow-premium-lg text-white text-sm gradient-primary relative overflow-hidden group"
-                                    style={{ animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.35s both' }}
+                                    className="w-full py-3.5 rounded-xl font-black shadow-[0_0_15px_rgba(0,240,255,0.2)] hover:shadow-[0_0_25px_rgba(0,240,255,0.4)] transition-all duration-300 flex items-center justify-center gap-2.5 disabled:opacity-50 hover:scale-[1.01] active:scale-[0.98] text-dark-base text-sm relative overflow-hidden group"
+                                    style={{ 
+                                        background: '#00f0ff',
+                                        animation: 'fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) 0.35s both' 
+                                    }}
                                 >
                                     {/* Shine effect on hover */}
                                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" 

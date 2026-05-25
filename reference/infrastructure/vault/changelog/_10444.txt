@@ -1,3 +1,0 @@
-```release-note:improvement
-policies: add warning about list comparison when using allowed_parameters or denied_parameters
-```

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useMemo, useEffect, Suspense, useTransition, useDeferredValue } from "react";
-import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import useSWR from "swr";
 import { supabase } from "@/lib/supabase";
@@ -21,7 +20,6 @@ import { DashboardCharts } from '@/components/DashboardCharts';
 import { DashboardTable } from '@/components/DashboardTable';
 import { ExportModal } from '@/components/ExportModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { signOut } from "next-auth/react";
 import { CursorGlow } from "@/components/motion/CursorGlow";
 import { Magnetic } from "@/components/motion/Magnetic";
 import { motion, AnimatePresence } from "framer-motion";
@@ -128,7 +126,8 @@ function DashboardContent() {
     expandedDistricts, setExpandedDistricts,
     handleExportTXT,
     handleExportPDF,
-    handleExportJPEG
+    handleExportJPEG,
+    handleExportCSV
   } = useExport();
   const [colorMode, setColorMode] = useState<'color' | 'grayscale'>('color');
   const [isStationModalOpen, setIsStationModalOpen] = useState(false);
@@ -143,7 +142,6 @@ function DashboardContent() {
   };
 
   const { showToast } = useToast();
-  const router = useRouter();
 
   const {
     filterDistrict, setFilterDistrict,
@@ -179,10 +177,6 @@ function DashboardContent() {
   // ─── Real-time Updates ───
   useRealtime({ table: 'stations', dataset: 'station', enableToast: activeCategory === 'station' });
   useRealtime({ table: 'client_systems', dataset: 'client', enableToast: activeCategory === 'client' });
-
-  const handleLogout = async () => {
-    await signOut({ callbackUrl: "/login" });
-  };
 
   const handleEditClick = (item: any) => {
     setEditingStation(item);
@@ -229,10 +223,10 @@ function DashboardContent() {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="bg-zinc-50/50 dark:bg-zinc-950/80 architectural-bg text-zinc-900 dark:text-zinc-100 min-h-screen font-sans"
+      className="bg-dark-base bg-grid text-slate-100 min-h-screen font-sans"
     >
       <CursorGlow />
-      <TopNavBar onLogout={handleLogout} onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+      <TopNavBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
       
       {/* ─── Global Transition Progress Bar ─── */}
       <div className={`fixed top-0 left-0 right-0 h-1 z-[60] bg-blue-500/20 overflow-hidden transition-opacity duration-300 ${isPending ? 'opacity-100' : 'opacity-0'}`}>
@@ -263,7 +257,7 @@ function DashboardContent() {
           <ClientSystemModal isOpen={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} onSave={fetchSheetData} editingStation={editingStation} districts={districts} />
 
           {/* ════════════ HEADER ════════════ */}
-          <motion.header variants={itemVariants} className="col-span-1 md:col-span-2 lg:col-span-12 glass-panel-elevated p-6 sm:p-8">
+          <motion.header variants={itemVariants} className="col-span-1 md:col-span-2 lg:col-span-12 bg-dark-elevated border border-dark-border rounded-2xl shadow-card p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
               <div>
                 <div className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 mb-1.5 tracking-wide">
@@ -280,25 +274,33 @@ function DashboardContent() {
 
               <div className="flex flex-wrap items-center gap-4">
                 {/* Live Status Indicator */}
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/20">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neon-green/5 border border-neon-green/20">
                   <motion.div 
                     animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
                     transition={{ duration: 2, repeat: Infinity }}
-                    className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                    className="w-2 h-2 rounded-full bg-neon-green shadow-[0_0_10px_rgba(0,255,136,0.6)]"
                   />
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest leading-none">Live Connect</span>
-                    <span className="text-[8px] text-emerald-500/60 font-medium leading-none mt-0.5">เชื่อมต่อเรียลไทม์แล้ว</span>
+                    <span className="text-[10px] font-black text-neon-green uppercase tracking-widest leading-none" style={{ textShadow: "0 0 6px rgba(0,255,136,0.4)" }}>Live Connect</span>
+                    <span className="text-[8px] text-neon-green/60 font-bold leading-none mt-0.5 uppercase tracking-tighter">เชื่อมต่อเรียลไทม์แล้ว</span>
                   </div>
                 </div>
                 <Magnetic distance={0.2}>
-                  <button 
+                  <motion.button 
                     onClick={() => { setEditingStation(null); activeCategory === 'client' ? setIsClientModalOpen(true) : setIsStationModalOpen(true); }} 
-                    className="group px-5 py-2.5 rounded-xl font-bold shadow-premium-sm hover:shadow-premium-md transition-all duration-300 flex items-center gap-2 text-white gradient-primary hover:scale-[1.05] active:scale-[0.95]"
+                    animate={{ 
+                      boxShadow: [
+                        "0 0 12px rgba(184,41,221,0.35)", 
+                        "0 0 22px rgba(184,41,221,0.65)", 
+                        "0 0 12px rgba(184,41,221,0.35)"
+                      ] 
+                    }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    className="group px-5 py-2.5 rounded-xl font-black uppercase text-xs tracking-wider border border-neon-purple/30 hover:border-neon-purple/60 transition-all duration-300 flex items-center gap-2 text-white bg-neon-purple/90 hover:scale-[1.05] active:scale-[0.95] cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-sm group-hover:rotate-90 transition-transform duration-300">add</span>
+                    <span className="material-symbols-outlined text-sm font-black group-hover:rotate-90 transition-transform duration-300">add</span>
                     เพิ่ม{activeCategory === 'client' ? 'งาน' : 'สถานี'}
-                  </button>
+                  </motion.button>
                 </Magnetic>
               </div>
             </div>
@@ -349,6 +351,7 @@ function DashboardContent() {
         handleExportTXT={handleExportTXT}
         handleExportJPEG={handleExportJPEG}
         handleExportPDF={handleExportPDF}
+        handleExportCSV={handleExportCSV}
       />
     </motion.div>
   );

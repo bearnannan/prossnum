@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Update date selector in client count usage page to disable current month selection for Vault clusters without a license.
-```

@@ -72,3 +72,10 @@ Prossnum is not just a UI; it is an intelligent codebase mapped by [GitNexus](fi
 
 ---
 *Created with ui-ux-pro-max intelligence v2.5.0 & GitNexus v1.6.3*
+
+## 7. Incidents Settings & Resend UI Pattern
+
+The dynamic backup switching card and resend action buttons follow the `MASTER.md` specifications exactly:
+- **Administrative Settings Card:** Rendered inside a dynamic `GlassCard` with `glow="yellow"` and full geometric corner accents, maintaining cohesive bento grid layout and form input alignments.
+- **Glowing Retry Button:** High-density, glowing action buttons (`bg-neon-yellow/15` background, `text-neon-yellow` copy, and `border-neon-yellow/30` border) paired with modern hover transitions, enhancing micro-interaction physics.
+

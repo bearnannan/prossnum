@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: Replaces all instances of the deprecated event.keyCode with event.key
-```

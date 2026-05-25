@@ -1,3 +1,0 @@
-```release-note:bug
-secrets/database/postgresql: Support for multiline statements in the `rotation_statements` field.
-```

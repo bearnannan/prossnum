@@ -1,3 +1,0 @@
-```release-note:bug
-raft (enterprise): auto-join will now work in regions that do not support dual-stack
-```

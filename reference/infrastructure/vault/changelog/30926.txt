@@ -1,3 +1,0 @@
-```release-note:bug
-core: Omit automatic version control information of the main module from compiled Vault binaries 
-```

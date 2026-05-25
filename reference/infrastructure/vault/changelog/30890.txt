@@ -1,3 +1,0 @@
-```release-note:change
-logical/system: add ent stub for plugin catalog handling
-```

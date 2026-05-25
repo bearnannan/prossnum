@@ -16,6 +16,8 @@ For the full project overview, including architectural details and developer set
 - **Database**: Supabase
 - **UI System**: Tailwind v4 + Radix UI
 - **Mapping**: MapLibre GL / Leaflet
+- **Resilience**: Zero-Restart Dynamic Switcher + Microsoft 365 SMTP Fallback
 
 ---
 © 2026 Developed by Prossnum Team.
+
